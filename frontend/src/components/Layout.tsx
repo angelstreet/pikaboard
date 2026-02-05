@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import HeaderStatsBar from './HeaderStatsBar';
 import EnvToggle from './EnvToggle';
+import AgentsSidebar from './AgentsSidebar';
 
 const navItems = [
   { path: '/', label: '🏠 Dashboard', title: 'Dashboard' },
@@ -17,6 +19,7 @@ const COMMIT = import.meta.env.VITE_COMMIT || '?';
 
 export default function Layout() {
   const location = useLocation();
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 transition-colors">
@@ -49,12 +52,21 @@ export default function Layout() {
         </div>
       </header>
 
-      {/* Main content */}
-      <main className="flex-1 p-4">
-        <div className="max-w-7xl mx-auto">
-          <Outlet />
-        </div>
-      </main>
+      {/* Main area with sidebar */}
+      <div className="flex-1 flex overflow-hidden">
+        {/* Agents Sidebar */}
+        <AgentsSidebar
+          collapsed={sidebarCollapsed}
+          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+        />
+
+        {/* Main content */}
+        <main className="flex-1 p-4 overflow-y-auto">
+          <div className="max-w-7xl mx-auto">
+            <Outlet />
+          </div>
+        </main>
+      </div>
 
       {/* Footer */}
       <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
