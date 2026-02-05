@@ -1,0 +1,126 @@
+// API Types
+export interface Task {
+  id: number;
+  name: string;
+  description: string | null;
+  status: 'inbox' | 'up_next' | 'in_progress' | 'in_review' | 'done';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  tags: string[];
+  created_at: string;
+  updated_at: string;
+  completed_at: string | null;
+}
+
+export interface Activity {
+  id: number;
+  type: string;
+  message: string;
+  metadata: Record<string, unknown> | null;
+  created_at: string;
+}
+
+export interface Cron {
+  name?: string;
+  schedule: string;
+  lastRun?: string;
+  nextRun?: string;
+}
+
+export interface Skill {
+  name: string;
+  path: string;
+  hasReadme: boolean;
+  hasSkillMd: boolean;
+  description?: string;
+}
+
+// Get token from env or localStorage
+const getToken = (): string | null => {
+  // In development, you can set this in localStorage
+  return localStorage.getItem('pikaboard_token');
+};
+
+// API Client
+class ApiClient {
+  private baseUrl = import.meta.env.PROD ? '/pikaboard/api' : '/api';
+
+  private async fetch<T>(path: string, options: RequestInit = {}): Promise<T> {
+    const token = getToken();
+
+    const res = await fetch(`${this.baseUrl}${path}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...options.headers,
+      },
+    });
+
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({ error: 'Request failed' }));
+      throw new Error(error.error || `HTTP ${res.status}`);
+    }
+
+    return res.json();
+  }
+
+  // Tasks
+  async getTasks(params?: { status?: string; priority?: string }): Promise<Task[]> {
+    const search = new URLSearchParams();
+    if (params?.status) search.set('status', params.status);
+    if (params?.priority) search.set('priority', params.priority);
+    const query = search.toString();
+    const res = await this.fetch<{ tasks: Task[] }>(`/tasks${query ? `?${query}` : ''}`);
+    return res.tasks;
+  }
+
+  async getTask(id: number): Promise<Task> {
+    return this.fetch<Task>(`/tasks/${id}`);
+  }
+
+  async createTask(task: Partial<Task>): Promise<Task> {
+    return this.fetch<Task>('/tasks', {
+      method: 'POST',
+      body: JSON.stringify(task),
+    });
+  }
+
+  async updateTask(id: number, updates: Partial<Task>): Promise<Task> {
+    return this.fetch<Task>(`/tasks/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    });
+  }
+
+  async deleteTask(id: number): Promise<void> {
+    await this.fetch(`/tasks/${id}`, { method: 'DELETE' });
+  }
+
+  // Activity
+  async getActivity(params?: { limit?: number; type?: string }): Promise<Activity[]> {
+    const search = new URLSearchParams();
+    if (params?.limit) search.set('limit', String(params.limit));
+    if (params?.type) search.set('type', params.type);
+    const query = search.toString();
+    const res = await this.fetch<{ activity: Activity[] }>(`/activity${query ? `?${query}` : ''}`);
+    return res.activity;
+  }
+
+  // Crons
+  async getCrons(): Promise<Cron[]> {
+    const res = await this.fetch<{ crons: Cron[] }>('/crons');
+    return res.crons;
+  }
+
+  // Skills
+  async getSkills(): Promise<Skill[]> {
+    const res = await this.fetch<{ skills: Skill[] }>('/skills');
+    return res.skills;
+  }
+
+  async getSkill(name: string): Promise<Skill & { skillMd?: string; readme?: string; files?: string[] }> {
+    return this.fetch(`/skills/${name}`);
+  }
+}
+
+export const api = new ApiClient();
