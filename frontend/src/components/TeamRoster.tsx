@@ -7,6 +7,7 @@ interface AgentStatus {
   status: 'idle' | 'working' | 'blocked';
   currentTask?: string;
   taskId?: number;
+  taskName?: string;
   lastSeen?: string;
 }
 
@@ -26,6 +27,7 @@ export default function TeamRoster({ collapsed, onToggle }: TeamRosterProps) {
       try {
         const activity = await api.getActivity({ type: 'agent_activity', limit: 50 });
         const statusMap = new Map<string, AgentStatus>();
+        const taskIdsToFetch = new Set<number>();
 
         // Initialize all team members as idle
         for (const member of TEAM_ROSTER) {
@@ -53,6 +55,7 @@ export default function TeamRoster({ collapsed, onToggle }: TeamRosterProps) {
           );
 
           if (member && meta.status === 'running') {
+            if (meta.task_id) taskIdsToFetch.add(meta.task_id);
             statusMap.set(member.id, {
               agentId: member.id,
               status: 'working',
@@ -60,6 +63,26 @@ export default function TeamRoster({ collapsed, onToggle }: TeamRosterProps) {
               taskId: meta.task_id,
               lastSeen: act.created_at,
             });
+          }
+        }
+
+        // Fetch task names for any task_ids we found
+        if (taskIdsToFetch.size > 0) {
+          try {
+            const tasks = await api.getTasks({});
+            const taskMap = new Map(tasks.map(t => [t.id, t.name]));
+            
+            // Update statuses with task names
+            for (const [agentId, status] of statusMap) {
+              if (status.taskId && taskMap.has(status.taskId)) {
+                statusMap.set(agentId, {
+                  ...status,
+                  taskName: taskMap.get(status.taskId),
+                });
+              }
+            }
+          } catch (err) {
+            console.error('Failed to fetch task names:', err);
           }
         }
 
@@ -228,20 +251,18 @@ export default function TeamRoster({ collapsed, onToggle }: TeamRosterProps) {
                   </div>
 
                   {/* Expanded details */}
-                  {isSelected && (status?.currentTask || status?.taskId) && (
+                  {isSelected && (status?.taskId || status?.taskName) && (
                     <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-600">
                       <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                         Current Task
                       </div>
-                      {status.taskId ? (
-                        <div className="text-sm text-gray-700 dark:text-gray-300 mt-0.5 font-medium">
-                          Task #{status.taskId}
-                        </div>
-                      ) : status.currentTask ? (
-                        <div className="text-sm text-gray-700 dark:text-gray-300 mt-0.5 truncate">
-                          {status.currentTask.split('\n')[0].slice(0, 60)}...
-                        </div>
-                      ) : null}
+                      <div className="text-sm text-gray-700 dark:text-gray-300 mt-0.5 font-medium">
+                        {status.taskName ? (
+                          <>#{status.taskId}: {status.taskName}</>
+                        ) : status.taskId ? (
+                          <>Task #{status.taskId}</>
+                        ) : null}
+                      </div>
                     </div>
                   )}
 
