@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { API_BASE } from '../config/env';
 
 interface Skill {
   name: string;
@@ -12,7 +11,7 @@ interface Plugin {
   name: string;
   enabled: boolean;
   connected?: boolean;
-  config?: Record<string, unknown>;
+  config?: Record<string, string>;
 }
 
 const PLUGIN_ICONS: Record<string, string> = {
@@ -23,6 +22,10 @@ const PLUGIN_ICONS: Record<string, string> = {
   signal: '🔒',
   googlechat: '💼',
   imessage: '💬',
+};
+
+const getToken = (): string => {
+  return 'REDACTED_TOKEN';
 };
 
 export default function Library() {
@@ -38,12 +41,14 @@ export default function Library() {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const token = localStorage.getItem('pikaboard_token') || '';
-      const headers = { Authorization: `Bearer ${token}` };
+      const headers = {
+        Authorization: `Bearer ${getToken()}`,
+        'Content-Type': 'application/json',
+      };
 
       const [skillsRes, pluginsRes] = await Promise.all([
-        fetch(`${API_BASE}/library/skills`, { headers }),
-        fetch(`${API_BASE}/library/plugins`, { headers }),
+        fetch('/api/library/skills', { headers }),
+        fetch('/api/library/plugins', { headers }),
       ]);
 
       if (skillsRes.ok) {
@@ -186,7 +191,7 @@ function PluginsList({ plugins }: { plugins: Plugin[] }) {
               <h3 className="font-medium text-gray-900 dark:text-white capitalize">{plugin.name}</h3>
               {plugin.config?.mode && (
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                  Mode: {String(plugin.config.mode)}
+                  Mode: {plugin.config.mode}
                 </p>
               )}
             </div>
