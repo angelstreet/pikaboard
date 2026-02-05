@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import HeaderStatsBar from './HeaderStatsBar';
 import EnvToggle from './EnvToggle';
-import AgentsSidebar from './AgentsSidebar';
+import TeamRoster from './TeamRoster';
 
 const navItems = [
   { path: '/', label: '🏠 Dashboard', title: 'Dashboard' },
@@ -54,8 +54,8 @@ export default function Layout() {
 
       {/* Main area with sidebar */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Agents Sidebar */}
-        <AgentsSidebar
+        {/* Team Roster */}
+        <TeamRoster
           collapsed={sidebarCollapsed}
           onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
         />
