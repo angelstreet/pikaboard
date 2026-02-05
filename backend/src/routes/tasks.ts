@@ -11,6 +11,8 @@ interface Task {
   status: string;
   priority: string;
   tags: string | null;
+  board_id: number | null;
+  position: number;
   created_at: string;
   updated_at: string;
   completed_at: string | null;
@@ -22,6 +24,8 @@ interface CreateTaskBody {
   status?: string;
   priority?: string;
   tags?: string[];
+  board_id?: number;
+  position?: number;
 }
 
 interface UpdateTaskBody {
@@ -30,15 +34,18 @@ interface UpdateTaskBody {
   status?: string;
   priority?: string;
   tags?: string[];
+  board_id?: number;
+  position?: number;
 }
 
 // GET /api/tasks - List all tasks with optional filtering
 tasksRouter.get('/', (c) => {
   const status = c.req.query('status');
   const priority = c.req.query('priority');
+  const boardId = c.req.query('board_id');
 
   let query = 'SELECT * FROM tasks WHERE 1=1';
-  const params: string[] = [];
+  const params: (string | number)[] = [];
 
   if (status) {
     query += ' AND status = ?';
@@ -50,7 +57,12 @@ tasksRouter.get('/', (c) => {
     params.push(priority);
   }
 
-  query += ' ORDER BY created_at DESC';
+  if (boardId) {
+    query += ' AND board_id = ?';
+    params.push(parseInt(boardId));
+  }
+
+  query += ' ORDER BY position ASC, created_at DESC';
 
   const stmt = db.prepare(query);
   const tasks = stmt.all(...params) as Task[];
@@ -99,9 +111,29 @@ tasksRouter.post('/', async (c) => {
     return c.json({ error: `Invalid priority. Must be one of: ${validPriorities.join(', ')}` }, 400);
   }
 
+  // Validate board_id if provided
+  let boardId = body.board_id;
+  if (boardId) {
+    const board = db.prepare('SELECT id FROM boards WHERE id = ?').get(boardId);
+    if (!board) {
+      return c.json({ error: 'Board not found' }, 400);
+    }
+  } else {
+    // Default to first board if not specified
+    const defaultBoard = db.prepare('SELECT id FROM boards ORDER BY position, id LIMIT 1').get() as { id: number } | undefined;
+    boardId = defaultBoard?.id ?? null;
+  }
+
+  // Get max position for new task in this status
+  const maxPos = db.prepare('SELECT MAX(position) as max FROM tasks WHERE board_id = ? AND status = ?').get(
+    boardId,
+    body.status || 'inbox'
+  ) as { max: number | null };
+  const position = body.position !== undefined ? body.position : (maxPos.max ?? -1) + 1;
+
   const stmt = db.prepare(`
-    INSERT INTO tasks (name, description, status, priority, tags)
-    VALUES (?, ?, ?, ?, ?)
+    INSERT INTO tasks (name, description, status, priority, tags, board_id, position)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
   `);
 
   const result = stmt.run(
@@ -109,13 +141,15 @@ tasksRouter.post('/', async (c) => {
     body.description || null,
     body.status || 'inbox',
     body.priority || 'medium',
-    body.tags ? JSON.stringify(body.tags) : null
+    body.tags ? JSON.stringify(body.tags) : null,
+    boardId,
+    position
   );
 
   const newTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(result.lastInsertRowid) as Task;
 
   // Log activity
-  logActivity('task_created', `Created task: ${body.name}`, { taskId: newTask.id });
+  logActivity('task_created', `Created task: ${body.name}`, { taskId: newTask.id, boardId: newTask.board_id });
 
   return c.json(
     {
@@ -150,7 +184,7 @@ tasksRouter.patch('/:id', async (c) => {
 
   // Build update query dynamically
   const updates: string[] = [];
-  const params: (string | null)[] = [];
+  const params: (string | number | null)[] = [];
 
   if (body.name !== undefined) {
     updates.push('name = ?');
@@ -178,13 +212,26 @@ tasksRouter.patch('/:id', async (c) => {
     updates.push('tags = ?');
     params.push(JSON.stringify(body.tags));
   }
+  if (body.board_id !== undefined) {
+    // Validate board exists
+    const board = db.prepare('SELECT id FROM boards WHERE id = ?').get(body.board_id);
+    if (!board) {
+      return c.json({ error: 'Board not found' }, 400);
+    }
+    updates.push('board_id = ?');
+    params.push(body.board_id);
+  }
+  if (body.position !== undefined) {
+    updates.push('position = ?');
+    params.push(body.position);
+  }
 
   if (updates.length === 0) {
     return c.json({ error: 'No fields to update' }, 400);
   }
 
   updates.push('updated_at = CURRENT_TIMESTAMP');
-  params.push(id);
+  params.push(parseInt(id));
 
   const query = `UPDATE tasks SET ${updates.join(', ')} WHERE id = ?`;
   db.prepare(query).run(...params);

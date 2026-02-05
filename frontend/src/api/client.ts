@@ -1,4 +1,14 @@
 // API Types
+export interface Board {
+  id: number;
+  name: string;
+  icon: string;
+  color: string;
+  position: number;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Task {
   id: number;
   name: string;
@@ -6,6 +16,8 @@ export interface Task {
   status: 'inbox' | 'up_next' | 'in_progress' | 'in_review' | 'done';
   priority: 'low' | 'medium' | 'high' | 'urgent';
   tags: string[];
+  board_id: number | null;
+  position: number;
   created_at: string;
   updated_at: string;
   completed_at: string | null;
@@ -64,11 +76,45 @@ class ApiClient {
     return res.json();
   }
 
+  // Boards
+  async getBoards(): Promise<Board[]> {
+    const res = await this.fetch<{ boards: Board[] }>('/boards');
+    return res.boards;
+  }
+
+  async getBoard(id: number): Promise<Board> {
+    return this.fetch<Board>(`/boards/${id}`);
+  }
+
+  async createBoard(board: Partial<Board>): Promise<Board> {
+    return this.fetch<Board>('/boards', {
+      method: 'POST',
+      body: JSON.stringify(board),
+    });
+  }
+
+  async updateBoard(id: number, updates: Partial<Board>): Promise<Board> {
+    return this.fetch<Board>(`/boards/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    });
+  }
+
+  async deleteBoard(id: number, deleteTasks = false): Promise<void> {
+    await this.fetch(`/boards/${id}${deleteTasks ? '?deleteTasks=true' : ''}`, { method: 'DELETE' });
+  }
+
+  async getBoardTasks(boardId: number, status?: string): Promise<{ tasks: Task[]; board: Board }> {
+    const query = status ? `?status=${status}` : '';
+    return this.fetch<{ tasks: Task[]; board: Board }>(`/boards/${boardId}/tasks${query}`);
+  }
+
   // Tasks
-  async getTasks(params?: { status?: string; priority?: string }): Promise<Task[]> {
+  async getTasks(params?: { status?: string; priority?: string; board_id?: number }): Promise<Task[]> {
     const search = new URLSearchParams();
     if (params?.status) search.set('status', params.status);
     if (params?.priority) search.set('priority', params.priority);
+    if (params?.board_id) search.set('board_id', String(params.board_id));
     const query = search.toString();
     const res = await this.fetch<{ tasks: Task[] }>(`/tasks${query ? `?${query}` : ''}`);
     return res.tasks;

@@ -6,6 +6,7 @@ import { config } from 'dotenv';
 
 import { authMiddleware } from './middleware/auth.js';
 import { tasksRouter } from './routes/tasks.js';
+import { boardsRouter } from './routes/boards.js';
 import { activityRouter } from './routes/activity.js';
 import { cronsRouter } from './routes/crons.js';
 import { skillsRouter } from './routes/skills.js';
@@ -29,6 +30,7 @@ app.use('/api/*', authMiddleware);
 
 // Mount routers
 app.route('/api/tasks', tasksRouter);
+app.route('/api/boards', boardsRouter);
 app.route('/api/activity', activityRouter);
 app.route('/api/crons', cronsRouter);
 app.route('/api/skills', skillsRouter);

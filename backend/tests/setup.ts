@@ -16,12 +16,15 @@ beforeEach(() => {
   // Clear tables before each test
   db.exec('DELETE FROM tasks');
   db.exec('DELETE FROM activity');
+  db.exec('DELETE FROM boards');
   // Reset auto-increment (sqlite_sequence may not exist in fresh memory db)
   try {
-    db.exec("DELETE FROM sqlite_sequence WHERE name IN ('tasks', 'activity')");
+    db.exec("DELETE FROM sqlite_sequence WHERE name IN ('tasks', 'activity', 'boards')");
   } catch {
     // sqlite_sequence only exists after first autoincrement insert
   }
+  // Re-create default board for tests
+  db.exec("INSERT INTO boards (name, icon, color) VALUES ('Main', '⚡', 'blue')");
 });
 
 afterAll(() => {
