@@ -228,19 +228,20 @@ export default function TeamRoster({ collapsed, onToggle }: TeamRosterProps) {
                   </div>
 
                   {/* Expanded details */}
-                  {isSelected && status?.currentTask && (
+                  {isSelected && (status?.currentTask || status?.taskId) && (
                     <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-600">
                       <div className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">
                         Current Task
                       </div>
-                      <div className="text-sm text-gray-700 dark:text-gray-300 mt-0.5">
-                        {status.currentTask}
-                      </div>
-                      {status.taskId && (
-                        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      {status.taskId ? (
+                        <div className="text-sm text-gray-700 dark:text-gray-300 mt-0.5 font-medium">
                           Task #{status.taskId}
                         </div>
-                      )}
+                      ) : status.currentTask ? (
+                        <div className="text-sm text-gray-700 dark:text-gray-300 mt-0.5 truncate">
+                          {status.currentTask.split('\n')[0].slice(0, 60)}...
+                        </div>
+                      ) : null}
                     </div>
                   )}
 
