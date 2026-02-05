@@ -9,19 +9,19 @@ interface TaskCardProps {
 }
 
 const priorityColors: Record<string, { border: string; badge: string; text: string }> = {
-  urgent: { border: 'border-l-red-500', badge: 'bg-red-100 text-red-700', text: 'Urgent' },
-  high: { border: 'border-l-orange-500', badge: 'bg-orange-100 text-orange-700', text: 'High' },
-  medium: { border: 'border-l-blue-500', badge: 'bg-blue-100 text-blue-700', text: 'Medium' },
-  low: { border: 'border-l-gray-400', badge: 'bg-gray-100 text-gray-600', text: 'Low' },
+  urgent: { border: 'border-l-red-500', badge: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300', text: 'Urgent' },
+  high: { border: 'border-l-orange-500', badge: 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300', text: 'High' },
+  medium: { border: 'border-l-blue-500', badge: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300', text: 'Medium' },
+  low: { border: 'border-l-gray-400', badge: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400', text: 'Low' },
 };
 
 const tagColors = [
-  'bg-purple-100 text-purple-700',
-  'bg-green-100 text-green-700',
-  'bg-pink-100 text-pink-700',
-  'bg-yellow-100 text-yellow-700',
-  'bg-indigo-100 text-indigo-700',
-  'bg-teal-100 text-teal-700',
+  'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
+  'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
+  'bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300',
+  'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300',
+  'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300',
+  'bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300',
 ];
 
 function getTagColor(tag: string): string {
@@ -55,13 +55,13 @@ export function TaskCard({ task, onClick, isDragging }: TaskCardProps) {
       {...listeners}
       onClick={() => onClick(task)}
       className={`
-        bg-white rounded-lg shadow-sm p-3 border-l-4 ${priority.border}
+        bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 border-l-4 ${priority.border}
         cursor-pointer hover:shadow-md transition-shadow
         ${dragging ? 'opacity-50 shadow-lg ring-2 ring-blue-400' : ''}
       `}
     >
       <div className="flex items-start justify-between gap-2">
-        <h4 className="font-medium text-sm text-gray-900 flex-1">{task.name}</h4>
+        <h4 className="font-medium text-sm text-gray-900 dark:text-gray-100 flex-1">{task.name}</h4>
         {task.priority !== 'medium' && (
           <span className={`px-1.5 py-0.5 text-xs rounded font-medium ${priority.badge}`}>
             {priority.text}
@@ -70,7 +70,7 @@ export function TaskCard({ task, onClick, isDragging }: TaskCardProps) {
       </div>
       
       {task.description && (
-        <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
           {task.description}
         </p>
       )}
@@ -78,8 +78,8 @@ export function TaskCard({ task, onClick, isDragging }: TaskCardProps) {
       {task.deadline && (
         <div className={`text-xs mt-2 flex items-center gap-1 ${
           new Date(task.deadline) < new Date() && task.status !== 'done'
-            ? 'text-red-600 font-medium'
-            : 'text-gray-500'
+            ? 'text-red-600 dark:text-red-400 font-medium'
+            : 'text-gray-500 dark:text-gray-400'
         }`}>
           <span>{new Date(task.deadline) < new Date() && task.status !== 'done' ? '⚠️' : '📅'}</span>
           <span>
@@ -116,12 +116,12 @@ export function TaskCardOverlay({ task }: { task: Task }) {
   return (
     <div
       className={`
-        bg-white rounded-lg shadow-lg p-3 border-l-4 ${priority.border}
+        bg-white dark:bg-gray-800 rounded-lg shadow-lg p-3 border-l-4 ${priority.border}
         ring-2 ring-blue-400 rotate-2 scale-105
       `}
     >
       <div className="flex items-start justify-between gap-2">
-        <h4 className="font-medium text-sm text-gray-900 flex-1">{task.name}</h4>
+        <h4 className="font-medium text-sm text-gray-900 dark:text-gray-100 flex-1">{task.name}</h4>
         {task.priority !== 'medium' && (
           <span className={`px-1.5 py-0.5 text-xs rounded font-medium ${priority.badge}`}>
             {priority.text}
@@ -130,7 +130,7 @@ export function TaskCardOverlay({ task }: { task: Task }) {
       </div>
       
       {task.description && (
-        <p className="text-xs text-gray-500 mt-1 line-clamp-2">
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
           {task.description}
         </p>
       )}
