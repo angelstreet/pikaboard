@@ -10,6 +10,7 @@ interface Board {
   icon: string;
   color: string;
   position: number;
+  show_testing: number;
   created_at: string;
   updated_at: string;
 }
@@ -40,6 +41,7 @@ interface UpdateBoardBody {
   icon?: string;
   color?: string;
   position?: number;
+  show_testing?: boolean;
 }
 
 // GET /api/boards - List all boards
@@ -124,6 +126,10 @@ boardsRouter.patch('/:id', async (c) => {
   if (body.position !== undefined) {
     updates.push('position = ?');
     params.push(body.position);
+  }
+  if (body.show_testing !== undefined) {
+    updates.push('show_testing = ?');
+    params.push(body.show_testing ? 1 : 0);
   }
 
   if (updates.length === 0) {
