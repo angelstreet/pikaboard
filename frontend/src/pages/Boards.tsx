@@ -353,8 +353,10 @@ export default function Boards() {
           const visibleColumns = statusFilter === 'all'
             ? boardColumns
             : boardColumns.filter((col) => col.id === statusFilter);
-          const numCols = boardColumns.length;
-          const gridCols = statusFilter === 'all' ? `grid-cols-${numCols}` : 'grid-cols-1 max-w-md';
+          // Tailwind needs static class names - can't use dynamic interpolation
+          const gridCols = statusFilter === 'all' 
+            ? (boardColumns.length === 6 ? 'grid-cols-6' : 'grid-cols-5')
+            : 'grid-cols-1 max-w-md';
           return (
             <div className={`grid ${gridCols} gap-4`}>
               {visibleColumns.map((col) => (
