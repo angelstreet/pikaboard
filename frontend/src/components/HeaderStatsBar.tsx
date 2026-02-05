@@ -27,7 +27,7 @@ export default function HeaderStatsBar() {
       try {
         const tasks: Task[] = await api.getTasks();
         const inbox = tasks.filter((t) => t.status === 'inbox').length;
-        const active = tasks.filter((t) => ['up_next', 'in_progress', 'in_review'].includes(t.status)).length;
+        const active = tasks.filter((t) => ['up_next', 'in_progress', 'testing', 'in_review'].includes(t.status)).length;
         setTaskCounts({ inbox, active, total: tasks.length });
         setStatus('connected');
       } catch {

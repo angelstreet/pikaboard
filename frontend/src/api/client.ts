@@ -13,7 +13,7 @@ export interface Task {
   id: number;
   name: string;
   description: string | null;
-  status: 'inbox' | 'up_next' | 'in_progress' | 'in_review' | 'done';
+  status: 'inbox' | 'up_next' | 'in_progress' | 'testing' | 'in_review' | 'done';
   priority: 'low' | 'medium' | 'high' | 'urgent';
   tags: string[];
   board_id: number | null;

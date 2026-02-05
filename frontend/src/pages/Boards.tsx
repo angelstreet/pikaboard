@@ -27,6 +27,7 @@ const COLUMNS: { id: Task['status']; label: string; color: string }[] = [
   { id: 'inbox', label: '📥 Inbox', color: 'bg-gray-100' },
   { id: 'up_next', label: '⏳ Up Next', color: 'bg-blue-50' },
   { id: 'in_progress', label: '🚧 In Progress', color: 'bg-yellow-50' },
+  { id: 'testing', label: '🧪 Testing', color: 'bg-orange-50' },
   { id: 'in_review', label: '👀 In Review', color: 'bg-purple-50' },
   { id: 'done', label: '✅ Done', color: 'bg-green-50' },
 ];

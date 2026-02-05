@@ -103,7 +103,7 @@ tasksRouter.post('/', async (c) => {
     return c.json({ error: 'Name is required' }, 400);
   }
 
-  const validStatuses = ['inbox', 'up_next', 'in_progress', 'in_review', 'done'];
+  const validStatuses = ['inbox', 'up_next', 'in_progress', 'testing', 'in_review', 'done'];
   const validPriorities = ['low', 'medium', 'high', 'urgent'];
 
   if (body.status && !validStatuses.includes(body.status)) {
@@ -175,7 +175,7 @@ tasksRouter.patch('/:id', async (c) => {
     return c.json({ error: 'Task not found' }, 404);
   }
 
-  const validStatuses = ['inbox', 'up_next', 'in_progress', 'in_review', 'done'];
+  const validStatuses = ['inbox', 'up_next', 'in_progress', 'testing', 'in_review', 'done'];
   const validPriorities = ['low', 'medium', 'high', 'urgent'];
 
   if (body.status && !validStatuses.includes(body.status)) {

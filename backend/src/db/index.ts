@@ -37,7 +37,7 @@ export function initDatabase() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       description TEXT,
-      status TEXT DEFAULT 'inbox' CHECK(status IN ('inbox', 'up_next', 'in_progress', 'in_review', 'done')),
+      status TEXT DEFAULT 'inbox' CHECK(status IN ('inbox', 'up_next', 'in_progress', 'testing', 'in_review', 'done')),
       priority TEXT DEFAULT 'medium' CHECK(priority IN ('low', 'medium', 'high', 'urgent')),
       tags TEXT,
       board_id INTEGER REFERENCES boards(id),
@@ -96,6 +96,10 @@ function runMigrations() {
     db.exec('ALTER TABLE tasks ADD COLUMN deadline DATETIME');
   }
 
+  // Migration: Add 'testing' status to tasks table
+  // SQLite doesn't allow modifying CHECK constraints, so we recreate the table
+  migrateTestingStatus();
+
   // Ensure default board exists
   const boardCount = db.prepare('SELECT COUNT(*) as count FROM boards').get() as { count: number };
   if (boardCount.count === 0) {
@@ -108,6 +112,52 @@ function runMigrations() {
   if (defaultBoard) {
     db.prepare('UPDATE tasks SET board_id = ? WHERE board_id IS NULL').run(defaultBoard.id);
   }
+}
+
+function migrateTestingStatus() {
+  // Check if the tasks table has the old constraint (without 'testing')
+  // We do this by checking if we can insert a 'testing' status
+  try {
+    // Try to create a temp record with 'testing' status
+    db.exec("INSERT INTO tasks (name, status) VALUES ('__migration_test__', 'testing')");
+    // If successful, delete it - the constraint already allows 'testing'
+    db.exec("DELETE FROM tasks WHERE name = '__migration_test__'");
+    return; // No migration needed
+  } catch {
+    // The constraint doesn't allow 'testing', need to migrate
+    console.log('🔄 Migration: Adding testing status to tasks table...');
+  }
+
+  // Recreate the tasks table with the new constraint
+  db.exec(`
+    CREATE TABLE tasks_new (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      description TEXT,
+      status TEXT DEFAULT 'inbox' CHECK(status IN ('inbox', 'up_next', 'in_progress', 'testing', 'in_review', 'done')),
+      priority TEXT DEFAULT 'medium' CHECK(priority IN ('low', 'medium', 'high', 'urgent')),
+      tags TEXT,
+      board_id INTEGER REFERENCES boards(id),
+      position INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      completed_at DATETIME,
+      deadline DATETIME
+    )
+  `);
+
+  // Copy all data from old table
+  db.exec(`
+    INSERT INTO tasks_new (id, name, description, status, priority, tags, board_id, position, created_at, updated_at, completed_at, deadline)
+    SELECT id, name, description, status, priority, tags, board_id, position, created_at, updated_at, completed_at, deadline
+    FROM tasks
+  `);
+
+  // Swap tables
+  db.exec('DROP TABLE tasks');
+  db.exec('ALTER TABLE tasks_new RENAME TO tasks');
+
+  console.log('✅ Migration: testing status added successfully');
 }
 
 export function logActivity(type: string, message: string, metadata?: object) {

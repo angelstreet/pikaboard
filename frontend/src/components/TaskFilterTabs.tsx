@@ -11,6 +11,7 @@ const STATUS_CONFIGS: StatusConfig[] = [
   { id: 'inbox', label: 'Inbox', dotColor: 'bg-gray-500' },
   { id: 'up_next', label: 'Up Next', dotColor: 'bg-blue-500' },
   { id: 'in_progress', label: 'In Progress', dotColor: 'bg-yellow-500' },
+  { id: 'testing', label: 'Testing', dotColor: 'bg-orange-500' },
   { id: 'in_review', label: 'Review', dotColor: 'bg-purple-500' },
   { id: 'done', label: 'Done', dotColor: 'bg-green-500' },
 ];
