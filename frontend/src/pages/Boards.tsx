@@ -85,7 +85,7 @@ function DroppableColumn({
   );
 }
 
-export default function Dashboard() {
+export default function Boards() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [boards, setBoards] = useState<Board[]>([]);
   const [currentBoard, setCurrentBoard] = useState<Board | null>(null);

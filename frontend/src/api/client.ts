@@ -18,9 +18,26 @@ export interface Task {
   tags: string[];
   board_id: number | null;
   position: number;
+  deadline: string | null;
   created_at: string;
   updated_at: string;
   completed_at: string | null;
+}
+
+export interface DashboardStats {
+  weekly: {
+    completed: number;
+    active: number;
+    inbox: number;
+  };
+  current: {
+    inbox: number;
+    active: number;
+    done: number;
+    total: number;
+    overdue: number;
+  };
+  focus: Task[];
 }
 
 export interface Activity {
@@ -149,6 +166,11 @@ class ApiClient {
     const query = search.toString();
     const res = await this.fetch<{ activity: Activity[] }>(`/activity${query ? `?${query}` : ''}`);
     return res.activity;
+  }
+
+  // Stats
+  async getStats(): Promise<DashboardStats> {
+    return this.fetch<DashboardStats>('/stats');
   }
 
   // Crons

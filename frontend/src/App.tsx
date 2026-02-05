@@ -1,17 +1,21 @@
 import { Routes, Route } from 'react-router-dom';
 import Layout from './components/Layout';
-import Dashboard from './pages/Dashboard';
-import Routines from './pages/Routines';
-import Skills from './pages/Skills';
+import DashboardHome from './pages/DashboardHome';
+import Boards from './pages/Boards';
+import Agents from './pages/Agents';
+import Insights from './pages/Insights';
+import Settings from './pages/Settings';
 
 // Auth disabled - handled at nginx level
 function App() {
   return (
     <Routes>
       <Route path="/" element={<Layout />}>
-        <Route index element={<Dashboard />} />
-        <Route path="routines" element={<Routines />} />
-        <Route path="skills" element={<Skills />} />
+        <Route index element={<DashboardHome />} />
+        <Route path="boards" element={<Boards />} />
+        <Route path="agents" element={<Agents />} />
+        <Route path="insights" element={<Insights />} />
+        <Route path="settings" element={<Settings />} />
       </Route>
     </Routes>
   );

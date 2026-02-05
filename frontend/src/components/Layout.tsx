@@ -2,9 +2,11 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import HeaderStatsBar from './HeaderStatsBar';
 
 const navItems = [
-  { path: '/', label: '📋 Dashboard', title: 'Dashboard' },
-  { path: '/routines', label: '🔄 Routines', title: 'Routines' },
-  { path: '/skills', label: '🧩 Skills', title: 'Skills' },
+  { path: '/', label: '🏠 Dashboard', title: 'Dashboard' },
+  { path: '/boards', label: '📋 Boards', title: 'Boards' },
+  { path: '/agents', label: '🤖 Agents', title: 'Agents' },
+  { path: '/insights', label: '📊 Insights', title: 'Insights' },
+  { path: '/settings', label: '⚙️ Settings', title: 'Settings' },
 ];
 
 export default function Layout() {

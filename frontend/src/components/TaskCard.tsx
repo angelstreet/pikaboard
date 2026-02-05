@@ -75,6 +75,24 @@ export function TaskCard({ task, onClick, isDragging }: TaskCardProps) {
         </p>
       )}
       
+      {task.deadline && (
+        <div className={`text-xs mt-2 flex items-center gap-1 ${
+          new Date(task.deadline) < new Date() && task.status !== 'done'
+            ? 'text-red-600 font-medium'
+            : 'text-gray-500'
+        }`}>
+          <span>{new Date(task.deadline) < new Date() && task.status !== 'done' ? '⚠️' : '📅'}</span>
+          <span>
+            {new Date(task.deadline).toLocaleDateString('en-US', {
+              month: 'short',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+            })}
+          </span>
+        </div>
+      )}
+
       {task.tags && task.tags.length > 0 && (
         <div className="flex gap-1 mt-2 flex-wrap">
           {task.tags.map((tag) => (

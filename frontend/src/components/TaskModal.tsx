@@ -30,11 +30,25 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
   const [status, setStatus] = useState<Task['status']>('inbox');
   const [priority, setPriority] = useState<Task['priority']>('medium');
   const [tagsInput, setTagsInput] = useState('');
+  const [deadline, setDeadline] = useState('');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const isEdit = !!task;
+
+  // Format datetime for input (local timezone)
+  const formatDatetimeLocal = (isoString: string | null): string => {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    // Format as YYYY-MM-DDTHH:mm for datetime-local input
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
 
   useEffect(() => {
     if (task) {
@@ -43,12 +57,14 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
       setStatus(task.status);
       setPriority(task.priority);
       setTagsInput(task.tags?.join(', ') || '');
+      setDeadline(formatDatetimeLocal(task.deadline));
     } else {
       setName('');
       setDescription('');
       setStatus('inbox');
       setPriority('medium');
       setTagsInput('');
+      setDeadline('');
     }
     setShowDeleteConfirm(false);
   }, [task, isOpen]);
@@ -63,6 +79,9 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
         .map((t) => t.trim())
         .filter((t) => t.length > 0);
 
+      // Convert local datetime to ISO string for API
+      const deadlineValue = deadline ? new Date(deadline).toISOString() : null;
+
       await onSave({
         ...(task ? { id: task.id } : {}),
         name: name.trim(),
@@ -70,6 +89,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
         status,
         priority,
         tags,
+        deadline: deadlineValue,
       });
       onClose();
     } finally {
@@ -176,6 +196,31 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
                   {p.label}
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* Deadline */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Deadline
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="datetime-local"
+                value={deadline}
+                onChange={(e) => setDeadline(e.target.value)}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              {deadline && (
+                <button
+                  type="button"
+                  onClick={() => setDeadline('')}
+                  className="px-3 py-2 text-gray-500 hover:text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  title="Clear deadline"
+                >
+                  ✕
+                </button>
+              )}
             </div>
           </div>
 

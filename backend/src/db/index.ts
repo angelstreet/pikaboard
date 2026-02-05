@@ -1,4 +1,4 @@
-import Database from 'better-sqlite3';
+import Database, { Database as DatabaseType } from 'better-sqlite3';
 import { mkdirSync, existsSync } from 'fs';
 import { dirname } from 'path';
 
@@ -10,7 +10,7 @@ if (!existsSync(dir)) {
   mkdirSync(dir, { recursive: true });
 }
 
-export const db = new Database(dbPath);
+export const db: DatabaseType = new Database(dbPath);
 
 export function initDatabase() {
   // Enable WAL mode for better concurrent access (not for :memory:)
@@ -79,6 +79,7 @@ function runMigrations() {
   const tableInfo = db.prepare("PRAGMA table_info(tasks)").all() as { name: string }[];
   const hasboardId = tableInfo.some((col) => col.name === 'board_id');
   const hasPosition = tableInfo.some((col) => col.name === 'position');
+  const hasDeadline = tableInfo.some((col) => col.name === 'deadline');
 
   if (!hasboardId) {
     console.log('🔄 Migration: Adding board_id to tasks...');
@@ -88,6 +89,11 @@ function runMigrations() {
   if (!hasPosition) {
     console.log('🔄 Migration: Adding position to tasks...');
     db.exec('ALTER TABLE tasks ADD COLUMN position INTEGER DEFAULT 0');
+  }
+
+  if (!hasDeadline) {
+    console.log('🔄 Migration: Adding deadline to tasks...');
+    db.exec('ALTER TABLE tasks ADD COLUMN deadline DATETIME');
   }
 
   // Ensure default board exists

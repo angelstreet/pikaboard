@@ -13,6 +13,7 @@ interface Task {
   tags: string | null;
   board_id: number | null;
   position: number;
+  deadline: string | null;
   created_at: string;
   updated_at: string;
   completed_at: string | null;
@@ -26,6 +27,7 @@ interface CreateTaskBody {
   tags?: string[];
   board_id?: number;
   position?: number;
+  deadline?: string | null;
 }
 
 interface UpdateTaskBody {
@@ -36,6 +38,7 @@ interface UpdateTaskBody {
   tags?: string[];
   board_id?: number;
   position?: number;
+  deadline?: string | null;
 }
 
 // GET /api/tasks - List all tasks with optional filtering
@@ -112,7 +115,7 @@ tasksRouter.post('/', async (c) => {
   }
 
   // Validate board_id if provided
-  let boardId = body.board_id;
+  let boardId: number | undefined = body.board_id;
   if (boardId) {
     const board = db.prepare('SELECT id FROM boards WHERE id = ?').get(boardId);
     if (!board) {
@@ -121,7 +124,7 @@ tasksRouter.post('/', async (c) => {
   } else {
     // Default to first board if not specified
     const defaultBoard = db.prepare('SELECT id FROM boards ORDER BY position, id LIMIT 1').get() as { id: number } | undefined;
-    boardId = defaultBoard?.id ?? null;
+    boardId = defaultBoard?.id;
   }
 
   // Get max position for new task in this status
@@ -132,8 +135,8 @@ tasksRouter.post('/', async (c) => {
   const position = body.position !== undefined ? body.position : (maxPos.max ?? -1) + 1;
 
   const stmt = db.prepare(`
-    INSERT INTO tasks (name, description, status, priority, tags, board_id, position)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO tasks (name, description, status, priority, tags, board_id, position, deadline)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const result = stmt.run(
@@ -143,7 +146,8 @@ tasksRouter.post('/', async (c) => {
     body.priority || 'medium',
     body.tags ? JSON.stringify(body.tags) : null,
     boardId,
-    position
+    position,
+    body.deadline || null
   );
 
   const newTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(result.lastInsertRowid) as Task;
@@ -224,6 +228,10 @@ tasksRouter.patch('/:id', async (c) => {
   if (body.position !== undefined) {
     updates.push('position = ?');
     params.push(body.position);
+  }
+  if (body.deadline !== undefined) {
+    updates.push('deadline = ?');
+    params.push(body.deadline);
   }
 
   if (updates.length === 0) {
