@@ -3,10 +3,17 @@ import HeaderStatsBar from './HeaderStatsBar';
 import EnvToggle from './EnvToggle';
 
 const navItems = [
-  { path: '/', label: '📋 Dashboard', title: 'Dashboard' },
-  { path: '/routines', label: '🔄 Routines', title: 'Routines' },
-  { path: '/skills', label: '🧩 Skills', title: 'Skills' },
+  { path: '/', label: '🏠 Dashboard', title: 'Dashboard' },
+  { path: '/boards', label: '📋 Boards', title: 'Boards' },
+  { path: '/agents', label: '🤖 Agents', title: 'Agents' },
+  { path: '/insights', label: '📊 Insights', title: 'Insights' },
+  { path: '/settings', label: '⚙️ Settings', title: 'Settings' },
 ];
+
+// Build info from env vars (set at build time)
+const VERSION = import.meta.env.VITE_VERSION || '0.1.0';
+const BRANCH = import.meta.env.VITE_BRANCH || 'unknown';
+const COMMIT = import.meta.env.VITE_COMMIT || '?';
 
 export default function Layout() {
   const location = useLocation();
@@ -51,7 +58,7 @@ export default function Layout() {
 
       {/* Footer */}
       <footer className="bg-white border-t border-gray-200 py-3 text-center text-sm text-gray-500">
-        PikaBoard v0.1.0 — OpenClaw Agent Dashboard
+        PikaBoard v{VERSION} ({BRANCH}) • {COMMIT}
       </footer>
     </div>
   );
