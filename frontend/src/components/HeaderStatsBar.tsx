@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { api, Task } from '../api/client';
+import ThemeToggle from './ThemeToggle';
 
 type ConnectionStatus = 'connected' | 'disconnected' | 'loading';
 
@@ -96,10 +97,13 @@ export default function HeaderStatsBar() {
           </div>
         </div>
 
-        {/* Status Indicator */}
-        <div className="flex items-center gap-2">
-          <div className={`w-2 h-2 rounded-full ${color} ${pulse ? 'animate-pulse' : ''}`} />
-          <span className="text-xs text-gray-400">{text}</span>
+        {/* Status Indicator & Theme Toggle */}
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <div className={`w-2 h-2 rounded-full ${color} ${pulse ? 'animate-pulse' : ''}`} />
+            <span className="text-xs text-gray-400">{text}</span>
+          </div>
+          <ThemeToggle />
         </div>
       </div>
     </div>

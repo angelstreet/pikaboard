@@ -1,7 +1,6 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import HeaderStatsBar from './HeaderStatsBar';
 import EnvToggle from './EnvToggle';
-import ThemeToggle from './ThemeToggle';
 
 const navItems = [
   { path: '/', label: '🏠 Dashboard', title: 'Dashboard' },
@@ -31,7 +30,6 @@ export default function Layout() {
             <span className="text-2xl">⚡</span>
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">PikaBoard</h1>
             <EnvToggle />
-            <ThemeToggle />
           </div>
           <nav className="flex gap-1">
             {navItems.map((item) => (
