@@ -19,6 +19,7 @@ import { TaskCard, TaskCardOverlay } from '../components/TaskCard';
 import { TaskModal } from '../components/TaskModal';
 import { BoardModal } from '../components/BoardModal';
 import { BoardSelector } from '../components/BoardSelector';
+import { TaskFilterTabs } from '../components/TaskFilterTabs';
 
 const COLUMNS: { id: Task['status']; label: string; color: string }[] = [
   { id: 'inbox', label: '📥 Inbox', color: 'bg-gray-100' },
@@ -97,6 +98,9 @@ export default function Dashboard() {
 
   // Drag state
   const [activeId, setActiveId] = useState<number | null>(null);
+
+  // Filter state
+  const [statusFilter, setStatusFilter] = useState<Task['status'] | 'all'>('all');
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -307,6 +311,13 @@ export default function Dashboard() {
         </button>
       </div>
 
+      {/* Filter Tabs */}
+      <TaskFilterTabs
+        tasks={tasks}
+        activeFilter={statusFilter}
+        onFilterChange={setStatusFilter}
+      />
+
       {/* Kanban Board */}
       <DndContext
         sensors={sensors}
@@ -314,19 +325,27 @@ export default function Dashboard() {
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="grid grid-cols-5 gap-4">
-          {COLUMNS.map((col) => (
-            <DroppableColumn
-              key={col.id}
-              id={col.id}
-              label={col.label}
-              color={col.color}
-              tasks={tasksByStatus(col.id)}
-              onTaskClick={handleTaskClick}
-              activeId={activeId}
-            />
-          ))}
-        </div>
+        {(() => {
+          const visibleColumns = statusFilter === 'all'
+            ? COLUMNS
+            : COLUMNS.filter((col) => col.id === statusFilter);
+          const gridCols = statusFilter === 'all' ? 'grid-cols-5' : 'grid-cols-1 max-w-md';
+          return (
+            <div className={`grid ${gridCols} gap-4`}>
+              {visibleColumns.map((col) => (
+                <DroppableColumn
+                  key={col.id}
+                  id={col.id}
+                  label={col.label}
+                  color={col.color}
+                  tasks={tasksByStatus(col.id)}
+                  onTaskClick={handleTaskClick}
+                  activeId={activeId}
+                />
+              ))}
+            </div>
+          );
+        })()}
 
         <DragOverlay>
           {activeTask && <TaskCardOverlay task={activeTask} />}

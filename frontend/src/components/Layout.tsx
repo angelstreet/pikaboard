@@ -1,4 +1,5 @@
 import { Link, Outlet, useLocation } from 'react-router-dom';
+import HeaderStatsBar from './HeaderStatsBar';
 
 const navItems = [
   { path: '/', label: '📋 Dashboard', title: 'Dashboard' },
@@ -11,6 +12,9 @@ export default function Layout() {
 
   return (
     <div className="min-h-screen flex flex-col">
+      {/* Stats Bar */}
+      <HeaderStatsBar />
+
       {/* Header */}
       <header className="bg-white border-b border-gray-200 px-4 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between">

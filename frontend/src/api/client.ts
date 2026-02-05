@@ -46,15 +46,14 @@ export interface Skill {
   description?: string;
 }
 
-// Get token from env or localStorage
-const getToken = (): string | null => {
-  // In development, you can set this in localStorage
-  return localStorage.getItem('pikaboard_token');
+// Token for API requests (auth handled at nginx level for UI)
+const getToken = (): string => {
+  return 'REDACTED_TOKEN';
 };
 
 // API Client
 class ApiClient {
-  private baseUrl = import.meta.env.PROD ? '/pikaboard/api' : '/api';
+  private baseUrl = '/api';
 
   private async fetch<T>(path: string, options: RequestInit = {}): Promise<T> {
     const token = getToken();
