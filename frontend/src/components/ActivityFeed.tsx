@@ -197,10 +197,17 @@ export default function ActivityFeed() {
 
   const loadActivity = useCallback(async () => {
     try {
-      const typeParam = filter === 'all' ? undefined : 
-                        filter === 'agents' ? 'agent_activity' : 
-                        'task_%';
-      const data = await api.getActivity({ limit: 20, type: typeParam });
+      // Fetch with type filter when filtering by agents, otherwise get all and filter client-side
+      const typeParam = filter === 'agents' ? 'agent_activity' : undefined;
+      let data = await api.getActivity({ limit: filter === 'all' ? 20 : 50, type: typeParam });
+      
+      // Client-side filter for tasks (all task_* types)
+      if (filter === 'tasks') {
+        data = data.filter(a => a.type.startsWith('task_')).slice(0, 20);
+      } else if (filter === 'all') {
+        data = data.slice(0, 20);
+      }
+      
       setActivity(data);
       setError(null);
       setLastRefresh(new Date());

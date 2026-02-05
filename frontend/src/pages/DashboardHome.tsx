@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { api, DashboardStats, Task, Activity } from '../api/client';
+import { api, DashboardStats, Task } from '../api/client';
+import ActivityFeed from '../components/ActivityFeed';
 
 function StatCard({ 
   label, 
@@ -77,42 +78,9 @@ function FocusTaskItem({ task, onClick }: { task: Task; onClick: () => void }) {
   );
 }
 
-function ActivityItem({ activity }: { activity: Activity }) {
-  const formatTime = (dateStr: string) => {
-    const date = new Date(dateStr);
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffMins = Math.floor(diffMs / 60000);
-    if (diffMins < 1) return 'just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    const diffHours = Math.floor(diffMins / 60);
-    if (diffHours < 24) return `${diffHours}h ago`;
-    return date.toLocaleDateString();
-  };
-
-  const getIcon = (type: string) => {
-    if (type.includes('created')) return '➕';
-    if (type.includes('completed')) return '✅';
-    if (type.includes('updated')) return '✏️';
-    if (type.includes('agent')) return '🤖';
-    return '📝';
-  };
-
-  return (
-    <div className="py-2 flex items-start gap-2">
-      <span>{getIcon(activity.type)}</span>
-      <div className="flex-1 min-w-0">
-        <p className="text-sm text-gray-700 dark:text-gray-300 truncate">{activity.message}</p>
-        <p className="text-xs text-gray-400">{formatTime(activity.created_at)}</p>
-      </div>
-    </div>
-  );
-}
-
 export default function DashboardHome() {
   const navigate = useNavigate();
   const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [activity, setActivity] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -123,12 +91,8 @@ export default function DashboardHome() {
   const loadDashboard = async () => {
     try {
       setLoading(true);
-      const [statsData, activityData] = await Promise.all([
-        api.getStats(),
-        api.getActivity({ limit: 10 }),
-      ]);
+      const statsData = await api.getStats();
       setStats(statsData);
-      setActivity(activityData);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load dashboard');
@@ -142,7 +106,6 @@ export default function DashboardHome() {
   };
 
   const handleTaskClick = (_taskId: number) => {
-    // Navigate to boards page - the task modal can be opened there
     navigate('/boards');
   };
 
@@ -253,25 +216,8 @@ export default function DashboardHome() {
           )}
         </div>
 
-        {/* Recent Activity */}
-        <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-900 dark:text-white">📜 Recent Activity</h3>
-            <span className="text-xs text-gray-500 dark:text-gray-400">Last 10 events</span>
-          </div>
-          <div className="divide-y divide-gray-100 dark:divide-gray-700">
-            {activity.length > 0 ? (
-              activity.map((item) => (
-                <ActivityItem key={item.id} activity={item} />
-              ))
-            ) : (
-              <div className="text-center py-8 text-gray-400">
-                <p className="text-4xl mb-2">📭</p>
-                <p>No recent activity</p>
-              </div>
-            )}
-          </div>
-        </div>
+        {/* Activity Feed */}
+        <ActivityFeed />
       </div>
 
       {/* Quick Summary */}
