@@ -10,6 +10,11 @@ const navItems = [
   { path: '/settings', label: '⚙️ Settings', title: 'Settings' },
 ];
 
+// Build info from env vars (set at build time)
+const VERSION = import.meta.env.VITE_VERSION || '0.1.0';
+const BRANCH = import.meta.env.VITE_BRANCH || 'unknown';
+const COMMIT = import.meta.env.VITE_COMMIT || '?';
+
 export default function Layout() {
   const location = useLocation();
 
@@ -53,7 +58,7 @@ export default function Layout() {
 
       {/* Footer */}
       <footer className="bg-white border-t border-gray-200 py-3 text-center text-sm text-gray-500">
-        PikaBoard v0.1.0 — OpenClaw Agent Dashboard
+        PikaBoard v{VERSION} ({BRANCH}) • {COMMIT}
       </footer>
     </div>
   );

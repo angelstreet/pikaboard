@@ -1,37 +1,33 @@
 #!/bin/bash
 # Deploy PikaBoard DEVELOPMENT (dev branch)
-# Usage: ./deploy-dev.sh
-
 set -e
 
 PIKABOARD_DIR="/home/jndoye/.openclaw/workspace/pikaboard"
+cd "$PIKABOARD_DIR"
 
 echo "🚀 Deploying PikaBoard DEVELOPMENT..."
 
-cd "$PIKABOARD_DIR"
-
-# Stash any local changes
+# Stash and checkout dev
 git stash --include-untracked 2>/dev/null || true
-
-# Fetch and checkout dev
-echo "📥 Fetching dev branch..."
 git fetch origin dev
 git checkout dev
 git pull origin dev
 
-# Build frontend to dist-dev
-echo "🔧 Building frontend..."
+# Get git info
+BRANCH=$(git branch --show-current)
+COMMIT=$(git rev-parse --short HEAD)
+VERSION=$(node -p "require('./package.json').version" 2>/dev/null || echo "0.1.0")
+
+echo "📦 Version: $VERSION ($BRANCH) @ $COMMIT"
+
+# Build frontend
 cd frontend
-npm install
-VITE_BASE_PATH=/pikaboard-dev/ npm run build
+npm install --silent
+VITE_VERSION=$VERSION VITE_BRANCH=$BRANCH VITE_COMMIT=$COMMIT \
+  VITE_BASE_PATH=/pikaboard-dev/ npm run build -- --outDir dist-dev
 
-# Move to dist-dev
-rm -rf dist-dev
-mv dist dist-dev
-
-# Restart nginx to pick up any changes
-echo "🔄 Reloading nginx..."
+# Reload nginx
 sudo systemctl reload nginx
 
-echo "✅ DEVELOPMENT deployed successfully!"
-echo "   URL: https://localhost/pikaboard-dev/"
+echo "✅ DEVELOPMENT deployed: v$VERSION ($BRANCH) @ $COMMIT"
+echo "   URL: https://65.108.14.251:8080/pikaboard-dev/"
