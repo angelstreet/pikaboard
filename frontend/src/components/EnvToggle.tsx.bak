@@ -4,14 +4,9 @@ export default function EnvToggle() {
   const label = isDev ? 'DEV' : 'PROD';
   const targetLabel = isDev ? 'PROD' : 'DEV';
   
-  const handleClick = (e: React.MouseEvent) => {
-    e.preventDefault();
-    window.location.href = targetUrl;
-  };
-  
   return (
-    <button
-      onClick={handleClick}
+    <a
+      href={targetUrl}
       className={`px-2 py-1 rounded text-xs font-bold transition-colors ${
         isDev 
           ? 'bg-orange-100 text-orange-700 hover:bg-orange-200' 
@@ -20,6 +15,6 @@ export default function EnvToggle() {
       title={`Switch to ${targetLabel}`}
     >
       {label} →
-    </button>
+    </a>
   );
 }
