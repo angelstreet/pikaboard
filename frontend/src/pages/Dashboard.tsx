@@ -20,6 +20,8 @@ import { TaskModal } from '../components/TaskModal';
 import { BoardModal } from '../components/BoardModal';
 import { BoardSelector } from '../components/BoardSelector';
 import { TaskFilterTabs } from '../components/TaskFilterTabs';
+import { ViewToggle } from '../components/ViewToggle';
+import { FocusList } from '../components/FocusList';
 
 const COLUMNS: { id: Task['status']; label: string; color: string }[] = [
   { id: 'inbox', label: '📥 Inbox', color: 'bg-gray-100' },
@@ -101,6 +103,9 @@ export default function Dashboard() {
 
   // Filter state
   const [statusFilter, setStatusFilter] = useState<Task['status'] | 'all'>('all');
+
+  // View state
+  const [activeView, setActiveView] = useState<'kanban' | 'focus'>('kanban');
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -290,7 +295,9 @@ export default function Dashboard() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <h2 className="text-2xl font-bold">📋 Kanban Board</h2>
+          <h2 className="text-2xl font-bold">
+            {activeView === 'kanban' ? '📋 Kanban Board' : '🎯 Focus List'}
+          </h2>
           <BoardSelector
             boards={boards}
             currentBoard={currentBoard}
@@ -300,25 +307,36 @@ export default function Dashboard() {
           />
         </div>
 
-        <button
-          onClick={handleCreateTask}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-          </svg>
-          New Task
-        </button>
+        <div className="flex items-center gap-3">
+          <ViewToggle activeView={activeView} onViewChange={setActiveView} />
+          <button
+            onClick={handleCreateTask}
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+            </svg>
+            New Task
+          </button>
+        </div>
       </div>
 
-      {/* Filter Tabs */}
-      <TaskFilterTabs
-        tasks={tasks}
-        activeFilter={statusFilter}
-        onFilterChange={setStatusFilter}
-      />
+      {/* Focus List View */}
+      {activeView === 'focus' && (
+        <FocusList tasks={tasks} onTaskClick={handleTaskClick} />
+      )}
 
-      {/* Kanban Board */}
+      {/* Kanban View */}
+      {activeView === 'kanban' && (
+        <>
+          {/* Filter Tabs */}
+          <TaskFilterTabs
+            tasks={tasks}
+            activeFilter={statusFilter}
+            onFilterChange={setStatusFilter}
+          />
+
+          {/* Kanban Board */}
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
@@ -351,6 +369,8 @@ export default function Dashboard() {
           {activeTask && <TaskCardOverlay task={activeTask} />}
         </DragOverlay>
       </DndContext>
+        </>
+      )}
 
       {/* Modals */}
       <TaskModal
