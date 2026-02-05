@@ -5,6 +5,7 @@ export interface Board {
   icon: string;
   color: string;
   position: number;
+  show_testing: boolean;
   created_at: string;
   updated_at: string;
 }

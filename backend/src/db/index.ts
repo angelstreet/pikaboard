@@ -26,6 +26,7 @@ export function initDatabase() {
       icon TEXT DEFAULT '📋',
       color TEXT DEFAULT 'blue',
       position INTEGER DEFAULT 0,
+      show_testing INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
@@ -100,6 +101,9 @@ function runMigrations() {
   // SQLite doesn't allow modifying CHECK constraints, so we recreate the table
   migrateTestingStatus();
 
+  // Migration: Add show_testing column to boards
+  migrateBoardShowTesting();
+
   // Ensure default board exists
   const boardCount = db.prepare('SELECT COUNT(*) as count FROM boards').get() as { count: number };
   if (boardCount.count === 0) {
@@ -158,6 +162,27 @@ function migrateTestingStatus() {
   db.exec('ALTER TABLE tasks_new RENAME TO tasks');
 
   console.log('✅ Migration: testing status added successfully');
+}
+
+function migrateBoardShowTesting() {
+  // Check if show_testing column exists
+  const boardInfo = db.prepare("PRAGMA table_info(boards)").all() as { name: string }[];
+  const hasShowTesting = boardInfo.some((col) => col.name === 'show_testing');
+
+  if (!hasShowTesting) {
+    console.log('🔄 Migration: Adding show_testing to boards...');
+    db.exec('ALTER TABLE boards ADD COLUMN show_testing INTEGER DEFAULT 0');
+    
+    // Enable testing for dev/project boards by name pattern
+    db.exec(`
+      UPDATE boards SET show_testing = 1 
+      WHERE name LIKE '%PikaBoard%' 
+         OR name LIKE '%Test%' 
+         OR name LIKE '%Project%'
+         OR name LIKE '%Dev%'
+    `);
+    console.log('✅ Migration: show_testing column added');
+  }
 }
 
 export function logActivity(type: string, message: string, metadata?: object) {

@@ -335,6 +335,7 @@ export default function Boards() {
             tasks={tasks}
             activeFilter={statusFilter}
             onFilterChange={setStatusFilter}
+            showTesting={currentBoard?.show_testing}
           />
 
           {/* Kanban Board */}
@@ -345,10 +346,15 @@ export default function Boards() {
         onDragEnd={handleDragEnd}
       >
         {(() => {
+          // Filter out 'testing' column if board doesn't show it
+          const boardColumns = currentBoard?.show_testing 
+            ? COLUMNS 
+            : COLUMNS.filter((col) => col.id !== 'testing');
           const visibleColumns = statusFilter === 'all'
-            ? COLUMNS
-            : COLUMNS.filter((col) => col.id === statusFilter);
-          const gridCols = statusFilter === 'all' ? 'grid-cols-5' : 'grid-cols-1 max-w-md';
+            ? boardColumns
+            : boardColumns.filter((col) => col.id === statusFilter);
+          const numCols = boardColumns.length;
+          const gridCols = statusFilter === 'all' ? `grid-cols-${numCols}` : 'grid-cols-1 max-w-md';
           return (
             <div className={`grid ${gridCols} gap-4`}>
               {visibleColumns.map((col) => (
