@@ -4,8 +4,8 @@ import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import './index.css';
 
-// Use root path as basename (served from /)
-const basename = '/';
+// Use base path from vite config (set via VITE_BASE_PATH env)
+const basename = import.meta.env.BASE_URL || '/';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
