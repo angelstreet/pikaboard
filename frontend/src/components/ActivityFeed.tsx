@@ -188,7 +188,7 @@ function ActivityItem({
 }
 
 export default function ActivityFeed() {
-  const [activity, setActivity] = useState<Activity[]>([]);
+  const [allActivity, setAllActivity] = useState<Activity[]>([]); // Full dataset for counts
   const [filter, setFilter] = useState<FilterType>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -197,18 +197,9 @@ export default function ActivityFeed() {
 
   const loadActivity = useCallback(async () => {
     try {
-      // Fetch with type filter when filtering by agents, otherwise get all and filter client-side
-      const typeParam = filter === 'agents' ? 'agent_activity' : undefined;
-      let data = await api.getActivity({ limit: filter === 'all' ? 20 : 50, type: typeParam });
-      
-      // Client-side filter for tasks (all task_* types)
-      if (filter === 'tasks') {
-        data = data.filter(a => a.type.startsWith('task_')).slice(0, 20);
-      } else if (filter === 'all') {
-        data = data.slice(0, 20);
-      }
-      
-      setActivity(data);
+      // Always fetch all activity types to maintain consistent counts
+      const data = await api.getActivity({ limit: 100 });
+      setAllActivity(data);
       setError(null);
       setLastRefresh(new Date());
     } catch (err) {
@@ -216,13 +207,21 @@ export default function ActivityFeed() {
     } finally {
       setLoading(false);
     }
-  }, [filter]);
+  }, []);
 
-  // Initial load and filter change
+  // Initial load
   useEffect(() => {
     setLoading(true);
     loadActivity();
   }, [loadActivity]);
+
+  // Filter the displayed activity based on selected filter
+  const activity = allActivity.filter(a => {
+    if (filter === 'all') return true;
+    if (filter === 'agents') return a.type === 'agent_activity';
+    if (filter === 'tasks') return a.type.startsWith('task_');
+    return true;
+  }).slice(0, 20);
 
   // Auto-refresh every 30 seconds
   useEffect(() => {
@@ -243,10 +242,10 @@ export default function ActivityFeed() {
     { key: 'tasks', label: 'Tasks', icon: '✅' },
   ];
 
-  // Count by type for badges
-  const agentCount = activity.filter(a => a.type === 'agent_activity').length;
-  const taskCount = activity.filter(a => a.type !== 'agent_activity').length;
-  const runningCount = activity.filter(a => {
+  // Count by type for badges (from full dataset, not filtered)
+  const agentCount = allActivity.filter(a => a.type === 'agent_activity').length;
+  const taskCount = allActivity.filter(a => a.type.startsWith('task_')).length;
+  const runningCount = allActivity.filter(a => {
     const meta = a.metadata as ActivityMetadata | null;
     return a.type === 'agent_activity' && meta?.status === 'running';
   }).length;
@@ -283,7 +282,7 @@ export default function ActivityFeed() {
             <span>{icon}</span>
             <span>{label}</span>
             <span className="text-[10px] opacity-70">
-              ({key === 'all' ? activity.length : key === 'agents' ? agentCount : taskCount})
+              ({key === 'all' ? allActivity.length : key === 'agents' ? agentCount : taskCount})
             </span>
           </button>
         ))}
