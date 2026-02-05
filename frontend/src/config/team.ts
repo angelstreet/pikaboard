@@ -48,10 +48,30 @@ export const TEAM_ROSTER: TeamMember[] = [
     name: 'Sala',
     role: 'specialist',
     roleLabel: 'SPC',
-    function: 'Work Support',
+    function: 'Work Projects',
     avatar: '🔥',
     color: '#EF4444', // red
     boards: ['work'],
+  },
+  {
+    id: 'evoli',
+    name: 'Évoli',
+    role: 'specialist',
+    roleLabel: 'SPC',
+    function: 'VirtualPyTest Dev',
+    avatar: '🦊',
+    color: '#A855F7', // purple
+    boards: ['virtualpytest'],
+  },
+  {
+    id: 'psykokwak',
+    name: 'Psykokwak',
+    role: 'specialist',
+    roleLabel: 'SPC',
+    function: 'EZPlanning Dev',
+    avatar: '🦆',
+    color: '#F97316', // orange
+    boards: ['ezplanning'],
   },
 ];
 
