@@ -124,14 +124,14 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-lg">
-        <div className="flex items-center justify-between p-4 border-b">
-          <h2 className="text-lg font-semibold">
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl w-full max-w-lg">
+        <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             {isEdit ? 'Edit Task' : 'New Task'}
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+            className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 text-2xl leading-none"
           >
             ×
           </button>
@@ -140,7 +140,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
         <div className="p-4 space-y-4">
           {/* Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Name *
             </label>
             <input
@@ -148,14 +148,14 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="Task name..."
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-400"
               autoFocus
             />
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Description
             </label>
             <textarea
@@ -163,19 +163,19 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Add details..."
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-400 resize-none"
             />
           </div>
 
           {/* Status */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Status
             </label>
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value as Task['status'])}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
             >
               {statuses.map((s) => (
                 <option key={s.value} value={s.value}>
@@ -187,7 +187,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
 
           {/* Priority */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Priority
             </label>
             <div className="flex gap-2">
@@ -199,8 +199,8 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
                   className={`
                     px-3 py-1.5 rounded-lg text-sm font-medium transition-all
                     ${priority === p.value
-                      ? `${p.color} ring-2 ring-offset-1 ring-gray-400`
-                      : 'bg-gray-50 text-gray-600 hover:bg-gray-100'
+                      ? `${p.color} ring-2 ring-offset-1 ring-gray-400 dark:ring-offset-gray-800`
+                      : 'bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600'
                     }
                   `}
                 >
@@ -212,7 +212,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
 
           {/* Deadline */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Deadline
             </label>
             <div className="flex gap-2">
@@ -220,13 +220,13 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
                 type="datetime-local"
                 value={deadline}
                 onChange={(e) => setDeadline(e.target.value)}
-                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100"
               />
               {deadline && (
                 <button
                   type="button"
                   onClick={() => setDeadline('')}
-                  className="px-3 py-2 text-gray-500 hover:text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  className="px-3 py-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700"
                   title="Clear deadline"
                 >
                   ✕
@@ -237,7 +237,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
 
           {/* Tags */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Tags
             </label>
             <input
@@ -245,14 +245,14 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
               value={tagsInput}
               onChange={(e) => setTagsInput(e.target.value)}
               placeholder="work, urgent, project (comma separated)"
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:text-gray-100 dark:placeholder-gray-400"
             />
           </div>
 
           {/* Rating - only show for done tasks */}
           {status === 'done' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Quality Rating
               </label>
               <div className="flex items-center gap-3">
@@ -271,7 +271,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
                         className={
                           (hoverRating !== null ? star <= hoverRating : star <= (rating || 0))
                             ? 'text-yellow-400'
-                            : 'text-gray-300'
+                            : 'text-gray-300 dark:text-gray-600'
                         }
                       >
                         ★
@@ -280,12 +280,12 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
                   ))}
                 </div>
                 {rating && (
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
                     {rating}/5
                     <button
                       type="button"
                       onClick={() => setRating(null)}
-                      className="ml-2 text-gray-400 hover:text-gray-600"
+                      className="ml-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                       title="Clear rating"
                     >
                       ✕
@@ -293,7 +293,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
                   </span>
                 )}
                 {!rating && (
-                  <span className="text-sm text-gray-400 italic">Click to rate</span>
+                  <span className="text-sm text-gray-400 dark:text-gray-500 italic">Click to rate</span>
                 )}
               </div>
             </div>
@@ -302,7 +302,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
           {/* Rejection reason - only show for rejected tasks */}
           {status === 'rejected' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Rejection Reason *
               </label>
               <textarea
@@ -310,22 +310,22 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
                 onChange={(e) => setRejectionReason(e.target.value)}
                 placeholder="Why is this task being rejected?"
                 rows={3}
-                className="w-full px-3 py-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none bg-red-50"
+                className="w-full px-3 py-2 border border-red-300 dark:border-red-700 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none bg-red-50 dark:bg-red-900/20 dark:text-gray-100"
                 required
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 Required when marking a task as rejected
               </p>
             </div>
           )}
         </div>
 
-        <div className="flex items-center justify-between p-4 border-t bg-gray-50 rounded-b-lg">
+        <div className="flex items-center justify-between p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-b-lg">
           {isEdit && onDelete ? (
             <div>
               {showDeleteConfirm ? (
                 <div className="flex items-center gap-2">
-                  <span className="text-sm text-red-600">Delete this task?</span>
+                  <span className="text-sm text-red-600 dark:text-red-400">Delete this task?</span>
                   <button
                     onClick={handleDelete}
                     disabled={deleting}
@@ -335,7 +335,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
                   </button>
                   <button
                     onClick={() => setShowDeleteConfirm(false)}
-                    className="px-3 py-1.5 text-gray-600 text-sm hover:text-gray-800"
+                    className="px-3 py-1.5 text-gray-600 dark:text-gray-400 text-sm hover:text-gray-800 dark:hover:text-gray-200"
                   >
                     Cancel
                   </button>
@@ -343,7 +343,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
               ) : (
                 <button
                   onClick={() => setShowDeleteConfirm(true)}
-                  className="text-red-600 hover:text-red-700 text-sm"
+                  className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-sm"
                 >
                   Delete task
                 </button>
@@ -356,7 +356,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
           <div className="flex gap-2">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800"
+              className="px-4 py-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
             >
               Cancel
             </button>
