@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   DndContext,
   DragOverlay,
@@ -28,7 +28,6 @@ const COLUMNS: { id: Task['status']; label: string; color: string }[] = [
   { id: 'inbox', label: '📥 Inbox', color: 'bg-gray-100' },
   { id: 'up_next', label: '⏳ Up Next', color: 'bg-blue-50' },
   { id: 'in_progress', label: '🚧 In Progress', color: 'bg-yellow-50' },
-  { id: 'testing', label: '🧪 Testing', color: 'bg-orange-50' },
   { id: 'in_review', label: '👀 In Review', color: 'bg-purple-50' },
   { id: 'done', label: '✅ Done', color: 'bg-green-50' },
 ];
@@ -185,9 +184,20 @@ export default function Boards() {
     }
   };
 
+  // Filter done tasks to only show those completed within last 48 hours
+  const visibleTasks = useMemo(() => {
+    const now = Date.now();
+    const hours48 = 48 * 60 * 60 * 1000;
+    return tasks.filter((t) => {
+      if (t.status !== 'done') return true;
+      if (!t.completed_at) return true;
+      return (now - new Date(t.completed_at).getTime()) < hours48;
+    });
+  }, [tasks]);
+
   const tasksByStatus = useCallback(
-    (status: Task['status']) => tasks.filter((t) => t.status === status),
-    [tasks]
+    (status: Task['status']) => visibleTasks.filter((t) => t.status === status),
+    [visibleTasks]
   );
 
   const handleDragStart = (event: DragStartEvent) => {
@@ -387,7 +397,6 @@ export default function Boards() {
             tasks={tasks}
             activeFilter={statusFilter}
             onFilterChange={setStatusFilter}
-            showTesting={currentBoard?.show_testing}
           />
 
           {/* Kanban Board */}
@@ -398,13 +407,9 @@ export default function Boards() {
         onDragEnd={handleDragEnd}
       >
         {(() => {
-          // Filter out 'testing' column if board doesn't show it
-          const boardColumns = currentBoard?.show_testing
-            ? COLUMNS
-            : COLUMNS.filter((col) => col.id !== 'testing');
           const visibleColumns = statusFilter === 'all'
-            ? boardColumns
-            : boardColumns.filter((col) => col.id === statusFilter);
+            ? COLUMNS
+            : COLUMNS.filter((col) => col.id === statusFilter);
           // Mobile: horizontal scroll with fixed column widths
           // Desktop: grid layout
           const isSingleColumn = statusFilter !== 'all';
