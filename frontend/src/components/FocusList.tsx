@@ -29,6 +29,15 @@ const tagColors = [
   'bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300',
 ];
 
+const STATUS_LABELS: Record<Task['status'], { label: string; color: string }> = {
+  inbox: { label: '📥 Inbox', color: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300' },
+  up_next: { label: '⏳ Up Next', color: 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' },
+  in_progress: { label: '🚧 Progress', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' },
+  testing: { label: '🧪 Testing', color: 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300' },
+  in_review: { label: '👀 Review', color: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300' },
+  done: { label: '✅ Done', color: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' },
+};
+
 function getTagColor(tag: string): string {
   const index = tag.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
   return tagColors[index % tagColors.length];
@@ -152,6 +161,13 @@ export function FocusList({ tasks, onTaskClick }: FocusListProps) {
                         </div>
                       );
                     })()}
+                  </div>
+
+                  {/* Status */}
+                  <div className="flex-shrink-0">
+                    <span className={`px-2 py-1 text-xs rounded-full font-medium ${STATUS_LABELS[task.status].color}`}>
+                      {STATUS_LABELS[task.status].label}
+                    </span>
                   </div>
 
                   {/* Priority + Age */}
