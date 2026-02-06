@@ -87,6 +87,24 @@ export interface Agent {
   configPath: string;
 }
 
+export interface AgentStats {
+  agentId: string;
+  createdAt: string;
+  lastActiveAt: string | null;
+  tokens: {
+    total: number;
+    input: number;
+    output: number;
+    cacheRead: number;
+    cacheWrite: number;
+  };
+  sessions: {
+    count: number;
+    totalDurationMs: number;
+    totalDurationFormatted: string;
+  };
+}
+
 // Token for API requests (auth handled at nginx level for UI)
 const getToken = (): string => {
   return 'REDACTED_TOKEN';
@@ -221,6 +239,10 @@ class ApiClient {
 
   async getAgent(id: string): Promise<{ agent: Agent; soulMd?: string }> {
     return this.fetch(`/agents/${id}`);
+  }
+
+  async getAgentStats(id: string): Promise<AgentStats> {
+    return this.fetch(`/agents/${id}/stats`);
   }
 
   // System

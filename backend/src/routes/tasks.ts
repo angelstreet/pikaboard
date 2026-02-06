@@ -17,6 +17,8 @@ interface Task {
   created_at: string;
   updated_at: string;
   completed_at: string | null;
+  rating: number | null;
+  rated_at: string | null;
 }
 
 interface CreateTaskBody {
@@ -39,6 +41,7 @@ interface UpdateTaskBody {
   board_id?: number;
   position?: number;
   deadline?: string | null;
+  rating?: number | null;
 }
 
 // GET /api/tasks - List all tasks with optional filtering
@@ -233,6 +236,16 @@ tasksRouter.patch('/:id', async (c) => {
     updates.push('deadline = ?');
     params.push(body.deadline);
   }
+  if (body.rating !== undefined) {
+    // Validate rating is 1-5 or null
+    if (body.rating !== null && (body.rating < 1 || body.rating > 5 || !Number.isInteger(body.rating))) {
+      return c.json({ error: 'Rating must be an integer between 1 and 5' }, 400);
+    }
+    updates.push('rating = ?');
+    params.push(body.rating);
+    updates.push('rated_at = ?');
+    params.push(body.rating !== null ? new Date().toISOString() : null);
+  }
 
   if (updates.length === 0) {
     return c.json({ error: 'No fields to update' }, 400);
@@ -262,6 +275,8 @@ tasksRouter.patch('/:id', async (c) => {
   // Log activity
   if (body.status === 'done' && existing.status !== 'done') {
     logActivity('task_completed', `Completed task: ${updated.name}`, { taskId: updated.id });
+  } else if (body.rating !== undefined && body.rating !== null) {
+    logActivity('task_rated', `Rated task: ${updated.name} (${body.rating}/5)`, { taskId: updated.id, rating: body.rating });
   } else {
     logActivity('task_updated', `Updated task: ${updated.name}`, { taskId: updated.id, changes: Object.keys(body) });
   }

@@ -7,7 +7,7 @@ export default function Agents() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedAgent, setSelectedAgent] = useState<Agent | null>(null);
-  const [agentDetail, setAgentDetail] = useState<{ agent: Agent; soulMd?: string } | null>(null);
+  const [agentDetail, setAgentDetail] = useState<{ agent: Agent; soulMd?: string; stats?: AgentStats } | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
 
   useEffect(() => {
@@ -31,8 +31,11 @@ export default function Agents() {
     setSelectedAgent(agent);
     setDetailLoading(true);
     try {
-      const detail = await api.getAgent(agent.id);
-      setAgentDetail(detail);
+      const [detail, stats] = await Promise.all([
+        api.getAgent(agent.id),
+        api.getAgentStats(agent.id).catch(() => undefined),
+      ]);
+      setAgentDetail({ ...detail, stats });
     } catch {
       setAgentDetail({ agent });
     } finally {
@@ -149,6 +152,7 @@ export default function Agents() {
               <AgentDetailView
                 agent={agentDetail.agent}
                 soulMd={agentDetail.soulMd}
+                stats={agentDetail.stats}
                 onClose={closeDetail}
               />
             ) : null}
@@ -163,10 +167,12 @@ export default function Agents() {
 function AgentDetailView({
   agent,
   soulMd,
+  stats,
   onClose,
 }: {
   agent: Agent;
   soulMd?: string;
+  stats?: AgentStats;
   onClose: () => void;
 }) {
   const [showSoul, setShowSoul] = useState(false);
@@ -251,32 +257,89 @@ function AgentDetailView({
         </div>
       )}
 
-      {/* KPIs */}
-      <div className="p-6">
-        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
-          Performance
-        </h3>
-        <div className="grid grid-cols-3 gap-4">
-          <div className="text-center">
-            <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-              {agent.kpis.tasksCompleted}
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Completed</p>
+      {/* Stats */}
+      {stats && (
+        <div className="p-6">
+          <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+            📊 Usage Statistics
+          </h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+            <div className="bg-purple-50 dark:bg-purple-900/30 rounded-lg p-3 text-center">
+              <p className="text-xl font-bold text-purple-600 dark:text-purple-400">
+                {formatTokens(stats.tokens.total)}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Total Tokens</p>
+            </div>
+            <div className="bg-blue-50 dark:bg-blue-900/30 rounded-lg p-3 text-center">
+              <p className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                {stats.sessions.count}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Sessions</p>
+            </div>
+            <div className="bg-green-50 dark:bg-green-900/30 rounded-lg p-3 text-center">
+              <p className="text-xl font-bold text-green-600 dark:text-green-400">
+                {stats.sessions.totalDurationFormatted}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Total Time</p>
+            </div>
+            <div className="bg-amber-50 dark:bg-amber-900/30 rounded-lg p-3 text-center">
+              <p className="text-xl font-bold text-amber-600 dark:text-amber-400">
+                {formatDate(stats.createdAt)}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Created</p>
+            </div>
           </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
-              {agent.kpis.tasksActive}
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Active</p>
-          </div>
-          <div className="text-center">
-            <p className="text-2xl font-bold text-gray-600 dark:text-gray-400">
-              {agent.kpis.uptime || '—'}
-            </p>
-            <p className="text-xs text-gray-500 dark:text-gray-400">Uptime</p>
+          
+          {/* Token breakdown */}
+          <div className="mt-4 text-xs text-gray-500 dark:text-gray-400 space-y-1">
+            <div className="flex justify-between">
+              <span>Input tokens:</span>
+              <span className="font-mono">{stats.tokens.input.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Output tokens:</span>
+              <span className="font-mono">{stats.tokens.output.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Cache read:</span>
+              <span className="font-mono">{stats.tokens.cacheRead.toLocaleString()}</span>
+            </div>
+            <div className="flex justify-between">
+              <span>Cache write:</span>
+              <span className="font-mono">{stats.tokens.cacheWrite.toLocaleString()}</span>
+            </div>
           </div>
         </div>
-      </div>
+      )}
+
+      {/* KPIs (legacy fallback) */}
+      {!stats && (
+        <div className="p-6">
+          <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+            Performance
+          </h3>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="text-center">
+              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                {agent.kpis.tasksCompleted}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Completed</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                {agent.kpis.tasksActive}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Active</p>
+            </div>
+            <div className="text-center">
+              <p className="text-2xl font-bold text-gray-600 dark:text-gray-400">
+                {agent.kpis.uptime || '—'}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">Uptime</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Recent Activity */}
       {agent.recentActivity.length > 0 && (
@@ -317,10 +380,50 @@ function AgentDetailView({
       {/* Footer */}
       <div className="p-4 bg-gray-50 dark:bg-gray-900 flex justify-between items-center text-sm text-gray-500 dark:text-gray-400">
         <span>ID: {agent.id}</span>
-        {agent.lastSeen && <span>Last seen: {agent.lastSeen}</span>}
+        {(stats?.lastActiveAt || agent.lastSeen) && (
+          <span>Last active: {formatRelativeTime(stats?.lastActiveAt || agent.lastSeen)}</span>
+        )}
       </div>
     </div>
   );
+}
+
+// Helper: Format large token numbers
+function formatTokens(n: number): string {
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+  return n.toString();
+}
+
+// Helper: Format ISO date to short date
+function formatDate(isoDate: string): string {
+  try {
+    const d = new Date(isoDate);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  } catch {
+    return '—';
+  }
+}
+
+// Helper: Format ISO date to relative time
+function formatRelativeTime(isoDate: string | null): string {
+  if (!isoDate) return '—';
+  try {
+    const d = new Date(isoDate);
+    const now = new Date();
+    const diffMs = now.getTime() - d.getTime();
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 1) return 'just now';
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  } catch {
+    return '—';
+  }
 }
 
 function StatusBadge({ status }: { status: string }) {

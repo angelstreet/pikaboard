@@ -113,6 +113,8 @@ function runMigrations() {
   const hasboardId = tableInfo.some((col) => col.name === 'board_id');
   const hasPosition = tableInfo.some((col) => col.name === 'position');
   const hasDeadline = tableInfo.some((col) => col.name === 'deadline');
+  const hasRating = tableInfo.some((col) => col.name === 'rating');
+  const hasRatedAt = tableInfo.some((col) => col.name === 'rated_at');
 
   if (!hasboardId) {
     console.log('🔄 Migration: Adding board_id to tasks...');
@@ -127,6 +129,17 @@ function runMigrations() {
   if (!hasDeadline) {
     console.log('🔄 Migration: Adding deadline to tasks...');
     db.exec('ALTER TABLE tasks ADD COLUMN deadline DATETIME');
+  }
+
+  // Migration: Add rating columns for task quality feedback
+  if (!hasRating) {
+    console.log('🔄 Migration: Adding rating to tasks...');
+    db.exec('ALTER TABLE tasks ADD COLUMN rating INTEGER CHECK(rating IS NULL OR (rating >= 1 AND rating <= 5))');
+  }
+
+  if (!hasRatedAt) {
+    console.log('🔄 Migration: Adding rated_at to tasks...');
+    db.exec('ALTER TABLE tasks ADD COLUMN rated_at DATETIME');
   }
 
   // Migration: Add 'testing' status to tasks table
