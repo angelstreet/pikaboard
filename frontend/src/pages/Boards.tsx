@@ -329,10 +329,10 @@ export default function Boards() {
   return (
     <div>
       {/* Header */}
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-4">
-          <h2 className="text-2xl font-bold">
-            {activeView === 'kanban' ? '📋 Kanban Board' : activeView === 'focus' ? '🎯 Focus List' : '🚧 Blockers'}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-3">
+        <div className="flex items-center gap-3">
+          <h2 className="text-xl sm:text-2xl font-bold">
+            {activeView === 'kanban' ? '📋 Kanban' : activeView === 'focus' ? '🎯 Focus' : '🚧 Blockers'}
           </h2>
           <BoardSelector
             boards={boards}
@@ -343,16 +343,17 @@ export default function Boards() {
           />
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           <ViewToggle activeView={activeView} onViewChange={setActiveView} blockerCount={blockerCount} />
           <button
             onClick={handleCreateTask}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            New Task
+            <span className="hidden sm:inline">New Task</span>
+            <span className="sm:hidden">New</span>
           </button>
         </div>
       </div>
@@ -398,28 +399,36 @@ export default function Boards() {
       >
         {(() => {
           // Filter out 'testing' column if board doesn't show it
-          const boardColumns = currentBoard?.show_testing 
-            ? COLUMNS 
+          const boardColumns = currentBoard?.show_testing
+            ? COLUMNS
             : COLUMNS.filter((col) => col.id !== 'testing');
           const visibleColumns = statusFilter === 'all'
             ? boardColumns
             : boardColumns.filter((col) => col.id === statusFilter);
-          // Tailwind needs static class names - can't use dynamic interpolation
-          const gridCols = statusFilter === 'all' 
-            ? (boardColumns.length === 6 ? 'grid-cols-6' : 'grid-cols-5')
-            : 'grid-cols-1 max-w-md';
+          // Mobile: horizontal scroll with fixed column widths
+          // Desktop: grid layout
+          const isSingleColumn = statusFilter !== 'all';
           return (
-            <div className={`grid ${gridCols} gap-4`}>
+            <div className={`
+              ${isSingleColumn
+                ? 'max-w-md mx-auto'
+                : 'flex gap-3 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 sm:gap-4 sm:overflow-visible sm:pb-0'
+              }
+            `}>
               {visibleColumns.map((col) => (
-                <DroppableColumn
+                <div
                   key={col.id}
-                  id={col.id}
-                  label={col.label}
-                  color={col.color}
-                  tasks={tasksByStatus(col.id)}
-                  onTaskClick={handleTaskClick}
-                  activeId={activeId}
-                />
+                  className={isSingleColumn ? 'w-full' : 'flex-shrink-0 w-[280px] sm:w-auto snap-start'}
+                >
+                  <DroppableColumn
+                    id={col.id}
+                    label={col.label}
+                    color={col.color}
+                    tasks={tasksByStatus(col.id)}
+                    onTaskClick={handleTaskClick}
+                    activeId={activeId}
+                  />
+                </div>
               ))}
             </div>
           );

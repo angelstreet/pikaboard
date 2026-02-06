@@ -47,15 +47,15 @@ export function BoardSelector({
       <button
         onClick={() => setIsOpen(!isOpen)}
         className={`
-          flex items-center gap-2 px-4 py-2 rounded-lg border-2 transition-all
+          flex items-center gap-1.5 sm:gap-2 px-2 sm:px-4 py-1.5 sm:py-2 rounded-lg border-2 transition-all
           ${colors.bg} ${colors.text} ${colors.border}
-          hover:shadow-md
+          hover:shadow-md max-w-[140px] sm:max-w-none truncate
         `}
       >
-        <span className="text-xl">{currentBoard?.icon || '📋'}</span>
-        <span className="font-semibold">{currentBoard?.name || 'Select Board'}</span>
+        <span className="text-lg sm:text-xl">{currentBoard?.icon || '📋'}</span>
+        <span className="font-semibold text-sm sm:text-base truncate">{currentBoard?.name || 'Select'}</span>
         <svg
-          className={`w-4 h-4 transition-transform ${isOpen ? 'rotate-180' : ''}`}
+          className={`w-4 h-4 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`}
           fill="none"
           stroke="currentColor"
           viewBox="0 0 24 24"
@@ -65,7 +65,7 @@ export function BoardSelector({
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
+        <div className="absolute top-full left-0 sm:left-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
           <div className="max-h-96 overflow-y-auto">
             {boards.map((board) => {
               const boardColors = colorClasses[board.color] || colorClasses.blue;

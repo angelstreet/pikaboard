@@ -38,7 +38,7 @@ export function TaskFilterTabs({ tasks, activeFilter, onFilterChange, showTestin
   );
 
   return (
-    <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg mb-4 dark:bg-gray-700">
+    <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg mb-4 dark:bg-gray-700 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-1 sm:overflow-visible">
       {visibleStatuses.map((status) => {
         const count = status.id === 'all' ? tasks.length : (counts[status.id] || 0);
         const isActive = activeFilter === status.id;
@@ -48,7 +48,7 @@ export function TaskFilterTabs({ tasks, activeFilter, onFilterChange, showTestin
             key={status.id}
             onClick={() => onFilterChange(status.id)}
             className={`
-              flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all
+              flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-md text-sm font-medium transition-all flex-shrink-0
               ${isActive
                 ? 'bg-white text-gray-900 shadow-sm'
                 : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'

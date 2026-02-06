@@ -10,7 +10,7 @@ export function ViewToggle({ activeView, onViewChange, blockerCount = 0 }: ViewT
       <button
         onClick={() => onViewChange('kanban')}
         className={`
-          flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all
+          flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-md text-sm font-medium transition-all
           ${activeView === 'kanban'
             ? 'bg-white text-gray-900 shadow-sm'
             : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -18,12 +18,12 @@ export function ViewToggle({ activeView, onViewChange, blockerCount = 0 }: ViewT
         `}
       >
         <span>📋</span>
-        <span>Kanban</span>
+        <span className="hidden sm:inline">Kanban</span>
       </button>
       <button
         onClick={() => onViewChange('focus')}
         className={`
-          flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all
+          flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-md text-sm font-medium transition-all
           ${activeView === 'focus'
             ? 'bg-white text-gray-900 shadow-sm'
             : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -31,12 +31,12 @@ export function ViewToggle({ activeView, onViewChange, blockerCount = 0 }: ViewT
         `}
       >
         <span>🎯</span>
-        <span>Focus</span>
+        <span className="hidden sm:inline">Focus</span>
       </button>
       <button
         onClick={() => onViewChange('blocker')}
         className={`
-          flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-medium transition-all relative
+          flex items-center gap-1.5 sm:gap-2 px-2 sm:px-3 py-1.5 rounded-md text-sm font-medium transition-all relative
           ${activeView === 'blocker'
             ? 'bg-white text-gray-900 shadow-sm'
             : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
@@ -44,7 +44,7 @@ export function ViewToggle({ activeView, onViewChange, blockerCount = 0 }: ViewT
         `}
       >
         <span>🚧</span>
-        <span>Blocker</span>
+        <span className="hidden sm:inline">Blocker</span>
         {blockerCount > 0 && (
           <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
             {blockerCount}
