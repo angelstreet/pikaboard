@@ -244,6 +244,19 @@ tasksRouter.patch('/:id', async (c) => {
   const query = `UPDATE tasks SET ${updates.join(', ')} WHERE id = ?`;
   db.prepare(query).run(...params);
 
+  // Recalculate progress for any goals linked to this task (if status changed)
+  if (body.status !== undefined) {
+    const linkedGoals = db.prepare('SELECT goal_id FROM goal_tasks WHERE task_id = ?').all(parseInt(id)) as { goal_id: number }[];
+    for (const { goal_id } of linkedGoals) {
+      const stats = db.prepare(`
+        SELECT COUNT(*) as total, SUM(CASE WHEN t.status = 'done' THEN 1 ELSE 0 END) as done
+        FROM goal_tasks gt JOIN tasks t ON gt.task_id = t.id WHERE gt.goal_id = ?
+      `).get(goal_id) as { total: number; done: number };
+      const progress = stats.total > 0 ? Math.round((stats.done / stats.total) * 100) : 0;
+      db.prepare('UPDATE goals SET progress = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(progress, goal_id);
+    }
+  }
+
   const updated = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id) as Task;
 
   // Log activity
