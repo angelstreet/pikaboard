@@ -51,10 +51,10 @@ function FocusTaskItem({ task, onClick }: { task: Task; onClick: () => void }) {
   return (
     <button
       onClick={onClick}
-      className="w-full text-left p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-sm transition-all group"
+      className="w-full max-w-full text-left p-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:border-blue-300 dark:hover:border-blue-600 hover:shadow-sm transition-all group overflow-hidden"
     >
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1 min-w-0">
+      <div className="flex items-start justify-between gap-3 max-w-full">
+        <div className="flex-1 min-w-0 overflow-hidden">
           <p className="font-medium text-gray-900 dark:text-white truncate group-hover:text-blue-600 dark:group-hover:text-blue-400">
             {task.name}
           </p>
@@ -183,14 +183,14 @@ export default function DashboardHome() {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid md:grid-cols-2 gap-6 max-w-full">
         {/* Focus List */}
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 max-w-full overflow-hidden">
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-gray-900 dark:text-white">🎯 Focus List</h3>
             <span className="text-xs text-gray-500 dark:text-gray-400">Top priorities</span>
           </div>
-          <div className="space-y-2">
+          <div className="space-y-2 max-w-full">
             {stats?.focus && stats.focus.length > 0 ? (
               stats.focus.map((task) => (
                 <FocusTaskItem

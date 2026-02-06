@@ -78,7 +78,7 @@ export function FocusList({ tasks, onTaskClick }: FocusListProps) {
   const activeCount = tasks.filter((t) => t.status !== 'done').length;
 
   return (
-    <div>
+    <div className="w-full max-w-full overflow-hidden">
       {/* Header with dropdown */}
       <div className="flex items-center justify-between mb-4">
         <span className="text-sm text-gray-500 dark:text-gray-400">
@@ -95,7 +95,7 @@ export function FocusList({ tasks, onTaskClick }: FocusListProps) {
       </div>
 
       {/* Task List */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden max-w-full">
         {focusTasks.length === 0 ? (
           <div className="p-8 text-center text-gray-500 dark:text-gray-400">
             <span className="text-4xl mb-2 block">🎉</span>
@@ -114,6 +114,7 @@ export function FocusList({ tasks, onTaskClick }: FocusListProps) {
                   className={`
                     flex items-center gap-4 px-4 py-3 cursor-pointer
                     hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
+                    max-w-full overflow-hidden
                     ${rank <= 3 ? priority.bg : ''}
                   `}
                 >
@@ -132,7 +133,7 @@ export function FocusList({ tasks, onTaskClick }: FocusListProps) {
                   <div className={`w-3 h-3 rounded-full ${priority.dot} flex-shrink-0`} />
 
                   {/* Task info */}
-                  <div className="flex-1 min-w-0">
+                  <div className="flex-1 min-w-0 overflow-hidden">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-gray-900 dark:text-gray-100 truncate">
                         <span className="text-gray-400 dark:text-gray-500">#{task.id}</span> {task.name}
@@ -163,19 +164,19 @@ export function FocusList({ tasks, onTaskClick }: FocusListProps) {
                     })()}
                   </div>
 
-                  {/* Status */}
-                  <div className="flex-shrink-0">
+                  {/* Status - hidden on small screens */}
+                  <div className="hidden sm:block flex-shrink-0">
                     <span className={`px-2 py-1 text-xs rounded-full font-medium ${STATUS_LABELS[task.status].color}`}>
                       {STATUS_LABELS[task.status].label}
                     </span>
                   </div>
 
-                  {/* Priority + Age */}
-                  <div className="flex items-center gap-2 text-sm flex-shrink-0">
+                  {/* Priority + Age - simplified on mobile */}
+                  <div className="flex flex-col sm:flex-row sm:items-center gap-0 sm:gap-2 text-xs sm:text-sm flex-shrink-0">
                     <span className={`font-medium capitalize ${priority.label}`}>
                       {task.priority}
                     </span>
-                    <span className="text-gray-400 dark:text-gray-500">•</span>
+                    <span className="hidden sm:inline text-gray-400 dark:text-gray-500">•</span>
                     <span className="text-gray-500 dark:text-gray-400">
                       {formatAge(task.created_at)}
                     </span>

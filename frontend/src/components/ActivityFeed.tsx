@@ -105,14 +105,14 @@ function ActivityItem({
   
   return (
     <div 
-      className={`border-l-4 rounded-r-lg px-3 py-2 cursor-pointer transition-all hover:shadow-sm ${colorClass}`}
+      className={`border-l-4 rounded-r-lg px-3 py-2 cursor-pointer transition-all hover:shadow-sm ${colorClass} max-w-full overflow-hidden`}
       onClick={onToggle}
     >
-      <div className="flex items-start gap-3">
-        <span className={`text-lg ${isRunning ? 'animate-pulse' : ''}`}>{icon}</span>
-        <div className="flex-1 min-w-0">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex-1 min-w-0">
+      <div className="flex items-start gap-3 max-w-full">
+        <span className={`text-lg flex-shrink-0 ${isRunning ? 'animate-pulse' : ''}`}>{icon}</span>
+        <div className="flex-1 min-w-0 overflow-hidden">
+          <div className="flex items-start justify-between gap-2 max-w-full">
+            <div className="flex-1 min-w-0 overflow-hidden">
               {isAgent && metadata?.agent_label && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full mb-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" style={{ display: isRunning ? 'inline-block' : 'none' }}></span>
@@ -123,7 +123,7 @@ function ActivityItem({
                 {activity.message}
               </p>
             </div>
-            <div className="flex flex-col items-end gap-1 shrink-0">
+            <div className="flex flex-col items-end gap-1 flex-shrink-0">
               <span className="text-xs text-gray-400 dark:text-gray-500 whitespace-nowrap">{timeAgo}</span>
               {isAgent && metadata?.status === 'completed' && metadata.duration_sec !== undefined && (
                 <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400">
@@ -251,7 +251,7 @@ export default function ActivityFeed() {
   }).length;
 
   return (
-    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
+    <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 w-full max-w-full overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
@@ -289,7 +289,7 @@ export default function ActivityFeed() {
       </div>
 
       {/* Activity List */}
-      <div className="space-y-2 max-h-[400px] overflow-y-auto">
+      <div className="space-y-2 max-h-[400px] overflow-y-auto max-w-full">
         {loading && activity.length === 0 ? (
           <div className="flex items-center justify-center py-8">
             <div className="text-gray-500 dark:text-gray-400 flex items-center gap-2">
