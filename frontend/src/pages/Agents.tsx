@@ -137,7 +137,7 @@ export default function Agents() {
           onClick={closeDetail}
         >
           <div
-            className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto"
+            className="bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-600"
             onClick={(e) => e.stopPropagation()}
           >
             {detailLoading ? (

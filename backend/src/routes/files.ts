@@ -88,11 +88,16 @@ filesRouter.get('/', (c) => {
       const fullPath = join(expanded, entry.name);
       const displayPath = fullPath.replace(homedir(), '~');
       
-      // For agents dir, only show dirs with memory subdir or SOUL.md
+      // For agents dir, only show dirs with memory subdir or SOUL.md (or is main agent)
       if (expanded.endsWith('.openclaw/agents') && entry.isDirectory()) {
-        const memoryPath = join(fullPath, 'memory');
-        const soulPath = join(fullPath, 'SOUL.md');
-        if (!existsSync(memoryPath) && !existsSync(soulPath)) continue;
+        // Always show 'main' (Pika - the captain)
+        if (entry.name === 'main') {
+          // main's memory is in workspace/memory, so include it anyway
+        } else {
+          const memoryPath = join(fullPath, 'memory');
+          const soulPath = join(fullPath, 'SOUL.md');
+          if (!existsSync(memoryPath) && !existsSync(soulPath)) continue;
+        }
       }
       
       // Check if this specific entry is allowed
@@ -179,8 +184,6 @@ filesRouter.get('/content', (c) => {
 filesRouter.get('/roots', (c) => {
   const roots = [
     { path: '~/.openclaw/workspace/research', label: '📁 Research', exists: existsSync(join(homedir(), '.openclaw/workspace/research')) },
-    { path: '~/.openclaw/workspace/docs', label: '📄 Docs', exists: existsSync(join(homedir(), '.openclaw/workspace/docs')) },
-    { path: '~/.openclaw/workspace/memory', label: '🧠 Pika Memory', exists: existsSync(join(homedir(), '.openclaw/workspace/memory')) },
     { path: '~/.openclaw/agents', label: '🤖 Agents', exists: existsSync(join(homedir(), '.openclaw/agents')) },
   ];
   
