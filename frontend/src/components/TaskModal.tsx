@@ -13,6 +13,7 @@ const statuses = [
   { value: 'inbox', label: '📥 Inbox' },
   { value: 'up_next', label: '⏳ Up Next' },
   { value: 'in_progress', label: '🚧 In Progress' },
+  { value: 'testing', label: '🧪 Testing' },
   { value: 'in_review', label: '👀 In Review' },
   { value: 'done', label: '✅ Done' },
 ];
@@ -30,11 +31,27 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
   const [status, setStatus] = useState<Task['status']>('inbox');
   const [priority, setPriority] = useState<Task['priority']>('medium');
   const [tagsInput, setTagsInput] = useState('');
+  const [deadline, setDeadline] = useState('');
+  const [rating, setRating] = useState<number | null>(null);
+  const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const isEdit = !!task;
+
+  // Format datetime for input (local timezone)
+  const formatDatetimeLocal = (isoString: string | null): string => {
+    if (!isoString) return '';
+    const date = new Date(isoString);
+    // Format as YYYY-MM-DDTHH:mm for datetime-local input
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    return `${year}-${month}-${day}T${hours}:${minutes}`;
+  };
 
   useEffect(() => {
     if (task) {
@@ -42,14 +59,19 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
       setDescription(task.description || '');
       setStatus(task.status);
       setPriority(task.priority);
-      setTagsInput(task.tags?.join(', ') || '');
+      setTagsInput(task.tags ? (Array.isArray(task.tags) ? task.tags.join(', ') : task.tags) : '');
+      setDeadline(formatDatetimeLocal(task.deadline));
+      setRating(task.rating ?? null);
     } else {
       setName('');
       setDescription('');
       setStatus('inbox');
       setPriority('medium');
       setTagsInput('');
+      setDeadline('');
+      setRating(null);
     }
+    setHoverRating(null);
     setShowDeleteConfirm(false);
   }, [task, isOpen]);
 
@@ -63,6 +85,9 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
         .map((t) => t.trim())
         .filter((t) => t.length > 0);
 
+      // Convert local datetime to ISO string for API
+      const deadlineValue = deadline ? new Date(deadline).toISOString() : null;
+
       await onSave({
         ...(task ? { id: task.id } : {}),
         name: name.trim(),
@@ -70,6 +95,8 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
         status,
         priority,
         tags,
+        deadline: deadlineValue,
+        rating: status === 'done' ? rating : null,
       });
       onClose();
     } finally {
@@ -179,6 +206,31 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
             </div>
           </div>
 
+          {/* Deadline */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Deadline
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="datetime-local"
+                value={deadline}
+                onChange={(e) => setDeadline(e.target.value)}
+                className="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+              {deadline && (
+                <button
+                  type="button"
+                  onClick={() => setDeadline('')}
+                  className="px-3 py-2 text-gray-500 hover:text-gray-700 border border-gray-300 rounded-lg hover:bg-gray-50"
+                  title="Clear deadline"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+
           {/* Tags */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -192,6 +244,56 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
+
+          {/* Rating - only show for done tasks */}
+          {status === 'done' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Quality Rating
+              </label>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setRating(rating === star ? null : star)}
+                      onMouseEnter={() => setHoverRating(star)}
+                      onMouseLeave={() => setHoverRating(null)}
+                      className="text-2xl transition-transform hover:scale-110 focus:outline-none"
+                      title={`${star} star${star > 1 ? 's' : ''}`}
+                    >
+                      <span
+                        className={
+                          (hoverRating !== null ? star <= hoverRating : star <= (rating || 0))
+                            ? 'text-yellow-400'
+                            : 'text-gray-300'
+                        }
+                      >
+                        ★
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                {rating && (
+                  <span className="text-sm text-gray-500">
+                    {rating}/5
+                    <button
+                      type="button"
+                      onClick={() => setRating(null)}
+                      className="ml-2 text-gray-400 hover:text-gray-600"
+                      title="Clear rating"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                )}
+                {!rating && (
+                  <span className="text-sm text-gray-400 italic">Click to rate</span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center justify-between p-4 border-t bg-gray-50 rounded-b-lg">

@@ -11,6 +11,7 @@ const STATUS_CONFIGS: StatusConfig[] = [
   { id: 'inbox', label: 'Inbox', dotColor: 'bg-gray-500' },
   { id: 'up_next', label: 'Up Next', dotColor: 'bg-blue-500' },
   { id: 'in_progress', label: 'In Progress', dotColor: 'bg-yellow-500' },
+  { id: 'testing', label: 'Testing', dotColor: 'bg-orange-500' },
   { id: 'in_review', label: 'Review', dotColor: 'bg-purple-500' },
   { id: 'done', label: 'Done', dotColor: 'bg-green-500' },
 ];
@@ -19,9 +20,14 @@ interface TaskFilterTabsProps {
   tasks: Task[];
   activeFilter: Task['status'] | 'all';
   onFilterChange: (filter: Task['status'] | 'all') => void;
+  showTesting?: boolean;
 }
 
-export function TaskFilterTabs({ tasks, activeFilter, onFilterChange }: TaskFilterTabsProps) {
+export function TaskFilterTabs({ tasks, activeFilter, onFilterChange, showTesting = true }: TaskFilterTabsProps) {
+  // Filter out testing tab if not shown
+  const visibleStatuses = showTesting 
+    ? STATUS_CONFIGS 
+    : STATUS_CONFIGS.filter(s => s.id !== 'testing');
   // Calculate counts by status
   const counts = tasks.reduce<Record<string, number>>(
     (acc, task) => {
@@ -32,8 +38,8 @@ export function TaskFilterTabs({ tasks, activeFilter, onFilterChange }: TaskFilt
   );
 
   return (
-    <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg mb-4">
-      {STATUS_CONFIGS.map((status) => {
+    <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg mb-4 dark:bg-gray-700">
+      {visibleStatuses.map((status) => {
         const count = status.id === 'all' ? tasks.length : (counts[status.id] || 0);
         const isActive = activeFilter === status.id;
 

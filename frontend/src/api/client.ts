@@ -5,6 +5,7 @@ export interface Board {
   icon: string;
   color: string;
   position: number;
+  show_testing: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -13,14 +14,32 @@ export interface Task {
   id: number;
   name: string;
   description: string | null;
-  status: 'inbox' | 'up_next' | 'in_progress' | 'in_review' | 'done';
+  status: 'inbox' | 'up_next' | 'in_progress' | 'testing' | 'in_review' | 'done';
   priority: 'low' | 'medium' | 'high' | 'urgent';
-  tags: string[];
+  tags: string[] | string;
   board_id: number | null;
   position: number;
+  deadline: string | null;
+  rating: number | null;
   created_at: string;
   updated_at: string;
   completed_at: string | null;
+}
+
+export interface DashboardStats {
+  weekly: {
+    completed: number;
+    active: number;
+    inbox: number;
+  };
+  current: {
+    inbox: number;
+    active: number;
+    done: number;
+    total: number;
+    overdue: number;
+  };
+  focus: Task[];
 }
 
 export interface Activity {
@@ -44,6 +63,46 @@ export interface Skill {
   hasReadme: boolean;
   hasSkillMd: boolean;
   description?: string;
+}
+
+export interface Agent {
+  id: string;
+  name: string;
+  role: string;
+  status: 'active' | 'idle' | 'offline' | 'busy';
+  currentTask: string | null;
+  purpose: string | null;
+  personality: string | null;
+  domain: string | null;
+  boardId: number | null;
+  kpis: {
+    tasksCompleted: number;
+    tasksActive: number;
+    uptime: string | null;
+  };
+  skills: string[];
+  plugins: string[];
+  recentActivity: string[];
+  lastSeen: string | null;
+  configPath: string;
+}
+
+export interface AgentStats {
+  agentId: string;
+  createdAt: string;
+  lastActiveAt: string | null;
+  tokens: {
+    total: number;
+    input: number;
+    output: number;
+    cacheRead: number;
+    cacheWrite: number;
+  };
+  sessions: {
+    count: number;
+    totalDurationMs: number;
+    totalDurationFormatted: string;
+  };
 }
 
 // Token for API requests (auth handled at nginx level for UI)
@@ -151,6 +210,11 @@ class ApiClient {
     return res.activity;
   }
 
+  // Stats
+  async getStats(): Promise<DashboardStats> {
+    return this.fetch<DashboardStats>('/stats');
+  }
+
   // Crons
   async getCrons(): Promise<Cron[]> {
     const res = await this.fetch<{ crons: Cron[] }>('/crons');
@@ -166,6 +230,88 @@ class ApiClient {
   async getSkill(name: string): Promise<Skill & { skillMd?: string; readme?: string; files?: string[] }> {
     return this.fetch(`/skills/${name}`);
   }
+
+  // Agents
+  async getAgents(): Promise<Agent[]> {
+    const res = await this.fetch<{ agents: Agent[] }>('/agents');
+    return res.agents;
+  }
+
+  async getAgent(id: string): Promise<{ agent: Agent; soulMd?: string }> {
+    return this.fetch(`/agents/${id}`);
+  }
+
+  async getAgentStats(id: string): Promise<AgentStats> {
+    return this.fetch(`/agents/${id}/stats`);
+  }
+
+  // System
+  async getSystemStats(): Promise<SystemStats> {
+    return this.fetch<SystemStats>('/system');
+  }
+
+  // Insights
+  async getInsights(): Promise<InsightsData> {
+    return this.fetch<InsightsData>('/insights');
+  }
+}
+
+// Insights
+export interface InsightsData {
+  summary: {
+    completedToday: number;
+    completedThisWeek: number;
+    completedThisMonth: number;
+    totalTasks: number;
+    totalCompleted: number;
+    avgCompletionHours: number;
+    currentStreak: number;
+  };
+  completions: {
+    daily: { date: string; count: number }[];
+    weekly: { week: string; count: number }[];
+    monthly: { month: string; count: number }[];
+  };
+  distributions: {
+    priority: Record<string, number>;
+    status: Record<string, number>;
+  };
+  agents: Record<string, { actions: number; lastActive: string | null; avgRating: number | null; ratedTasks: number }>;
+  activityByType: Record<string, number>;
+  activityTrend: { date: string; count: number }[];
+}
+
+// System Stats
+export interface SystemStats {
+  cpu: {
+    model: string;
+    cores: number;
+    usagePercent: number;
+    loadAvg: number[];
+  };
+  memory: {
+    total: number;
+    used: number;
+    free: number;
+    usagePercent: number;
+  };
+  disk: Array<{
+    filesystem: string;
+    size: string;
+    used: string;
+    available: string;
+    usePercent: number;
+    mountpoint: string;
+  }>;
+  gateway: {
+    status: 'online' | 'offline' | 'unknown';
+    url?: string;
+    error?: string;
+  };
+  uptime: number;
+  hostname: string;
+  platform: string;
+  timestamp: string;
 }
 
 export const api = new ApiClient();

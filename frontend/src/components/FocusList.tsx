@@ -14,19 +14,19 @@ const PRIORITY_ORDER: Record<Task['priority'], number> = {
 };
 
 const PRIORITY_COLORS: Record<Task['priority'], { dot: string; label: string; bg: string }> = {
-  urgent: { dot: 'bg-red-500', label: 'text-red-700', bg: 'bg-red-50' },
-  high: { dot: 'bg-orange-500', label: 'text-orange-700', bg: 'bg-orange-50' },
-  medium: { dot: 'bg-yellow-500', label: 'text-yellow-700', bg: 'bg-yellow-50' },
-  low: { dot: 'bg-green-500', label: 'text-green-700', bg: 'bg-green-50' },
+  urgent: { dot: 'bg-red-500', label: 'text-red-700 dark:text-red-400', bg: 'bg-red-50 dark:bg-red-900/30' },
+  high: { dot: 'bg-orange-500', label: 'text-orange-700 dark:text-orange-400', bg: 'bg-orange-50 dark:bg-orange-900/30' },
+  medium: { dot: 'bg-yellow-500', label: 'text-yellow-700 dark:text-yellow-400', bg: 'bg-yellow-50 dark:bg-yellow-900/30' },
+  low: { dot: 'bg-green-500', label: 'text-green-700 dark:text-green-400', bg: 'bg-green-50 dark:bg-green-900/30' },
 };
 
 const tagColors = [
-  'bg-purple-100 text-purple-700',
-  'bg-green-100 text-green-700',
-  'bg-pink-100 text-pink-700',
-  'bg-blue-100 text-blue-700',
-  'bg-indigo-100 text-indigo-700',
-  'bg-teal-100 text-teal-700',
+  'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
+  'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
+  'bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300',
+  'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300',
+  'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300',
+  'bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300',
 ];
 
 function getTagColor(tag: string): string {
@@ -72,13 +72,13 @@ export function FocusList({ tasks, onTaskClick }: FocusListProps) {
     <div>
       {/* Header with dropdown */}
       <div className="flex items-center justify-between mb-4">
-        <span className="text-sm text-gray-500">
+        <span className="text-sm text-gray-500 dark:text-gray-400">
           Showing top {limit} of {activeCount} active tasks
         </span>
         <select
           value={limit}
           onChange={(e) => setLimit(Number(e.target.value) as 5 | 10)}
-          className="px-3 py-1.5 text-sm border border-gray-300 rounded-lg bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          className="px-3 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
         >
           <option value={5}>Top 5</option>
           <option value={10}>Top 10</option>
@@ -86,14 +86,14 @@ export function FocusList({ tasks, onTaskClick }: FocusListProps) {
       </div>
 
       {/* Task List */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         {focusTasks.length === 0 ? (
-          <div className="p-8 text-center text-gray-500">
+          <div className="p-8 text-center text-gray-500 dark:text-gray-400">
             <span className="text-4xl mb-2 block">🎉</span>
             <p>No active tasks! You&apos;re all caught up.</p>
           </div>
         ) : (
-          <div className="divide-y divide-gray-100">
+          <div className="divide-y divide-gray-100 dark:divide-gray-700">
             {focusTasks.map((task, index) => {
               const priority = PRIORITY_COLORS[task.priority];
               const rank = index + 1;
@@ -104,17 +104,17 @@ export function FocusList({ tasks, onTaskClick }: FocusListProps) {
                   onClick={() => onTaskClick(task)}
                   className={`
                     flex items-center gap-4 px-4 py-3 cursor-pointer
-                    hover:bg-gray-50 transition-colors
+                    hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors
                     ${rank <= 3 ? priority.bg : ''}
                   `}
                 >
                   {/* Rank */}
                   <div className={`
                     w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm
-                    ${rank === 1 ? 'bg-amber-100 text-amber-700' : ''}
-                    ${rank === 2 ? 'bg-gray-200 text-gray-700' : ''}
-                    ${rank === 3 ? 'bg-orange-100 text-orange-700' : ''}
-                    ${rank > 3 ? 'bg-gray-100 text-gray-500' : ''}
+                    ${rank === 1 ? 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300' : ''}
+                    ${rank === 2 ? 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200' : ''}
+                    ${rank === 3 ? 'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300' : ''}
+                    ${rank > 3 ? 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400' : ''}
                   `}>
                     {rank}
                   </div>
@@ -125,32 +125,36 @@ export function FocusList({ tasks, onTaskClick }: FocusListProps) {
                   {/* Task info */}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      <span className="font-medium text-gray-900 truncate">
+                      <span className="font-medium text-gray-900 dark:text-gray-100 truncate">
                         {task.name}
                       </span>
-                      <span className="text-xs text-gray-400 flex-shrink-0">
+                      <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">
                         #{task.id}
                       </span>
                     </div>
                     
                     {/* Tags */}
-                    {task.tags && task.tags.length > 0 && (
-                      <div className="flex gap-1 mt-1 flex-wrap">
-                        {task.tags.slice(0, 3).map((tag) => (
-                          <span
-                            key={tag}
-                            className={`px-1.5 py-0.5 text-xs rounded font-medium ${getTagColor(tag)}`}
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                        {task.tags.length > 3 && (
-                          <span className="px-1.5 py-0.5 text-xs rounded font-medium bg-gray-100 text-gray-500">
-                            +{task.tags.length - 3}
-                          </span>
-                        )}
-                      </div>
-                    )}
+                    {(() => {
+                      const tagsArr = !task.tags ? [] : (Array.isArray(task.tags) ? task.tags : task.tags.split(',').map(t => t.trim()).filter(Boolean));
+                      if (tagsArr.length === 0) return null;
+                      return (
+                        <div className="flex gap-1 mt-1 flex-wrap">
+                          {tagsArr.slice(0, 3).map((tag: string) => (
+                            <span
+                              key={tag}
+                              className={`px-1.5 py-0.5 text-xs rounded font-medium ${getTagColor(tag)}`}
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                          {tagsArr.length > 3 && (
+                            <span className="px-1.5 py-0.5 text-xs rounded font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">
+                              +{tagsArr.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Priority + Age */}
@@ -158,8 +162,8 @@ export function FocusList({ tasks, onTaskClick }: FocusListProps) {
                     <span className={`font-medium capitalize ${priority.label}`}>
                       {task.priority}
                     </span>
-                    <span className="text-gray-400">•</span>
-                    <span className="text-gray-500">
+                    <span className="text-gray-400 dark:text-gray-500">•</span>
+                    <span className="text-gray-500 dark:text-gray-400">
                       {formatAge(task.created_at)}
                     </span>
                   </div>
@@ -171,7 +175,7 @@ export function FocusList({ tasks, onTaskClick }: FocusListProps) {
       </div>
 
       {/* Footer hint */}
-      <p className="mt-3 text-xs text-gray-400 text-center">
+      <p className="mt-3 text-xs text-gray-400 dark:text-gray-500 text-center">
         Sorted by priority (urgent → low), then oldest first
       </p>
     </div>

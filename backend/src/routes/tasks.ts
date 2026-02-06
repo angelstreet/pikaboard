@@ -13,9 +13,12 @@ interface Task {
   tags: string | null;
   board_id: number | null;
   position: number;
+  deadline: string | null;
   created_at: string;
   updated_at: string;
   completed_at: string | null;
+  rating: number | null;
+  rated_at: string | null;
 }
 
 interface CreateTaskBody {
@@ -26,6 +29,7 @@ interface CreateTaskBody {
   tags?: string[];
   board_id?: number;
   position?: number;
+  deadline?: string | null;
 }
 
 interface UpdateTaskBody {
@@ -36,6 +40,8 @@ interface UpdateTaskBody {
   tags?: string[];
   board_id?: number;
   position?: number;
+  deadline?: string | null;
+  rating?: number | null;
 }
 
 // GET /api/tasks - List all tasks with optional filtering
@@ -100,7 +106,7 @@ tasksRouter.post('/', async (c) => {
     return c.json({ error: 'Name is required' }, 400);
   }
 
-  const validStatuses = ['inbox', 'up_next', 'in_progress', 'in_review', 'done'];
+  const validStatuses = ['inbox', 'up_next', 'in_progress', 'testing', 'in_review', 'done'];
   const validPriorities = ['low', 'medium', 'high', 'urgent'];
 
   if (body.status && !validStatuses.includes(body.status)) {
@@ -112,7 +118,7 @@ tasksRouter.post('/', async (c) => {
   }
 
   // Validate board_id if provided
-  let boardId = body.board_id;
+  let boardId: number | undefined = body.board_id;
   if (boardId) {
     const board = db.prepare('SELECT id FROM boards WHERE id = ?').get(boardId);
     if (!board) {
@@ -121,7 +127,7 @@ tasksRouter.post('/', async (c) => {
   } else {
     // Default to first board if not specified
     const defaultBoard = db.prepare('SELECT id FROM boards ORDER BY position, id LIMIT 1').get() as { id: number } | undefined;
-    boardId = defaultBoard?.id ?? null;
+    boardId = defaultBoard?.id;
   }
 
   // Get max position for new task in this status
@@ -132,8 +138,8 @@ tasksRouter.post('/', async (c) => {
   const position = body.position !== undefined ? body.position : (maxPos.max ?? -1) + 1;
 
   const stmt = db.prepare(`
-    INSERT INTO tasks (name, description, status, priority, tags, board_id, position)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO tasks (name, description, status, priority, tags, board_id, position, deadline)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
   const result = stmt.run(
@@ -143,7 +149,8 @@ tasksRouter.post('/', async (c) => {
     body.priority || 'medium',
     body.tags ? JSON.stringify(body.tags) : null,
     boardId,
-    position
+    position,
+    body.deadline || null
   );
 
   const newTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(result.lastInsertRowid) as Task;
@@ -171,7 +178,7 @@ tasksRouter.patch('/:id', async (c) => {
     return c.json({ error: 'Task not found' }, 404);
   }
 
-  const validStatuses = ['inbox', 'up_next', 'in_progress', 'in_review', 'done'];
+  const validStatuses = ['inbox', 'up_next', 'in_progress', 'testing', 'in_review', 'done'];
   const validPriorities = ['low', 'medium', 'high', 'urgent'];
 
   if (body.status && !validStatuses.includes(body.status)) {
@@ -225,6 +232,20 @@ tasksRouter.patch('/:id', async (c) => {
     updates.push('position = ?');
     params.push(body.position);
   }
+  if (body.deadline !== undefined) {
+    updates.push('deadline = ?');
+    params.push(body.deadline);
+  }
+  if (body.rating !== undefined) {
+    // Validate rating is 1-5 or null
+    if (body.rating !== null && (body.rating < 1 || body.rating > 5 || !Number.isInteger(body.rating))) {
+      return c.json({ error: 'Rating must be an integer between 1 and 5' }, 400);
+    }
+    updates.push('rating = ?');
+    params.push(body.rating);
+    updates.push('rated_at = ?');
+    params.push(body.rating !== null ? new Date().toISOString() : null);
+  }
 
   if (updates.length === 0) {
     return c.json({ error: 'No fields to update' }, 400);
@@ -236,11 +257,26 @@ tasksRouter.patch('/:id', async (c) => {
   const query = `UPDATE tasks SET ${updates.join(', ')} WHERE id = ?`;
   db.prepare(query).run(...params);
 
+  // Recalculate progress for any goals linked to this task (if status changed)
+  if (body.status !== undefined) {
+    const linkedGoals = db.prepare('SELECT goal_id FROM goal_tasks WHERE task_id = ?').all(parseInt(id)) as { goal_id: number }[];
+    for (const { goal_id } of linkedGoals) {
+      const stats = db.prepare(`
+        SELECT COUNT(*) as total, SUM(CASE WHEN t.status = 'done' THEN 1 ELSE 0 END) as done
+        FROM goal_tasks gt JOIN tasks t ON gt.task_id = t.id WHERE gt.goal_id = ?
+      `).get(goal_id) as { total: number; done: number };
+      const progress = stats.total > 0 ? Math.round((stats.done / stats.total) * 100) : 0;
+      db.prepare('UPDATE goals SET progress = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(progress, goal_id);
+    }
+  }
+
   const updated = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id) as Task;
 
   // Log activity
   if (body.status === 'done' && existing.status !== 'done') {
     logActivity('task_completed', `Completed task: ${updated.name}`, { taskId: updated.id });
+  } else if (body.rating !== undefined && body.rating !== null) {
+    logActivity('task_rated', `Rated task: ${updated.name} (${body.rating}/5)`, { taskId: updated.id, rating: body.rating });
   } else {
     logActivity('task_updated', `Updated task: ${updated.name}`, { taskId: updated.id, changes: Object.keys(body) });
   }

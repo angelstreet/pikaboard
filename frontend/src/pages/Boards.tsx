@@ -27,6 +27,7 @@ const COLUMNS: { id: Task['status']; label: string; color: string }[] = [
   { id: 'inbox', label: '📥 Inbox', color: 'bg-gray-100' },
   { id: 'up_next', label: '⏳ Up Next', color: 'bg-blue-50' },
   { id: 'in_progress', label: '🚧 In Progress', color: 'bg-yellow-50' },
+  { id: 'testing', label: '🧪 Testing', color: 'bg-orange-50' },
   { id: 'in_review', label: '👀 In Review', color: 'bg-purple-50' },
   { id: 'done', label: '✅ Done', color: 'bg-green-50' },
 ];
@@ -85,7 +86,7 @@ function DroppableColumn({
   );
 }
 
-export default function Dashboard() {
+export default function Boards() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [boards, setBoards] = useState<Board[]>([]);
   const [currentBoard, setCurrentBoard] = useState<Board | null>(null);
@@ -334,6 +335,7 @@ export default function Dashboard() {
             tasks={tasks}
             activeFilter={statusFilter}
             onFilterChange={setStatusFilter}
+            showTesting={currentBoard?.show_testing}
           />
 
           {/* Kanban Board */}
@@ -344,10 +346,17 @@ export default function Dashboard() {
         onDragEnd={handleDragEnd}
       >
         {(() => {
+          // Filter out 'testing' column if board doesn't show it
+          const boardColumns = currentBoard?.show_testing 
+            ? COLUMNS 
+            : COLUMNS.filter((col) => col.id !== 'testing');
           const visibleColumns = statusFilter === 'all'
-            ? COLUMNS
-            : COLUMNS.filter((col) => col.id === statusFilter);
-          const gridCols = statusFilter === 'all' ? 'grid-cols-5' : 'grid-cols-1 max-w-md';
+            ? boardColumns
+            : boardColumns.filter((col) => col.id === statusFilter);
+          // Tailwind needs static class names - can't use dynamic interpolation
+          const gridCols = statusFilter === 'all' 
+            ? (boardColumns.length === 6 ? 'grid-cols-6' : 'grid-cols-5')
+            : 'grid-cols-1 max-w-md';
           return (
             <div className={`grid ${gridCols} gap-4`}>
               {visibleColumns.map((col) => (
