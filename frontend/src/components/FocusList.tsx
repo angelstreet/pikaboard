@@ -134,23 +134,27 @@ export function FocusList({ tasks, onTaskClick }: FocusListProps) {
                     </div>
                     
                     {/* Tags */}
-                    {task.tags && task.tags.length > 0 && (
-                      <div className="flex gap-1 mt-1 flex-wrap">
-                        {task.tags.slice(0, 3).map((tag) => (
-                          <span
-                            key={tag}
-                            className={`px-1.5 py-0.5 text-xs rounded font-medium ${getTagColor(tag)}`}
-                          >
-                            {tag}
-                          </span>
-                        ))}
-                        {task.tags.length > 3 && (
-                          <span className="px-1.5 py-0.5 text-xs rounded font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">
-                            +{task.tags.length - 3}
-                          </span>
-                        )}
-                      </div>
-                    )}
+                    {(() => {
+                      const tagsArr = !task.tags ? [] : (Array.isArray(task.tags) ? task.tags : task.tags.split(',').map(t => t.trim()).filter(Boolean));
+                      if (tagsArr.length === 0) return null;
+                      return (
+                        <div className="flex gap-1 mt-1 flex-wrap">
+                          {tagsArr.slice(0, 3).map((tag: string) => (
+                            <span
+                              key={tag}
+                              className={`px-1.5 py-0.5 text-xs rounded font-medium ${getTagColor(tag)}`}
+                            >
+                              {tag}
+                            </span>
+                          ))}
+                          {tagsArr.length > 3 && (
+                            <span className="px-1.5 py-0.5 text-xs rounded font-medium bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400">
+                              +{tagsArr.length - 3}
+                            </span>
+                          )}
+                        </div>
+                      );
+                    })()}
                   </div>
 
                   {/* Priority + Age */}

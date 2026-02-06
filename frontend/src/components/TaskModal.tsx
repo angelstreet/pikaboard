@@ -59,7 +59,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
       setDescription(task.description || '');
       setStatus(task.status);
       setPriority(task.priority);
-      setTagsInput(task.tags?.join(', ') || '');
+      setTagsInput(task.tags ? (Array.isArray(task.tags) ? task.tags.join(', ') : task.tags) : '');
       setDeadline(formatDatetimeLocal(task.deadline));
       setRating(task.rating ?? null);
     } else {

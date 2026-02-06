@@ -93,9 +93,9 @@ export function TaskCard({ task, onClick, isDragging }: TaskCardProps) {
         </div>
       )}
 
-      {task.tags && task.tags.length > 0 && (
+      {task.tags && (Array.isArray(task.tags) ? task.tags.length > 0 : task.tags.length > 0) && (
         <div className="flex gap-1 mt-2 flex-wrap">
-          {task.tags.map((tag) => (
+          {(Array.isArray(task.tags) ? task.tags : task.tags.split(',').map((t: string) => t.trim()).filter(Boolean)).map((tag: string) => (
             <span
               key={tag}
               className={`px-1.5 py-0.5 text-xs rounded font-medium ${getTagColor(tag)}`}
