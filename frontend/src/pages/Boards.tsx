@@ -22,6 +22,7 @@ import { BoardSelector } from '../components/BoardSelector';
 import { TaskFilterTabs } from '../components/TaskFilterTabs';
 import { ViewToggle } from '../components/ViewToggle';
 import { FocusList } from '../components/FocusList';
+import { BlockerView } from '../components/BlockerView';
 
 const COLUMNS: { id: Task['status']; label: string; color: string }[] = [
   { id: 'inbox', label: '📥 Inbox', color: 'bg-gray-100' },
@@ -106,7 +107,10 @@ export default function Boards() {
   const [statusFilter, setStatusFilter] = useState<Task['status'] | 'all'>('all');
 
   // View state
-  const [activeView, setActiveView] = useState<'kanban' | 'focus'>('kanban');
+  const [activeView, setActiveView] = useState<'kanban' | 'focus' | 'blocker'>('kanban');
+
+  // Blocker count for badge
+  const [blockerCount, setBlockerCount] = useState(0);
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -119,6 +123,23 @@ export default function Boards() {
   // Load boards on mount
   useEffect(() => {
     loadBoards();
+  }, []);
+
+  // Load blocker count
+  useEffect(() => {
+    const loadBlockerCount = async () => {
+      try {
+        const data = await api.getProposals();
+        const count = data.proposals.reduce((sum, p) => sum + p.items.length, 0);
+        setBlockerCount(count);
+      } catch {
+        // Ignore errors
+      }
+    };
+    loadBlockerCount();
+    // Refresh every 30 seconds
+    const interval = setInterval(loadBlockerCount, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   // Load tasks when board changes
@@ -311,7 +332,7 @@ export default function Boards() {
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
           <h2 className="text-2xl font-bold">
-            {activeView === 'kanban' ? '📋 Kanban Board' : '🎯 Focus List'}
+            {activeView === 'kanban' ? '📋 Kanban Board' : activeView === 'focus' ? '🎯 Focus List' : '🚧 Blockers'}
           </h2>
           <BoardSelector
             boards={boards}
@@ -323,7 +344,7 @@ export default function Boards() {
         </div>
 
         <div className="flex items-center gap-3">
-          <ViewToggle activeView={activeView} onViewChange={setActiveView} />
+          <ViewToggle activeView={activeView} onViewChange={setActiveView} blockerCount={blockerCount} />
           <button
             onClick={handleCreateTask}
             className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
@@ -339,6 +360,22 @@ export default function Boards() {
       {/* Focus List View */}
       {activeView === 'focus' && (
         <FocusList tasks={tasks} onTaskClick={handleTaskClick} />
+      )}
+
+      {/* Blocker View */}
+      {activeView === 'blocker' && (
+        <BlockerView
+          onTaskCreated={(task) => {
+            // If task is created on current board, add to tasks
+            if (task.board_id === currentBoard?.id) {
+              setTasks((prev) => [task, ...prev]);
+            }
+            // Refresh blocker count
+            api.getProposals().then((data) => {
+              setBlockerCount(data.proposals.reduce((sum, p) => sum + p.items.length, 0));
+            });
+          }}
+        />
       )}
 
       {/* Kanban View */}

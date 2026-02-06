@@ -108,6 +108,21 @@ export interface AgentStats {
   };
 }
 
+export interface ProposalItem {
+  name: string;
+  description?: string;
+}
+
+export interface AgentProposals {
+  agentId: string;
+  items: ProposalItem[];
+}
+
+export interface ProposalsResponse {
+  proposals: AgentProposals[];
+  updatedAt: string;
+}
+
 // Token for API requests (auth handled at nginx level for UI)
 const getToken = (): string => {
   return 'REDACTED_TOKEN';
@@ -256,6 +271,32 @@ class ApiClient {
   // Insights
   async getInsights(): Promise<InsightsData> {
     return this.fetch<InsightsData>('/insights');
+  }
+
+  // Proposals
+  async getProposals(): Promise<ProposalsResponse> {
+    return this.fetch<ProposalsResponse>('/proposals');
+  }
+
+  async approveProposal(agentId: string, index: number, boardId?: number): Promise<{ success: boolean; task: Task; message: string }> {
+    return this.fetch(`/proposals/${agentId}/approve`, {
+      method: 'POST',
+      body: JSON.stringify({ index, boardId }),
+    });
+  }
+
+  async rejectProposal(agentId: string, index: number): Promise<{ success: boolean; message: string }> {
+    return this.fetch(`/proposals/${agentId}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ index }),
+    });
+  }
+
+  async rejectAllProposals(agentId: string): Promise<{ success: boolean; message: string }> {
+    return this.fetch(`/proposals/${agentId}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ all: true }),
+    });
   }
 }
 
