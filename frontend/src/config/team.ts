@@ -73,6 +73,16 @@ export const TEAM_ROSTER: TeamMember[] = [
     color: '#F97316', // orange
     boards: ['ezplanning'],
   },
+  {
+    id: 'mew',
+    name: 'Mew',
+    role: 'specialist',
+    roleLabel: 'SPC',
+    function: 'Ideas & Product',
+    avatar: '✨',
+    color: '#EC4899', // pink
+    boards: ['ideas'],
+  },
 ];
 
 export function getTeamMember(id: string): TeamMember | undefined {
