@@ -132,13 +132,23 @@ export default function Boards() {
     try {
       const boardsData = await api.getBoards();
       setBoards(boardsData);
-      // Select first board if none selected
+      // Select saved board from localStorage, or first board
       if (!currentBoard && boardsData.length > 0) {
-        setCurrentBoard(boardsData[0]);
+        const savedBoardId = localStorage.getItem('pikaboard-last-board');
+        const savedBoard = savedBoardId 
+          ? boardsData.find(b => b.id === parseInt(savedBoardId, 10))
+          : null;
+        setCurrentBoard(savedBoard || boardsData[0]);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load boards');
     }
+  };
+
+  // Save board selection to localStorage
+  const selectBoard = (board: Board) => {
+    setCurrentBoard(board);
+    localStorage.setItem('pikaboard-last-board', String(board.id));
   };
 
   const loadTasks = async (boardId: number) => {
@@ -253,7 +263,7 @@ export default function Boards() {
     } else {
       const newBoard = await api.createBoard(boardData);
       setBoards((prev) => [...prev, newBoard]);
-      setCurrentBoard(newBoard);
+      selectBoard(newBoard);
     }
   };
 
@@ -263,7 +273,11 @@ export default function Boards() {
     // Select another board
     if (currentBoard?.id === id) {
       const remaining = boards.filter((b) => b.id !== id);
-      setCurrentBoard(remaining[0] || null);
+      if (remaining[0]) {
+        selectBoard(remaining[0]);
+      } else {
+        setCurrentBoard(null);
+      }
     }
   };
 
@@ -302,7 +316,7 @@ export default function Boards() {
           <BoardSelector
             boards={boards}
             currentBoard={currentBoard}
-            onSelectBoard={setCurrentBoard}
+            onSelectBoard={selectBoard}
             onCreateBoard={handleCreateBoard}
             onEditBoard={handleEditBoard}
           />
