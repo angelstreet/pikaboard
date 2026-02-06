@@ -3,6 +3,8 @@ import { Link, Outlet, useLocation } from 'react-router-dom';
 import HeaderStatsBar from './HeaderStatsBar';
 import EnvToggle from './EnvToggle';
 import TeamRoster from './TeamRoster';
+import MobileNav from './MobileNav';
+import MobileDrawer from './MobileDrawer';
 import { api } from '../api/client';
 import { useTaskNotifications } from '../hooks/useTaskNotifications';
 
@@ -28,6 +30,7 @@ export default function Layout() {
   const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [inboxCount, setInboxCount] = useState(0);
+  const [drawerOpen, setDrawerOpen] = useState(false);
 
   // Enable task completion notifications
   useTaskNotifications();
@@ -52,10 +55,12 @@ export default function Layout() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 transition-colors">
       {/* Stats Bar */}
-      <HeaderStatsBar />
+      <div className="hidden lg:block">
+        <HeaderStatsBar />
+      </div>
 
       {/* Header */}
-      <header className="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3">
+      <header className="hidden lg:block bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
             <span className="text-2xl">⚡</span>
@@ -85,16 +90,34 @@ export default function Layout() {
         </div>
       </header>
 
+      {/* Mobile Header */}
+      <header className="lg:hidden bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 px-4 py-3 sticky top-0 z-30">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="text-2xl">⚡</span>
+            <h1 className="text-lg font-bold text-gray-900 dark:text-white">PikaBoard</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <EnvToggle />
+            <button onClick={() => setDrawerOpen(true)} className="p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700">
+              <span className="text-xl">☰</span>
+            </button>
+          </div>
+        </div>
+      </header>
+
       {/* Main area with sidebar */}
       <div className="flex-1 flex overflow-hidden">
         {/* Team Roster */}
-        <TeamRoster
-          collapsed={sidebarCollapsed}
-          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-        />
+        <div className="hidden lg:block">
+          <TeamRoster
+            collapsed={sidebarCollapsed}
+            onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+          />
+        </div>
 
         {/* Main content */}
-        <main className="flex-1 p-4 overflow-y-auto">
+        <main className="flex-1 p-4 overflow-y-auto pb-16 lg:pb-4">
           <div className="max-w-7xl mx-auto">
             <Outlet />
           </div>
@@ -102,9 +125,11 @@ export default function Layout() {
       </div>
 
       {/* Footer */}
-      <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
+      <footer className="hidden lg:block bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
         PikaBoard v{VERSION} ({BRANCH}) • {COMMIT}
       </footer>
+      <MobileNav onMenuClick={() => setDrawerOpen(true)} />
+      <MobileDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
     </div>
   );
 }
