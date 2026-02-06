@@ -55,7 +55,7 @@ export const TEAM_ROSTER: TeamMember[] = [
   },
   {
     id: 'evoli',
-    name: 'Évoli',
+    name: 'Evoli',
     role: 'specialist',
     roleLabel: 'SPC',
     function: 'VirtualPyTest Dev',
