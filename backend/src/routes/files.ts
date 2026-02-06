@@ -7,12 +7,13 @@ export const filesRouter = new Hono();
 
 // Whitelist of allowed directories (with ~ expanded)
 const ALLOWED_PATHS = [
-  join(homedir(), '.openclaw/workspace/research'),
-  join(homedir(), '.openclaw/workspace/docs'),
-  join(homedir(), '.openclaw/workspace/memory'),
-  join(homedir(), '.openclaw/agents'),
+  join(homedir(), '.openclaw/workspace/agents'),      // Per-agent workspaces (new structure)
+  join(homedir(), '.openclaw/workspace/shared'),      // Shared resources
+  join(homedir(), '.openclaw/workspace/memory'),      // Daily logs
+  join(homedir(), '.openclaw/workspace/docs'),        // Legacy docs
+  join(homedir(), '.openclaw/workspace/research'),    // Legacy research
+  join(homedir(), '.openclaw/agents'),                // Agent configs (sessions, etc)
 ];
-
 // Check if a path is within allowed directories
 function isPathAllowed(targetPath: string): boolean {
   const resolved = resolve(targetPath);

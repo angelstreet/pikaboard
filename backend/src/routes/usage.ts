@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { readFileSync, readdirSync, statSync } from 'fs';
+import { readFileSync, readdirSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
 import { db } from '../db/index.js';
@@ -23,6 +23,27 @@ const PRICING = {
     provider: 'openrouter',
   },
 };
+
+// Load runs.json mapping to get agent names for sessions
+function loadRunsMapping(): Map<string, string> {
+  const runsPath = join(homedir(), '.openclaw', 'subagents', 'runs.json');
+  const map = new Map<string, string>();
+  try {
+    const data = JSON.parse(readFileSync(runsPath, 'utf-8'));
+    for (const run of Object.values(data.runs || {})) {
+      // childSessionKey contains session ID, label has agent prefix
+      const sessionId = (run as any).childSessionKey?.split(':').pop();
+      const label = (run as any).label || '';
+      const agentPrefix = label.split('-')[0]; // bulbi-142-toasts → bulbi
+      if (sessionId && agentPrefix) {
+        map.set(sessionId, agentPrefix);
+      }
+    }
+  } catch {
+    // Ignore errors - runs.json might not exist
+  }
+  return map;
+}
 
 interface TokenUsage {
   date: string;
@@ -124,9 +145,13 @@ function calculateCost(model: 'opus' | 'kimi' | 'unknown', inputTokens: number, 
 }
 
 // Parse a single session file
-function parseSessionFile(filePath: string, agentName: string): TokenUsage[] {
+function parseSessionFile(filePath: string, runsMapping: Map<string, string>): TokenUsage[] {
   const usages: TokenUsage[] = [];
   let sessionBoardId: number | null = null;
+
+  // Extract session ID from filename for agent lookup
+  const sessionId = filePath.split('/').pop()?.replace('.jsonl', '') || '';
+  const agentName = runsMapping.get(sessionId) || 'unknown';
 
   try {
     const content = readFileSync(filePath, 'utf-8');
@@ -204,8 +229,8 @@ function parseSessionFile(filePath: string, agentName: string): TokenUsage[] {
 }
 
 // Get all session files from all agents
-function getAllSessionFiles(): { path: string; agent: string }[] {
-  const files: { path: string; agent: string }[] = [];
+function getAllSessionFiles(): string[] {
+  const files: string[] = [];
   const agentsDir = join(homedir(), '.openclaw', 'agents');
 
   try {
@@ -217,10 +242,7 @@ function getAllSessionFiles(): { path: string; agent: string }[] {
         const sessions = readdirSync(sessionsDir);
         for (const session of sessions) {
           if (session.endsWith('.jsonl')) {
-            files.push({
-              path: join(sessionsDir, session),
-              agent,
-            });
+            files.push(join(sessionsDir, session));
           }
         }
       } catch {
@@ -234,11 +256,35 @@ function getAllSessionFiles(): { path: string; agent: string }[] {
   return files;
 }
 
+// Get date range based on period
+function getDateRange(period: string): { start: Date; end: Date } {
+  const now = new Date();
+  const end = now;
+  let start = new Date();
+
+  switch (period) {
+    case 'day':
+      start.setHours(0, 0, 0, 0);
+      break;
+    case 'week':
+      start.setDate(start.getDate() - 7);
+      break;
+    case 'month':
+      start.setMonth(start.getMonth() - 1);
+      break;
+    case 'year':
+      start.setFullYear(start.getFullYear() - 1);
+      break;
+    default:
+      start = new Date(0); // all time
+  }
+
+  return { start, end };
+}
+
 // Aggregate usage data
-function aggregateUsage(usages: TokenUsage[]): {
-  today: { total: number; byModel: Record<string, number>; tokens: number };
-  thisWeek: { total: number; byModel: Record<string, number>; tokens: number };
-  thisMonth: { total: number; byModel: Record<string, number>; tokens: number };
+function aggregateUsage(usages: TokenUsage[], period: string): {
+  summary: { total: number; byModel: Record<string, number>; tokens: number };
   daily: { date: string; cost: number; tokens: number; byModel: Record<string, number> }[];
   byModel: Record<string, { cost: number; tokens: number; inputTokens: number; outputTokens: number; name: string }>;
   byAgent: Record<string, { cost: number; tokens: number }>;
@@ -246,18 +292,11 @@ function aggregateUsage(usages: TokenUsage[]): {
   total: { cost: number; tokens: number; sessions: number };
   savings: { amount: number; percentage: number };
 } {
-  const today = new Date().toISOString().split('T')[0];
   const now = new Date();
-  const weekStart = new Date(now);
-  weekStart.setDate(weekStart.getDate() - 7);
-  const monthStart = new Date(now);
-  monthStart.setMonth(monthStart.getMonth() - 1);
 
   // Initialize result
   const result = {
-    today: { total: 0, byModel: {} as Record<string, number>, tokens: 0 },
-    thisWeek: { total: 0, byModel: {} as Record<string, number>, tokens: 0 },
-    thisMonth: { total: 0, byModel: {} as Record<string, number>, tokens: 0 },
+    summary: { total: 0, byModel: {} as Record<string, number>, tokens: 0 },
     daily: [] as { date: string; cost: number; tokens: number; byModel: Record<string, number> }[],
     byModel: {} as Record<string, { cost: number; tokens: number; inputTokens: number; outputTokens: number; name: string }>,
     byAgent: {} as Record<string, { cost: number; tokens: number }>,
@@ -270,11 +309,14 @@ function aggregateUsage(usages: TokenUsage[]): {
   const dailyMap: Record<string, { cost: number; tokens: number; byModel: Record<string, number> }> = {};
 
   for (const usage of usages) {
-    const usageDate = new Date(usage.date);
-
     // Total
     result.total.cost += usage.cost;
     result.total.tokens += usage.totalTokens;
+
+    // Summary (same as total for filtered view)
+    result.summary.total += usage.cost;
+    result.summary.tokens += usage.totalTokens;
+    result.summary.byModel[usage.model] = (result.summary.byModel[usage.model] || 0) + usage.cost;
 
     // By model
     if (!result.byModel[usage.model]) {
@@ -307,28 +349,7 @@ function aggregateUsage(usages: TokenUsage[]): {
     result.byBoard[boardKey].cost += usage.cost;
     result.byBoard[boardKey].tokens += usage.totalTokens;
 
-    // Today
-    if (usage.date === today) {
-      result.today.total += usage.cost;
-      result.today.tokens += usage.totalTokens;
-      result.today.byModel[usage.model] = (result.today.byModel[usage.model] || 0) + usage.cost;
-    }
-
-    // This week
-    if (usageDate >= weekStart) {
-      result.thisWeek.total += usage.cost;
-      result.thisWeek.tokens += usage.totalTokens;
-      result.thisWeek.byModel[usage.model] = (result.thisWeek.byModel[usage.model] || 0) + usage.cost;
-    }
-
-    // This month
-    if (usageDate >= monthStart) {
-      result.thisMonth.total += usage.cost;
-      result.thisMonth.tokens += usage.totalTokens;
-      result.thisMonth.byModel[usage.model] = (result.thisMonth.byModel[usage.model] || 0) + usage.cost;
-    }
-
-    // Daily aggregation (last 30 days)
+    // Daily aggregation
     if (!dailyMap[usage.date]) {
       dailyMap[usage.date] = { cost: 0, tokens: 0, byModel: {} };
     }
@@ -337,12 +358,8 @@ function aggregateUsage(usages: TokenUsage[]): {
     dailyMap[usage.date].byModel[usage.model] = (dailyMap[usage.date].byModel[usage.model] || 0) + usage.cost;
   }
 
-  // Convert daily map to sorted array (last 30 days)
-  const thirtyDaysAgo = new Date(now);
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
+  // Convert daily map to sorted array
   result.daily = Object.entries(dailyMap)
-    .filter(([date]) => new Date(date) >= thirtyDaysAgo)
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([date, data]) => ({
       date,
@@ -368,15 +385,25 @@ function aggregateUsage(usages: TokenUsage[]): {
 
 // GET /api/usage - Get usage data
 usageRouter.get('/', (c) => {
+  const period = c.req.query('period') || 'all';
+  const { start, end } = getDateRange(period);
+
+  const runsMapping = loadRunsMapping();
   const sessionFiles = getAllSessionFiles();
   const allUsages: TokenUsage[] = [];
 
-  for (const { path, agent } of sessionFiles) {
-    const usages = parseSessionFile(path, agent);
+  for (const filePath of sessionFiles) {
+    const usages = parseSessionFile(filePath, runsMapping);
     allUsages.push(...usages);
   }
 
-  const aggregated = aggregateUsage(allUsages);
+  // Filter usages by date range
+  const filteredUsages = allUsages.filter(usage => {
+    const usageDate = new Date(usage.date);
+    return usageDate >= start && usageDate <= end;
+  });
+
+  const aggregated = aggregateUsage(filteredUsages, period);
 
   // Fetch board names for the byBoard breakdown
   const boards = db.prepare('SELECT id, name FROM boards').all() as { id: number; name: string }[];
@@ -395,6 +422,7 @@ usageRouter.get('/', (c) => {
     ...aggregated,
     byBoard: byBoardWithNames,
     pricing: PRICING,
+    period,
   });
 });
 

@@ -109,6 +109,19 @@ export default function HeaderStatsBar() {
             <div className={`w-2 h-2 rounded-full ${color} ${pulse ? 'animate-pulse' : ''}`} />
             <span className="text-xs text-gray-400">{text}</span>
           </a>
+          <button
+            onClick={async () => {
+              try {
+                await fetch('/openclaw/api/restart', { method: 'POST' });
+              } catch (e) {
+                console.error('Restart failed', e);
+              }
+            }}
+            className="px-2 py-1 text-xs bg-orange-500 hover:bg-orange-600 text-white rounded"
+            title="Restart OpenClaw Gateway"
+          >
+            🔄
+          </button>
           <ThemeToggle />
         </div>
       </div>

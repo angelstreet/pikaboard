@@ -292,8 +292,9 @@ class ApiClient {
   }
 
   // Usage
-  async getUsage(): Promise<UsageData> {
-    return this.fetch<UsageData>('/usage');
+  async getUsage(period?: string): Promise<UsageData> {
+    const query = period ? `?period=${period}` : '';
+    return this.fetch<UsageData>(`/usage${query}`);
   }
 
   // Proposals
