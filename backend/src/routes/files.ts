@@ -100,13 +100,18 @@ filesRouter.get('/', (c) => {
         }
       }
       
+      // Rename 'main' to 'pika' for display in agents list
+      const displayName = (expanded.endsWith('.openclaw/agents') && entry.name === 'main') 
+        ? '⚡ pika (captain)' 
+        : entry.name;
+      
       // Check if this specific entry is allowed
       if (!isPathAllowed(fullPath)) continue;
       
       try {
         const entryStat = statSync(fullPath);
         files.push({
-          name: entry.name,
+          name: displayName,
           path: displayPath,
           type: entry.isDirectory() ? 'directory' : 'file',
           size: entry.isFile() ? entryStat.size : undefined,
