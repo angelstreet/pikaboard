@@ -14,6 +14,8 @@ import { statsRouter } from './routes/stats.js';
 import { libraryRouter } from './routes/library.js';
 import { goalsRouter } from './routes/goals.js';
 import { filesRouter } from './routes/files.js';
+import { agentsRouter } from './routes/agents.js';
+import { systemRouter } from './routes/system.js';
 import { initDatabase } from './db/index.js';
 
 config();
@@ -42,6 +44,8 @@ app.route('/api/stats', statsRouter);
 app.route('/api/library', libraryRouter);
 app.route('/api/goals', goalsRouter);
 app.route('/api/files', filesRouter);
+app.route('/api/system', systemRouter);
+app.route('/api/agents', agentsRouter);
 
 // Initialize database and start server only when not testing
 if (process.env.NODE_ENV !== 'test') {

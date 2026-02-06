@@ -64,6 +64,28 @@ export interface Skill {
   description?: string;
 }
 
+export interface Agent {
+  id: string;
+  name: string;
+  role: string;
+  status: 'active' | 'idle' | 'offline' | 'busy';
+  currentTask: string | null;
+  purpose: string | null;
+  personality: string | null;
+  domain: string | null;
+  boardId: number | null;
+  kpis: {
+    tasksCompleted: number;
+    tasksActive: number;
+    uptime: string | null;
+  };
+  skills: string[];
+  plugins: string[];
+  recentActivity: string[];
+  lastSeen: string | null;
+  configPath: string;
+}
+
 // Token for API requests (auth handled at nginx level for UI)
 const getToken = (): string => {
   return 'REDACTED_TOKEN';
@@ -189,6 +211,54 @@ class ApiClient {
   async getSkill(name: string): Promise<Skill & { skillMd?: string; readme?: string; files?: string[] }> {
     return this.fetch(`/skills/${name}`);
   }
+
+  // Agents
+  async getAgents(): Promise<Agent[]> {
+    const res = await this.fetch<{ agents: Agent[] }>('/agents');
+    return res.agents;
+  }
+
+  async getAgent(id: string): Promise<{ agent: Agent; soulMd?: string }> {
+    return this.fetch(`/agents/${id}`);
+  }
+
+  // System
+  async getSystemStats(): Promise<SystemStats> {
+    return this.fetch<SystemStats>('/system');
+  }
+}
+
+// System Stats
+export interface SystemStats {
+  cpu: {
+    model: string;
+    cores: number;
+    usagePercent: number;
+    loadAvg: number[];
+  };
+  memory: {
+    total: number;
+    used: number;
+    free: number;
+    usagePercent: number;
+  };
+  disk: Array<{
+    filesystem: string;
+    size: string;
+    used: string;
+    available: string;
+    usePercent: number;
+    mountpoint: string;
+  }>;
+  gateway: {
+    status: 'online' | 'offline' | 'unknown';
+    url?: string;
+    error?: string;
+  };
+  uptime: number;
+  hostname: string;
+  platform: string;
+  timestamp: string;
 }
 
 export const api = new ApiClient();
