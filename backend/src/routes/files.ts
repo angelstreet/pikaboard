@@ -9,6 +9,7 @@ export const filesRouter = new Hono();
 const ALLOWED_PATHS = [
   join(homedir(), '.openclaw/workspace/research'),
   join(homedir(), '.openclaw/workspace/docs'),
+  join(homedir(), '.openclaw/workspace/memory'),
   join(homedir(), '.openclaw/agents'),
 ];
 
@@ -18,15 +19,19 @@ function isPathAllowed(targetPath: string): boolean {
   
   for (const allowed of ALLOWED_PATHS) {
     if (resolved.startsWith(allowed)) {
-      // Special case for agents: only allow */memory/ subdirs
+      // Special case for agents: allow memory/ subdirs and SOUL.md
       if (allowed.endsWith('.openclaw/agents')) {
         const relPath = relative(allowed, resolved);
         const parts = relPath.split('/');
-        // Must be: agentName/memory/... or agentName/memory
+        // Allow: agentName/memory/... or agentName/memory
         if (parts.length >= 2 && parts[1] === 'memory') {
           return true;
         }
-        // Also allow listing agent dirs to see which have memory
+        // Allow: agentName/SOUL.md
+        if (parts.length === 2 && parts[1] === 'SOUL.md') {
+          return true;
+        }
+        // Also allow listing agent dirs
         if (parts.length === 1 || (parts.length === 2 && parts[1] === '')) {
           return true;
         }
@@ -83,10 +88,11 @@ filesRouter.get('/', (c) => {
       const fullPath = join(expanded, entry.name);
       const displayPath = fullPath.replace(homedir(), '~');
       
-      // For agents dir, only show dirs with memory subdir
+      // For agents dir, only show dirs with memory subdir or SOUL.md
       if (expanded.endsWith('.openclaw/agents') && entry.isDirectory()) {
         const memoryPath = join(fullPath, 'memory');
-        if (!existsSync(memoryPath)) continue;
+        const soulPath = join(fullPath, 'SOUL.md');
+        if (!existsSync(memoryPath) && !existsSync(soulPath)) continue;
       }
       
       // Check if this specific entry is allowed
@@ -174,7 +180,8 @@ filesRouter.get('/roots', (c) => {
   const roots = [
     { path: '~/.openclaw/workspace/research', label: '📁 Research', exists: existsSync(join(homedir(), '.openclaw/workspace/research')) },
     { path: '~/.openclaw/workspace/docs', label: '📄 Docs', exists: existsSync(join(homedir(), '.openclaw/workspace/docs')) },
-    { path: '~/.openclaw/agents', label: '🤖 Agent Memory', exists: existsSync(join(homedir(), '.openclaw/agents')) },
+    { path: '~/.openclaw/workspace/memory', label: '🧠 Pika Memory', exists: existsSync(join(homedir(), '.openclaw/workspace/memory')) },
+    { path: '~/.openclaw/agents', label: '🤖 Agents', exists: existsSync(join(homedir(), '.openclaw/agents')) },
   ];
   
   return c.json({ roots: roots.filter(r => r.exists) });
