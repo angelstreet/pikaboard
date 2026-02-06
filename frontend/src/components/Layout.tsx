@@ -4,6 +4,7 @@ import HeaderStatsBar from './HeaderStatsBar';
 import EnvToggle from './EnvToggle';
 import TeamRoster from './TeamRoster';
 import { api } from '../api/client';
+import { useTaskNotifications } from '../hooks/useTaskNotifications';
 
 const navItems = [
   { path: '/', label: '🏠 Dashboard', title: 'Dashboard' },
@@ -14,6 +15,7 @@ const navItems = [
   { path: '/files', label: '📁 Files', title: 'Files' },
   { path: '/library', label: '📚 Library', title: 'Library' },
   { path: '/insights', label: '📊 Insights', title: 'Insights' },
+  { path: '/usage', label: '💳 Usage', title: 'Usage' },
   { path: '/settings', label: '⚙️ Settings', title: 'Settings' },
 ];
 
@@ -26,6 +28,9 @@ export default function Layout() {
   const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [inboxCount, setInboxCount] = useState(0);
+
+  // Enable task completion notifications
+  useTaskNotifications();
 
   // Fetch inbox count for badge
   useEffect(() => {
