@@ -7,12 +7,11 @@ export const filesRouter = new Hono();
 
 // Whitelist of allowed directories (with ~ expanded)
 const ALLOWED_PATHS = [
-  join(homedir(), '.openclaw/workspace/agents'),      // Per-agent workspaces (new structure)
   join(homedir(), '.openclaw/workspace/shared'),      // Shared resources
   join(homedir(), '.openclaw/workspace/memory'),      // Daily logs
   join(homedir(), '.openclaw/workspace/docs'),        // Legacy docs
   join(homedir(), '.openclaw/workspace/research'),    // Legacy research
-  join(homedir(), '.openclaw/agents'),                // Agent configs (sessions, etc)
+  join(homedir(), '.openclaw/agents'),                // Agent configs (SOUL.md, memory/, research/)
 ];
 // Check if a path is within allowed directories
 function isPathAllowed(targetPath: string): boolean {
@@ -21,7 +20,7 @@ function isPathAllowed(targetPath: string): boolean {
   for (const allowed of ALLOWED_PATHS) {
     if (resolved.startsWith(allowed)) {
       // Special case for agents: allow memory/ subdirs and SOUL.md
-      if (allowed.endsWith('.openclaw/agents')) {
+      if (allowed.endsWith('/.openclaw/agents')) {
         const relPath = relative(allowed, resolved);
         const parts = relPath.split('/');
         // Allow: agentName/memory/... or agentName/memory
@@ -95,7 +94,7 @@ filesRouter.get('/', (c) => {
       const displayPath = fullPath.replace(homedir(), '~');
       
       // For agents dir, only show dirs with memory subdir or SOUL.md (or is main agent)
-      if (expanded.endsWith('.openclaw/agents') && entry.isDirectory()) {
+      if (expanded.endsWith('/.openclaw/agents') && entry.isDirectory()) {
         // Always show 'main' (Pika - the captain)
         if (entry.name === 'main') {
           // main's memory is in workspace/memory, so include it anyway
@@ -107,7 +106,7 @@ filesRouter.get('/', (c) => {
       }
       
       // Rename 'main' to 'pika' for display in agents list
-      const displayName = (expanded.endsWith('.openclaw/agents') && entry.name === 'main') 
+      const displayName = (expanded.endsWith('/.openclaw/agents') && entry.name === 'main') 
         ? '⚡ pika (captain)' 
         : entry.name;
       
