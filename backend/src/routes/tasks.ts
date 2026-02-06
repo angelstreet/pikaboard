@@ -19,6 +19,7 @@ interface Task {
   completed_at: string | null;
   rating: number | null;
   rated_at: string | null;
+  rejection_reason: string | null;
 }
 
 interface CreateTaskBody {
@@ -42,6 +43,7 @@ interface UpdateTaskBody {
   position?: number;
   deadline?: string | null;
   rating?: number | null;
+  rejection_reason?: string | null;
 }
 
 // GET /api/tasks - List all tasks with optional filtering
@@ -49,29 +51,41 @@ tasksRouter.get('/', (c) => {
   const status = c.req.query('status');
   const priority = c.req.query('priority');
   const boardId = c.req.query('board_id');
+  const search = c.req.query('search');
+  const tag = c.req.query('tag');
 
-  let query = 'SELECT * FROM tasks WHERE 1=1';
+  let query = 'SELECT t.*, b.name as board_name FROM tasks t LEFT JOIN boards b ON t.board_id = b.id WHERE 1=1';
   const params: (string | number)[] = [];
 
   if (status) {
-    query += ' AND status = ?';
+    query += ' AND t.status = ?';
     params.push(status);
   }
 
   if (priority) {
-    query += ' AND priority = ?';
+    query += ' AND t.priority = ?';
     params.push(priority);
   }
 
   if (boardId) {
-    query += ' AND board_id = ?';
+    query += ' AND t.board_id = ?';
     params.push(parseInt(boardId));
   }
 
-  query += ' ORDER BY position ASC, created_at DESC';
+  if (search) {
+    query += ' AND (t.name LIKE ? OR t.description LIKE ?)';
+    params.push(`%${search}%`, `%${search}%`);
+  }
+
+  if (tag) {
+    query += ' AND t.tags LIKE ?';
+    params.push(`%"${tag}"%`);
+  }
+
+  query += ' ORDER BY t.position ASC, t.created_at DESC';
 
   const stmt = db.prepare(query);
-  const tasks = stmt.all(...params) as Task[];
+  const tasks = stmt.all(...params) as (Task & { board_name: string })[];
 
   // Parse tags JSON
   const parsed = tasks.map((t) => ({
@@ -106,7 +120,7 @@ tasksRouter.post('/', async (c) => {
     return c.json({ error: 'Name is required' }, 400);
   }
 
-  const validStatuses = ['inbox', 'up_next', 'in_progress', 'testing', 'in_review', 'done'];
+  const validStatuses = ['inbox', 'up_next', 'in_progress', 'testing', 'in_review', 'done', 'rejected'];
   const validPriorities = ['low', 'medium', 'high', 'urgent'];
 
   if (body.status && !validStatuses.includes(body.status)) {
@@ -178,7 +192,7 @@ tasksRouter.patch('/:id', async (c) => {
     return c.json({ error: 'Task not found' }, 404);
   }
 
-  const validStatuses = ['inbox', 'up_next', 'in_progress', 'testing', 'in_review', 'done'];
+  const validStatuses = ['inbox', 'up_next', 'in_progress', 'testing', 'in_review', 'done', 'rejected'];
   const validPriorities = ['low', 'medium', 'high', 'urgent'];
 
   if (body.status && !validStatuses.includes(body.status)) {
@@ -245,6 +259,11 @@ tasksRouter.patch('/:id', async (c) => {
     params.push(body.rating);
     updates.push('rated_at = ?');
     params.push(body.rating !== null ? new Date().toISOString() : null);
+  }
+
+  if (body.rejection_reason !== undefined) {
+    updates.push('rejection_reason = ?');
+    params.push(body.rejection_reason);
   }
 
   if (updates.length === 0) {

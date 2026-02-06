@@ -23,6 +23,7 @@ import { TaskFilterTabs } from '../components/TaskFilterTabs';
 import { ViewToggle } from '../components/ViewToggle';
 import { FocusList } from '../components/FocusList';
 import { BlockerView } from '../components/BlockerView';
+import TaskSearch from '../components/TaskSearch';
 
 const COLUMNS: { id: Task['status']; label: string; color: string }[] = [
   { id: 'inbox', label: '📥 Inbox', color: 'bg-gray-100' },
@@ -30,6 +31,7 @@ const COLUMNS: { id: Task['status']; label: string; color: string }[] = [
   { id: 'in_progress', label: '🚧 In Progress', color: 'bg-yellow-50' },
   { id: 'in_review', label: '👀 In Review', color: 'bg-purple-50' },
   { id: 'done', label: '✅ Done', color: 'bg-green-50' },
+  { id: 'rejected', label: '❌ Rejected', color: 'bg-red-50' },
 ];
 
 function DroppableColumn({
@@ -110,6 +112,11 @@ export default function Boards() {
 
   // Blocker count for badge
   const [blockerCount, setBlockerCount] = useState(0);
+
+  // Rejection reason modal state
+  const [rejectionModalOpen, setRejectionModalOpen] = useState(false);
+  const [pendingRejectionTask, setPendingRejectionTask] = useState<Task | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -228,6 +235,14 @@ export default function Boards() {
 
     if (task.status === targetStatus) return;
 
+    // If moving to rejected, show rejection reason modal
+    if (targetStatus === 'rejected') {
+      setPendingRejectionTask(task);
+      setRejectionReason('');
+      setRejectionModalOpen(true);
+      return;
+    }
+
     // Optimistic update
     setTasks((prev) =>
       prev.map((t) => (t.id === taskId ? { ...t, status: targetStatus } : t))
@@ -242,6 +257,44 @@ export default function Boards() {
       );
       console.error('Failed to update task status:', err);
     }
+  };
+
+  const handleRejectTask = async () => {
+    if (!pendingRejectionTask || !rejectionReason.trim()) return;
+
+    const taskId = pendingRejectionTask.id;
+    const originalStatus = pendingRejectionTask.status;
+
+    // Optimistic update
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === taskId
+          ? { ...t, status: 'rejected', rejection_reason: rejectionReason.trim() }
+          : t
+      )
+    );
+
+    try {
+      await api.updateTask(taskId, {
+        status: 'rejected',
+        rejection_reason: rejectionReason.trim(),
+      });
+      setRejectionModalOpen(false);
+      setPendingRejectionTask(null);
+      setRejectionReason('');
+    } catch (err) {
+      // Revert on error
+      setTasks((prev) =>
+        prev.map((t) => (t.id === taskId ? { ...t, status: originalStatus } : t))
+      );
+      console.error('Failed to reject task:', err);
+    }
+  };
+
+  const handleCancelRejection = () => {
+    setRejectionModalOpen(false);
+    setPendingRejectionTask(null);
+    setRejectionReason('');
   };
 
   const handleTaskClick = (task: Task) => {
@@ -354,6 +407,7 @@ export default function Boards() {
         </div>
 
         <div className="flex items-center gap-2 sm:gap-3">
+          <TaskSearch onTaskClick={handleTaskClick} />
           <ViewToggle activeView={activeView} onViewChange={setActiveView} blockerCount={blockerCount} />
           <button
             onClick={handleCreateTask}
@@ -463,6 +517,61 @@ export default function Boards() {
         onDelete={handleDeleteBoard}
         boardCount={boards.length}
       />
+
+      {/* Rejection Reason Modal */}
+      {rejectionModalOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-xl w-full max-w-md">
+            <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700">
+              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+                ❌ Reject Task
+              </h2>
+              <button
+                onClick={handleCancelRejection}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-2xl leading-none"
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="p-4">
+              <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                You are rejecting <strong className="text-gray-900 dark:text-white">{pendingRejectionTask?.name}</strong>.
+                Please provide a reason:
+              </p>
+
+              <textarea
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="Why is this task being rejected?"
+                rows={4}
+                className="w-full px-3 py-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none bg-red-50 dark:bg-red-900/20 dark:border-red-800 dark:text-white"
+                autoFocus
+              />
+
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                This reason will be visible on the task card.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-2 p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/50 rounded-b-lg">
+              <button
+                onClick={handleCancelRejection}
+                className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleRejectTask}
+                disabled={!rejectionReason.trim()}
+                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Reject Task
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

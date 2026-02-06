@@ -13,13 +13,14 @@ export interface Task {
   id: number;
   name: string;
   description: string | null;
-  status: 'inbox' | 'up_next' | 'in_progress' | 'in_review' | 'done';
+  status: 'inbox' | 'up_next' | 'in_progress' | 'in_review' | 'done' | 'rejected';
   priority: 'low' | 'medium' | 'high' | 'urgent';
   tags: string[] | string;
   board_id: number | null;
   position: number;
   deadline: string | null;
   rating: number | null;
+  rejection_reason: string | null;
   created_at: string;
   updated_at: string;
   completed_at: string | null;
@@ -214,13 +215,15 @@ class ApiClient {
   }
 
   // Tasks
-  async getTasks(params?: { status?: string; priority?: string; board_id?: number }): Promise<Task[]> {
+  async getTasks(params?: { status?: string; priority?: string; board_id?: number; search?: string; tag?: string }): Promise<(Task & { board_name?: string })[]> {
     const search = new URLSearchParams();
     if (params?.status) search.set('status', params.status);
     if (params?.priority) search.set('priority', params.priority);
     if (params?.board_id) search.set('board_id', String(params.board_id));
+    if (params?.search) search.set('search', params.search);
+    if (params?.tag) search.set('tag', params.tag);
     const query = search.toString();
-    const res = await this.fetch<{ tasks: Task[] }>(`/tasks${query ? `?${query}` : ''}`);
+    const res = await this.fetch<{ tasks: (Task & { board_name?: string })[] }>(`/tasks${query ? `?${query}` : ''}`);
     return res.tasks;
   }
 

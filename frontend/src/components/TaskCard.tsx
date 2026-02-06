@@ -127,6 +127,16 @@ export function TaskCard({ task, onClick, isDragging }: TaskCardProps) {
           )}
         </div>
       )}
+
+      {/* Rejection reason display for rejected tasks */}
+      {task.status === 'rejected' && task.rejection_reason && (
+        <div className="mt-2 p-2 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded">
+          <p className="text-xs text-red-700 dark:text-red-300 font-medium">Rejection reason:</p>
+          <p className="text-xs text-red-600 dark:text-red-400 mt-0.5 line-clamp-2">
+            {task.rejection_reason}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

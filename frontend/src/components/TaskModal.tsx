@@ -15,6 +15,7 @@ const statuses = [
   { value: 'in_progress', label: '🚧 In Progress' },
   { value: 'in_review', label: '👀 In Review' },
   { value: 'done', label: '✅ Done' },
+  { value: 'rejected', label: '❌ Rejected' },
 ];
 
 const priorities = [
@@ -33,6 +34,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
   const [deadline, setDeadline] = useState('');
   const [rating, setRating] = useState<number | null>(null);
   const [hoverRating, setHoverRating] = useState<number | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -61,6 +63,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
       setTagsInput(task.tags ? (Array.isArray(task.tags) ? task.tags.join(', ') : task.tags) : '');
       setDeadline(formatDatetimeLocal(task.deadline));
       setRating(task.rating ?? null);
+      setRejectionReason(task.rejection_reason || '');
     } else {
       setName('');
       setDescription('');
@@ -69,6 +72,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
       setTagsInput('');
       setDeadline('');
       setRating(null);
+      setRejectionReason('');
     }
     setHoverRating(null);
     setShowDeleteConfirm(false);
@@ -96,6 +100,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
         tags,
         deadline: deadlineValue,
         rating: status === 'done' ? rating : null,
+        rejection_reason: status === 'rejected' ? (rejectionReason.trim() || null) : null,
       });
       onClose();
     } finally {
@@ -291,6 +296,26 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
                   <span className="text-sm text-gray-400 italic">Click to rate</span>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* Rejection reason - only show for rejected tasks */}
+          {status === 'rejected' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Rejection Reason *
+              </label>
+              <textarea
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="Why is this task being rejected?"
+                rows={3}
+                className="w-full px-3 py-2 border border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none bg-red-50"
+                required
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Required when marking a task as rejected
+              </p>
             </div>
           )}
         </div>

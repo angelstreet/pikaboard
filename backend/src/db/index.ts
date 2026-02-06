@@ -38,14 +38,15 @@ export function initDatabase() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       description TEXT,
-      status TEXT DEFAULT 'inbox' CHECK(status IN ('inbox', 'up_next', 'in_progress', 'testing', 'in_review', 'done')),
+      status TEXT DEFAULT 'inbox' CHECK(status IN ('inbox', 'up_next', 'in_progress', 'testing', 'in_review', 'done', 'rejected')),
       priority TEXT DEFAULT 'medium' CHECK(priority IN ('low', 'medium', 'high', 'urgent')),
       tags TEXT,
       board_id INTEGER REFERENCES boards(id),
       position INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      completed_at DATETIME
+      completed_at DATETIME,
+      rejection_reason TEXT
     )
   `);
 
@@ -149,6 +150,9 @@ function runMigrations() {
   // Migration: Add show_testing column to boards
   migrateBoardShowTesting();
 
+  // Migration: Add rejected status and rejection_reason column
+  migrateRejectedStatus();
+
   // Ensure default board exists
   const boardCount = db.prepare('SELECT COUNT(*) as count FROM boards').get() as { count: number };
   if (boardCount.count === 0) {
@@ -228,6 +232,65 @@ function migrateBoardShowTesting() {
     `);
     console.log('✅ Migration: show_testing column added');
   }
+}
+
+function migrateRejectedStatus() {
+  // Check if rejection_reason column exists
+  const tableInfo = db.prepare("PRAGMA table_info(tasks)").all() as { name: string }[];
+  const hasRejectionReason = tableInfo.some((col) => col.name === 'rejection_reason');
+  
+  if (!hasRejectionReason) {
+    console.log('🔄 Migration: Adding rejection_reason to tasks...');
+    db.exec('ALTER TABLE tasks ADD COLUMN rejection_reason TEXT');
+    console.log('✅ Migration: rejection_reason column added');
+  }
+
+  // Check if the tasks table has the old constraint (without 'rejected')
+  // We do this by checking if we can insert a 'rejected' status
+  try {
+    // Try to create a temp record with 'rejected' status
+    db.exec("INSERT INTO tasks (name, status) VALUES ('__migration_test_rejected__', 'rejected')");
+    // If successful, delete it - the constraint already allows 'rejected'
+    db.exec("DELETE FROM tasks WHERE name = '__migration_test_rejected__'");
+    return; // No migration needed
+  } catch {
+    // The constraint doesn't allow 'rejected', need to migrate
+    console.log('🔄 Migration: Adding rejected status to tasks table...');
+  }
+
+  // Recreate the tasks table with the new constraint
+  db.exec(`
+    CREATE TABLE tasks_new (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      description TEXT,
+      status TEXT DEFAULT 'inbox' CHECK(status IN ('inbox', 'up_next', 'in_progress', 'testing', 'in_review', 'done', 'rejected')),
+      priority TEXT DEFAULT 'medium' CHECK(priority IN ('low', 'medium', 'high', 'urgent')),
+      tags TEXT,
+      board_id INTEGER REFERENCES boards(id),
+      position INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      completed_at DATETIME,
+      deadline DATETIME,
+      rating INTEGER CHECK(rating IS NULL OR (rating >= 1 AND rating <= 5)),
+      rated_at DATETIME,
+      rejection_reason TEXT
+    )
+  `);
+
+  // Copy all data from old table
+  db.exec(`
+    INSERT INTO tasks_new (id, name, description, status, priority, tags, board_id, position, created_at, updated_at, completed_at, deadline, rating, rated_at)
+    SELECT id, name, description, status, priority, tags, board_id, position, created_at, updated_at, completed_at, deadline, rating, rated_at
+    FROM tasks
+  `);
+
+  // Swap tables
+  db.exec('DROP TABLE tasks');
+  db.exec('ALTER TABLE tasks_new RENAME TO tasks');
+
+  console.log('✅ Migration: rejected status added successfully');
 }
 
 export function logActivity(type: string, message: string, metadata?: object) {

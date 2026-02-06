@@ -35,6 +35,7 @@ const STATUS_LABELS: Record<Task['status'], { label: string; color: string }> = 
   in_progress: { label: '🚧 Progress', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' },
   in_review: { label: '👀 Review', color: 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300' },
   done: { label: '✅ Done', color: 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' },
+  rejected: { label: '❌ Rejected', color: 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' },
 };
 
 function getTagColor(tag: string): string {
