@@ -1,5 +1,7 @@
 import { Hono } from 'hono';
 import { readdir, readFile, stat } from 'fs/promises';
+import { createReadStream, existsSync } from 'fs';
+import { createInterface } from 'readline';
 import { join } from 'path';
 import { homedir } from 'os';
 import { db } from '../db';
@@ -232,6 +234,177 @@ agentsRouter.get('/', async (c) => {
   } catch (err) {
     // If agents directory doesn't exist
     return c.json({ agents: [], error: 'Agents directory not found' });
+  }
+});
+
+// Helper: Parse gateway logs for session stats
+async function parseGatewayLogsForAgent(agentId: string): Promise<{
+  totalTokens: number;
+  inputTokens: number;
+  outputTokens: number;
+  cacheReadTokens: number;
+  cacheWriteTokens: number;
+  totalDurationMs: number;
+  sessionCount: number;
+  lastActiveAt: string | null;
+}> {
+  const result = {
+    totalTokens: 0,
+    inputTokens: 0,
+    outputTokens: 0,
+    cacheReadTokens: 0,
+    cacheWriteTokens: 0,
+    totalDurationMs: 0,
+    sessionCount: 0,
+    lastActiveAt: null as string | null,
+  };
+
+  const logDir = '/tmp/openclaw';
+  if (!existsSync(logDir)) return result;
+
+  try {
+    const files = await readdir(logDir);
+    const logFiles = files
+      .filter((f) => f.startsWith('openclaw-') && f.endsWith('.log'))
+      .sort()
+      .reverse()
+      .slice(0, 7);
+
+    for (const file of logFiles) {
+      const filePath = join(logDir, file);
+      const rl = createInterface({
+        input: createReadStream(filePath),
+        crlfDelay: Infinity,
+      });
+
+      for await (const line of rl) {
+        try {
+          if (!line.includes('\\"usage\\"') || !line.includes('\\"sessionId\\"')) continue;
+
+          const parsed = JSON.parse(line);
+          const logData = parsed['0'];
+          if (!logData || typeof logData !== 'string') continue;
+
+          const innerData = JSON.parse(logData);
+          const meta = innerData?.result?.meta;
+          if (!meta?.agentMeta) continue;
+
+          const { sessionId, usage } = meta.agentMeta;
+          if (!sessionId) continue;
+
+          const sessionAgentId = sessionId.split('-')[0].toLowerCase();
+          if (sessionAgentId !== agentId.toLowerCase()) continue;
+
+          result.sessionCount++;
+          if (usage) {
+            result.inputTokens += usage.input || 0;
+            result.outputTokens += usage.output || 0;
+            result.cacheReadTokens += usage.cacheRead || 0;
+            result.cacheWriteTokens += usage.cacheWrite || 0;
+            result.totalTokens += usage.total || 0;
+          }
+          if (meta.durationMs) {
+            result.totalDurationMs += meta.durationMs;
+          }
+          if (parsed.time && (!result.lastActiveAt || parsed.time > result.lastActiveAt)) {
+            result.lastActiveAt = parsed.time;
+          }
+        } catch {
+          // Skip malformed lines
+        }
+      }
+    }
+  } catch {
+    // Ignore errors
+  }
+
+  return result;
+}
+
+// Helper: Format duration in human-readable format
+function formatDuration(ms: number): string {
+  if (ms < 1000) return `${ms}ms`;
+  const seconds = Math.floor(ms / 1000);
+  if (seconds < 60) return `${seconds}s`;
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = seconds % 60;
+  if (minutes < 60) return `${minutes}m ${remainingSeconds}s`;
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return `${hours}h ${remainingMinutes}m`;
+}
+
+// GET /api/agents/:id/stats - Get agent statistics (must be before /:id)
+agentsRouter.get('/:id/stats', async (c) => {
+  const id = c.req.param('id');
+  const agentPath = join(homedir(), '.openclaw', 'agents', id);
+
+  try {
+    const dirStat = await stat(agentPath);
+    if (!dirStat.isDirectory()) {
+      return c.json({ error: 'Agent not found' }, 404);
+    }
+
+    const createdAt = dirStat.birthtime || dirStat.ctime;
+    const logStats = await parseGatewayLogsForAgent(id);
+
+    const runsPath = join(homedir(), '.openclaw', 'subagents', 'runs.json');
+    let runsStats = { sessionCount: 0, totalDurationMs: 0, lastActiveAt: null as string | null };
+
+    try {
+      const runsContent = await readFile(runsPath, 'utf-8');
+      const runsData = JSON.parse(runsContent);
+      const runs = Object.values(runsData.runs || {}) as Array<{
+        label?: string; startedAt?: number; endedAt?: number; createdAt?: number;
+      }>;
+
+      for (const run of runs) {
+        if (run.label?.toLowerCase().startsWith(id.toLowerCase() + '-')) {
+          runsStats.sessionCount++;
+          if (run.startedAt && run.endedAt) {
+            runsStats.totalDurationMs += run.endedAt - run.startedAt;
+          }
+          const runTime = run.endedAt || run.startedAt || run.createdAt;
+          if (runTime) {
+            const isoTime = new Date(runTime).toISOString();
+            if (!runsStats.lastActiveAt || isoTime > runsStats.lastActiveAt) {
+              runsStats.lastActiveAt = isoTime;
+            }
+          }
+        }
+      }
+    } catch { /* ignore */ }
+
+    let lastMemoryDate: string | null = null;
+    try {
+      const memoryDir = join(agentPath, 'memory');
+      const memoryFiles = await readdir(memoryDir);
+      const datedFiles = memoryFiles.filter((f) => f.match(/\d{4}-\d{2}-\d{2}\.md$/)).sort().reverse();
+      if (datedFiles.length > 0) lastMemoryDate = datedFiles[0].replace('.md', '');
+    } catch { /* ignore */ }
+
+    const lastActiveAt = [logStats.lastActiveAt, runsStats.lastActiveAt, lastMemoryDate]
+      .filter(Boolean).sort().reverse()[0] || null;
+
+    return c.json({
+      agentId: id,
+      createdAt: createdAt.toISOString(),
+      lastActiveAt,
+      tokens: {
+        total: logStats.totalTokens,
+        input: logStats.inputTokens,
+        output: logStats.outputTokens,
+        cacheRead: logStats.cacheReadTokens,
+        cacheWrite: logStats.cacheWriteTokens,
+      },
+      sessions: {
+        count: Math.max(logStats.sessionCount, runsStats.sessionCount),
+        totalDurationMs: Math.max(logStats.totalDurationMs, runsStats.totalDurationMs),
+        totalDurationFormatted: formatDuration(Math.max(logStats.totalDurationMs, runsStats.totalDurationMs)),
+      },
+    });
+  } catch {
+    return c.json({ error: 'Agent not found' }, 404);
   }
 });
 

@@ -32,6 +32,8 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
   const [priority, setPriority] = useState<Task['priority']>('medium');
   const [tagsInput, setTagsInput] = useState('');
   const [deadline, setDeadline] = useState('');
+  const [rating, setRating] = useState<number | null>(null);
+  const [hoverRating, setHoverRating] = useState<number | null>(null);
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -59,6 +61,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
       setPriority(task.priority);
       setTagsInput(task.tags?.join(', ') || '');
       setDeadline(formatDatetimeLocal(task.deadline));
+      setRating(task.rating ?? null);
     } else {
       setName('');
       setDescription('');
@@ -66,7 +69,9 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
       setPriority('medium');
       setTagsInput('');
       setDeadline('');
+      setRating(null);
     }
+    setHoverRating(null);
     setShowDeleteConfirm(false);
   }, [task, isOpen]);
 
@@ -91,6 +96,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
         priority,
         tags,
         deadline: deadlineValue,
+        rating: status === 'done' ? rating : null,
       });
       onClose();
     } finally {
@@ -238,6 +244,56 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
+
+          {/* Rating - only show for done tasks */}
+          {status === 'done' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Quality Rating
+              </label>
+              <div className="flex items-center gap-3">
+                <div className="flex items-center gap-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setRating(rating === star ? null : star)}
+                      onMouseEnter={() => setHoverRating(star)}
+                      onMouseLeave={() => setHoverRating(null)}
+                      className="text-2xl transition-transform hover:scale-110 focus:outline-none"
+                      title={`${star} star${star > 1 ? 's' : ''}`}
+                    >
+                      <span
+                        className={
+                          (hoverRating !== null ? star <= hoverRating : star <= (rating || 0))
+                            ? 'text-yellow-400'
+                            : 'text-gray-300'
+                        }
+                      >
+                        ★
+                      </span>
+                    </button>
+                  ))}
+                </div>
+                {rating && (
+                  <span className="text-sm text-gray-500">
+                    {rating}/5
+                    <button
+                      type="button"
+                      onClick={() => setRating(null)}
+                      className="ml-2 text-gray-400 hover:text-gray-600"
+                      title="Clear rating"
+                    >
+                      ✕
+                    </button>
+                  </span>
+                )}
+                {!rating && (
+                  <span className="text-sm text-gray-400 italic">Click to rate</span>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center justify-between p-4 border-t bg-gray-50 rounded-b-lg">

@@ -11,6 +11,7 @@ interface TaskRow {
   completed_at: string | null;
   created_at: string;
   board_id: number | null;
+  rating: number | null;
 }
 
 interface ActivityRow {
@@ -168,24 +169,57 @@ insightsRouter.get('/', (c) => {
   };
   
   // --- Agent Activity (from activity log) ---
-  const agentActivity: Record<string, { actions: number; lastActive: string | null }> = {};
+  // Build a map of taskId -> agent who completed it
+  const taskCompletedBy: Record<number, string> = {};
+  const agentActivity: Record<string, { actions: number; lastActive: string | null; ratings: number[]; ratedTasks: number }> = {};
+  
   activity.forEach(a => {
     if (a.metadata) {
       try {
         const meta = JSON.parse(a.metadata);
         if (meta.agent) {
           if (!agentActivity[meta.agent]) {
-            agentActivity[meta.agent] = { actions: 0, lastActive: null };
+            agentActivity[meta.agent] = { actions: 0, lastActive: null, ratings: [], ratedTasks: 0 };
           }
           agentActivity[meta.agent].actions++;
           if (!agentActivity[meta.agent].lastActive) {
             agentActivity[meta.agent].lastActive = a.created_at;
           }
         }
+        // Track which agent completed each task
+        if (a.type === 'task_completed' && meta.agent && meta.taskId) {
+          taskCompletedBy[meta.taskId] = meta.agent;
+        }
       } catch {
         // Ignore parse errors
       }
     }
+  });
+  
+  // Associate task ratings with the agent who completed them
+  tasks.forEach(t => {
+    if (t.rating !== null && t.status === 'done' && taskCompletedBy[t.id]) {
+      const agent = taskCompletedBy[t.id];
+      if (!agentActivity[agent]) {
+        agentActivity[agent] = { actions: 0, lastActive: null, ratings: [], ratedTasks: 0 };
+      }
+      agentActivity[agent].ratings.push(t.rating);
+      agentActivity[agent].ratedTasks++;
+    }
+  });
+  
+  // Calculate average ratings and format output
+  const agentStats: Record<string, { actions: number; lastActive: string | null; avgRating: number | null; ratedTasks: number }> = {};
+  Object.entries(agentActivity).forEach(([agent, data]) => {
+    const avgRating = data.ratings.length > 0 
+      ? Math.round((data.ratings.reduce((a, b) => a + b, 0) / data.ratings.length) * 10) / 10
+      : null;
+    agentStats[agent] = {
+      actions: data.actions,
+      lastActive: data.lastActive,
+      avgRating,
+      ratedTasks: data.ratedTasks
+    };
   });
   
   // --- Activity by Type ---
@@ -257,7 +291,7 @@ insightsRouter.get('/', (c) => {
       priority: priorityDist,
       status: statusDist,
     },
-    agents: agentActivity,
+    agents: agentStats,
     activityByType,
     activityTrend,
   });

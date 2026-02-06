@@ -105,6 +105,26 @@ export function TaskCard({ task, onClick, isDragging }: TaskCardProps) {
           ))}
         </div>
       )}
+
+      {/* Rating display for done tasks */}
+      {task.status === 'done' && (
+        <div className="flex items-center gap-1 mt-2">
+          {task.rating ? (
+            <div className="flex items-center gap-0.5" title={`Rated ${task.rating}/5`}>
+              {[1, 2, 3, 4, 5].map((star) => (
+                <span
+                  key={star}
+                  className={`text-xs ${star <= task.rating! ? 'text-yellow-400' : 'text-gray-300 dark:text-gray-600'}`}
+                >
+                  ★
+                </span>
+              ))}
+            </div>
+          ) : (
+            <span className="text-xs text-gray-400 dark:text-gray-500 italic">Not rated</span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

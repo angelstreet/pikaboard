@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { api, Agent } from '../api/client';
+import { api, Agent, AgentStats } from '../api/client';
 import { AgentCard } from '../components/AgentCard';
 
 export default function Agents() {

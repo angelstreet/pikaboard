@@ -20,6 +20,7 @@ export interface Task {
   board_id: number | null;
   position: number;
   deadline: string | null;
+  rating: number | null;
   created_at: string;
   updated_at: string;
   completed_at: string | null;
@@ -253,7 +254,7 @@ export interface InsightsData {
     priority: Record<string, number>;
     status: Record<string, number>;
   };
-  agents: Record<string, { actions: number; lastActive: string | null }>;
+  agents: Record<string, { actions: number; lastActive: string | null; avgRating: number | null; ratedTasks: number }>;
   activityByType: Record<string, number>;
   activityTrend: { date: string; count: number }[];
 }

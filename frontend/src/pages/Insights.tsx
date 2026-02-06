@@ -332,7 +332,7 @@ export default function Insights() {
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6">
           <div className="mb-4">
             <h3 className="font-semibold text-gray-900 dark:text-white">Agent Activity</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Productivity by agent</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Productivity and quality by agent</p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
             {Object.entries(data.agents).map(([agent, stats]) => (
@@ -350,6 +350,24 @@ export default function Insights() {
                 <div className="text-xs text-gray-500 dark:text-gray-400">
                   actions logged
                 </div>
+                {/* Rating display */}
+                {stats.avgRating != null && stats.avgRating > 0 && (
+                  <div className="mt-2 flex items-center gap-1" title={`${stats.ratedTasks || 0} rated tasks`}>
+                    <div className="flex">
+                      {[1, 2, 3, 4, 5].map((star) => (
+                        <span
+                          key={star}
+                          className={`text-xs ${star <= Math.round(stats.avgRating!) ? 'text-yellow-400' : 'text-gray-300 dark:text-gray-600'}`}
+                        >
+                          ★
+                        </span>
+                      ))}
+                    </div>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 ml-1">
+                      {stats.avgRating?.toFixed(1) ?? ''}
+                    </span>
+                  </div>
+                )}
                 {stats.lastActive && (
                   <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
                     Last: {new Date(stats.lastActive).toLocaleDateString()}
