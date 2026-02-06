@@ -197,7 +197,7 @@ export default function Insights() {
           <p className="text-gray-500 dark:text-gray-400 mt-1">Analytics and productivity metrics</p>
         </div>
         <a
-          href="http://65.108.14.251:8080/grafana/"
+          href="https://65.108.14.251:8080/grafana/"
           target="_blank"
           rel="noopener noreferrer"
           className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors text-sm font-medium"
