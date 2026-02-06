@@ -12,14 +12,6 @@ response=$(api GET "/agents")
 assert_contains "Returns agents array" "$response" "agents"
 
 # Check known agents exist
-echo ""
-echo "Checking known agents"
-if echo "$response" | grep -q "bulbi"; then
-  echo -e "${GREEN}✓${NC} Bulbi agent exists"
-  ((PASS++))
-else
-  echo -e "${RED}✗${NC} Bulbi agent missing"
-  ((FAIL++))
-fi
+assert_contains "Has bulbi agent" "$response" "bulbi"
 
 summary
