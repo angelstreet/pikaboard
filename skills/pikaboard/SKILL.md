@@ -1,116 +1,115 @@
 ---
 name: pikaboard
-description: Interact with PikaBoard task management API. Use when creating, updating, listing, or managing tasks. Agent-first task management.
+description: "Interact with PikaBoard task management API. Use when creating, updating, listing, or managing tasks. Agent-first kanban for AI teams. Triggers on: tasks, kanban, board, todo, backlog, sprint."
+metadata:
+  openclaw:
+    emoji: "📋"
+    requires:
+      bins: ["node", "npm"]
+    install:
+      - id: clone
+        kind: git
+        repo: https://github.com/angelstreet/pikaboard
+        branch: main
+        label: "Clone PikaBoard repository"
+      - id: backend
+        kind: script
+        cwd: "pikaboard/backend"
+        run: "npm install && npm run build"
+        label: "Install backend dependencies"
+      - id: frontend
+        kind: script
+        cwd: "pikaboard/frontend"
+        run: "npm install && npm run build"
+        label: "Build frontend"
+      - id: env
+        kind: prompt
+        message: "Create .env with DATABASE_PATH and API_TOKEN"
+        label: "Configure environment"
 ---
 
-# PikaBoard API
+# PikaBoard
 
-PikaBoard is an agent-first task/kanban dashboard.
+Agent-first task/kanban dashboard. **PikaBoard is the source of truth for tasks.**
 
-## Source of Truth
+## Quick Start
 
-**PikaBoard is the source of truth for tasks.** Query the API, not local files.
+After install, start the server:
+```bash
+cd pikaboard/backend && npm start
+```
 
-## Task Commands
-
-Users reference tasks by ID:
-- `task 12` or `t12` → task ID 12
-- `delete task 12` → delete
-- `move task 12 to done` → status change
-- `list tasks` → show all
-
-When listing tasks, show: `#ID name (status)`
+Access dashboard at `http://localhost:3001`
 
 ## Configuration
 
-See TOOLS.md for:
-- **API:** Local URL
-- **Token:** Bearer token
-
-## Authentication
-
-All requests require:
+Create `backend/.env`:
+```env
+DATABASE_PATH=./pikaboard.db
+API_TOKEN=your-secret-token
+PORT=3001
 ```
-Authorization: Bearer <token>
-Content-Type: application/json
+
+Add to your TOOLS.md:
+```markdown
+## PikaBoard
+- **API:** http://localhost:3001/api/
+- **Token:** your-secret-token
+```
+
+## Task Commands
+
+Reference tasks by ID:
+- `task 12` or `#12` → view task
+- `move #12 to done` → status change
+- `create task "Fix bug"` → new task
+
+## API Reference
+
+See `references/api.md` for full endpoint documentation.
+
+### Common Operations
+
+**List tasks:**
+```bash
+curl -H "Authorization: Bearer $TOKEN" $API/tasks
+```
+
+**Create task:**
+```bash
+curl -X POST -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"name":"Fix bug","status":"inbox","priority":"high"}' \
+  $API/tasks
+```
+
+**Update status:**
+```bash
+curl -X PATCH -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"status":"done"}' \
+  $API/tasks/123
 ```
 
 ## Enums
 
-**status:** `inbox` | `up_next` | `in_progress` | `in_review` | `done`
+| Field | Values |
+|-------|--------|
+| status | `inbox`, `up_next`, `in_progress`, `in_review`, `done` |
+| priority | `low`, `medium`, `high`, `urgent` |
 
-**priority:** `low` | `medium` | `high` | `urgent`
+## Multi-Agent Setup
 
-## Endpoints
-
-### Tasks
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | /api/tasks | List tasks (filters: `status`, `priority`) |
-| POST | /api/tasks | Create task |
-| GET | /api/tasks/:id | Get task |
-| PATCH | /api/tasks/:id | Update task |
-| DELETE | /api/tasks/:id | Delete task |
-
-### Activity
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | /api/activity | List recent activity |
-
-### Crons
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | /api/crons | List OpenClaw cron jobs |
-
-### Skills
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | /api/skills | List installed skills |
-
-## Task Fields
-
-```json
-{
-  "name": "required string",
-  "description": "optional string",
-  "status": "inbox|up_next|in_progress|in_review|done",
-  "priority": "low|medium|high|urgent",
-  "tags": ["array", "of", "strings"]
-}
-```
-
-## Examples
-
-### Create task
+Each agent can have their own board. Use `board_id` parameter:
 ```bash
-curl -X POST $PIKABOARD_API/api/tasks \
-  -H "Authorization: Bearer $PIKABOARD_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"name":"Fix bug","status":"inbox","priority":"high"}'
+curl "$API/tasks?board_id=6" -H "Authorization: Bearer $TOKEN"
 ```
 
-### List tasks by status
-```bash
-curl "$PIKABOARD_API/api/tasks?status=up_next" \
-  -H "Authorization: Bearer $PIKABOARD_TOKEN"
-```
-
-### Update task status
-```bash
-curl -X PATCH $PIKABOARD_API/api/tasks/123 \
-  -H "Authorization: Bearer $PIKABOARD_TOKEN" \
-  -H "Content-Type: application/json" \
-  -d '{"status":"done"}'
-```
-
-## Web UI
-
-Access the dashboard at the configured URL (see TOOLS.md).
-
-- **Dashboard:** Kanban board view
-- **Routines:** Cron job schedules
-- **Skills:** Installed skills library
+Board assignments:
+- Board 1: Pika (main)
+- Board 2: Tortoise (personal)
+- Board 3: Sala (work)
+- Board 4: Evoli (VirtualPyTest)
+- Board 5: Psykokwak (EZPlanning)
+- Board 6: Bulbi (PikaBoard)
+- Board 7: Mew (Ideas)
