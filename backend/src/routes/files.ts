@@ -194,8 +194,9 @@ filesRouter.get('/content', (c) => {
 // GET /api/files/roots - List available root directories
 filesRouter.get('/roots', (c) => {
   const roots = [
-    { path: '~/.openclaw/workspace/research', label: '📁 Research', exists: existsSync(join(homedir(), '.openclaw/workspace/research')) },
-    { path: '~/.openclaw/agents', label: '🤖 Agents', exists: existsSync(join(homedir(), '.openclaw/agents')) },
+    { path: '~/.openclaw/workspace/agents', label: '🤖 Agents', exists: existsSync(join(homedir(), '.openclaw/workspace/agents')) },
+    { path: '~/.openclaw/workspace/shared', label: '📁 Shared', exists: existsSync(join(homedir(), '.openclaw/workspace/shared')) },
+    { path: '~/.openclaw/workspace/memory', label: '📝 Memory', exists: existsSync(join(homedir(), '.openclaw/workspace/memory')) },
   ];
   
   return c.json({ roots: roots.filter(r => r.exists) });
