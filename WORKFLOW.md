@@ -7,7 +7,7 @@ inbox → up_next → in_progress → in_review → done
                        ↓
                    [TESTING]
                        ↓
-                  in_review
+                  in_review (requires passing tests)
 ```
 
 ## Status Definitions
@@ -17,7 +17,7 @@ inbox → up_next → in_progress → in_review → done
 | `inbox` | Human | New tasks, unsorted |
 | `up_next` | Human/Agent | Prioritized, ready to pick up |
 | `in_progress` | Agent | Currently being worked on |
-| `in_review` | Agent → Human | Implementation + testing complete, awaiting human review |
+| `in_review` | Agent → Human | Implementation + **tests passing**, awaiting human review |
 | `done` | Human | Approved and verified |
 
 ## Agent Workflow Rules
@@ -28,64 +28,114 @@ inbox → up_next → in_progress → in_review → done
 
 ### 2. Implement
 - Write code, make changes
+- **Write tests for new code** (no exceptions)
 - Commit frequently to `dev` branch
 - Push to remote
 
-### 3. TEST BEFORE REVIEW ⚠️
+### 3. TEST BEFORE REVIEW ⚠️ (MANDATORY)
 
-**This is mandatory. No exceptions.**
+**This is enforced. No exceptions.**
 
-Before moving to `in_review`, agent MUST:
+Before moving to `in_review`, agent MUST run:
 
 ```bash
-# For frontend changes:
-curl -sk https://localhost/pikaboard-dev/ | head -20  # Check HTML loads
-curl -sk https://localhost/pikaboard-dev/assets/*.js | grep "expected_content"  # Verify build
-
-# For API changes:
-curl -X GET http://localhost:3001/api/health  # Health check
-curl -X GET http://localhost:3001/api/tasks   # Test endpoint
-
-# For UI changes (if agent-browser available):
-agent-browser open "https://localhost/pikaboard-dev/"
-agent-browser snapshot  # Get accessibility tree
-agent-browser screenshot /tmp/test.png
-agent-browser close
+./scripts/pre-review-check.sh
 ```
 
-**Log test results in task comment before moving to review.**
+This script verifies:
+- ✅ On `dev` branch
+- ✅ No uncommitted changes
+- ✅ All commits pushed
+- ✅ Backend builds successfully
+- ✅ Frontend builds successfully
+- ✅ Unit tests pass
+- ✅ API tests pass
+- ✅ Linting passes
+
+**If any check fails, fix it before moving to `in_review`.**
+
+#### Manual Testing Commands
+
+```bash
+# Quick verification
+npm run test:ci
+
+# Full test suite
+npm test
+
+# Specific checks
+cd backend && npm run test          # Unit tests
+bash tests/api/run.sh               # API tests
+bash tests/e2e/run.sh               # E2E tests
+```
 
 ### 4. Submit for Review
-- Move from `in_progress` → `in_review`
-- Include in comment:
-  - What was changed
-  - How it was tested
-  - Test results/screenshot
+
+```bash
+# 1. Run pre-review check (MUST PASS)
+./scripts/pre-review-check.sh
+
+# 2. Move task to in_review via API or UI
+
+# 3. Include in task comment:
+#    - What was changed
+#    - How it was tested  
+#    - Test results (copy from pre-review-check.sh output)
+```
 
 ### 5. Human Review
+
 - Human checks `/pikaboard-dev/`
 - If approved: Human moves to `done`
 - If issues: Human moves back to `in_progress` with feedback
 
 ## Checklist Before `in_review`
 
-- [ ] Code committed to `dev` branch
-- [ ] Pushed to remote (`git push origin dev`)
-- [ ] Deployed to dev (`./scripts/deploy-dev.sh` OR manual build)
-- [ ] **Tested with curl/agent-browser**
-- [ ] **Test results logged**
+```bash
+./scripts/pre-review-check.sh
+```
+
+Output must show: **✅ All checks passed!**
 
 ## Anti-Patterns (DON'T)
 
+❌ Move to `in_review` without running pre-review check
+❌ Commit after running pre-review check (run it again!)
+❌ Skip tests because "it's just a small change"
+❌ Push broken tests to `dev`
 ❌ Ask human to test without testing yourself first
-❌ Move to `in_review` without verifying deployment
-❌ Skip the curl/browser check
-❌ Commit after deploy script (script stashes uncommitted changes!)
 
 ## Correct Order
 
-1. Write code
+1. Write code + tests
 2. `git add && git commit && git push`
-3. Deploy (or manual build)
-4. **Test with curl/agent-browser**
-5. Move to `in_review` with test results
+3. Run `./scripts/pre-review-check.sh` (must pass!)
+4. Deploy if needed: `./scripts/deploy-dev.sh`
+5. Move task to `in_review` with test results
+
+## CI/CD Enforcement
+
+GitHub Actions runs tests on every push:
+
+```yaml
+on:
+  push:
+    branches: [main, dev]
+```
+
+**A failing CI blocks merge to `main`.**
+
+## Testing Requirements
+
+See detailed testing documentation:
+- [tests/README.md](tests/README.md) - Testing overview
+- [tests/TESTING.md](tests/TESTING.md) - Detailed requirements
+- [tests/e2e/README.md](tests/e2e/README.md) - E2E testing guide
+
+## Emergency: Tests Broken on `dev`
+
+1. **STOP** - Don't add more changes
+2. Create branch `fix/tests`
+3. Fix the failing tests
+4. PR to `dev` with only test fixes
+5. After merge, resume normal workflow
