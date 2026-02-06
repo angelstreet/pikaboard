@@ -65,8 +65,8 @@ export function BoardSelector({
       </button>
 
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-50 overflow-hidden">
-          <div className="max-h-64 overflow-y-auto">
+        <div className="absolute top-full left-0 mt-2 w-64 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-50 overflow-hidden">
+          <div className="max-h-96 overflow-y-auto">
             {boards.map((board) => {
               const boardColors = colorClasses[board.color] || colorClasses.blue;
               const isSelected = currentBoard?.id === board.id;
@@ -76,7 +76,7 @@ export function BoardSelector({
                   key={board.id}
                   className={`
                     flex items-center justify-between px-3 py-2 cursor-pointer
-                    ${isSelected ? `${boardColors.bg}` : 'hover:bg-gray-50'}
+                    ${isSelected ? `${boardColors.bg}` : 'hover:bg-gray-50 dark:hover:bg-gray-700'}
                   `}
                 >
                   <button
@@ -87,7 +87,7 @@ export function BoardSelector({
                     className="flex items-center gap-2 flex-1"
                   >
                     <span className="text-lg">{board.icon}</span>
-                    <span className={`font-medium ${isSelected ? boardColors.text : 'text-gray-700'}`}>
+                    <span className={`font-medium ${isSelected ? boardColors.text : 'text-gray-700 dark:text-gray-200'}`}>
                       {board.name}
                     </span>
                     {isSelected && (
@@ -106,7 +106,7 @@ export function BoardSelector({
                       onEditBoard(board);
                       setIsOpen(false);
                     }}
-                    className="p-1 text-gray-400 hover:text-gray-600 rounded"
+                    className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 rounded"
                     title="Edit board"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -123,13 +123,13 @@ export function BoardSelector({
             })}
           </div>
 
-          <div className="border-t">
+          <div className="border-t border-gray-200 dark:border-gray-700">
             <button
               onClick={() => {
                 onCreateBoard();
                 setIsOpen(false);
               }}
-              className="flex items-center gap-2 w-full px-3 py-2 text-blue-600 hover:bg-blue-50"
+              className="flex items-center gap-2 w-full px-3 py-2 text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30"
             >
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
