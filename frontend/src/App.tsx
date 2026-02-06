@@ -6,6 +6,7 @@ import Agents from './pages/Agents';
 import Insights from './pages/Insights';
 import Settings from './pages/Settings';
 import Library from './pages/Library';
+import Files from './pages/Files';
 
 // Auth disabled - handled at nginx level
 function App() {
@@ -15,6 +16,7 @@ function App() {
         <Route index element={<DashboardHome />} />
         <Route path="boards" element={<Boards />} />
         <Route path="agents" element={<Agents />} />
+        <Route path="files" element={<Files />} />
         <Route path="insights" element={<Insights />} />
         <Route path="library" element={<Library />} />
         <Route path="settings" element={<Settings />} />

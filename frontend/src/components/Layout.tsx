@@ -8,6 +8,7 @@ const navItems = [
   { path: '/', label: '🏠 Dashboard', title: 'Dashboard' },
   { path: '/boards', label: '📋 Boards', title: 'Boards' },
   { path: '/agents', label: '🤖 Agents', title: 'Agents' },
+  { path: '/files', label: '📁 Files', title: 'Files' },
   { path: '/library', label: '📚 Library', title: 'Library' },
   { path: '/insights', label: '📊 Insights', title: 'Insights' },
   { path: '/settings', label: '⚙️ Settings', title: 'Settings' },
