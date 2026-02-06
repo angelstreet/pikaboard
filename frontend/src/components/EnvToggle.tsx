@@ -1,20 +1,83 @@
+import { useState } from 'react';
+
+type Environment = 'prod' | 'dev' | 'sandbox';
+
+const ENV_CONFIG: Record<Environment, { path: string; label: string; color: string; hoverColor: string }> = {
+  prod: {
+    path: '/pikaboard/',
+    label: 'PROD',
+    color: 'bg-green-100 text-green-700',
+    hoverColor: 'hover:bg-green-200',
+  },
+  dev: {
+    path: '/pikaboard-dev/',
+    label: 'DEV',
+    color: 'bg-orange-100 text-orange-700',
+    hoverColor: 'hover:bg-orange-200',
+  },
+  sandbox: {
+    path: '/pikaboard-sandbox/',
+    label: 'SAND',
+    color: 'bg-purple-100 text-purple-700',
+    hoverColor: 'hover:bg-purple-200',
+  },
+};
+
+function getCurrentEnv(): Environment {
+  const path = window.location.pathname;
+  if (path.startsWith('/pikaboard-sandbox')) return 'sandbox';
+  if (path.startsWith('/pikaboard-dev')) return 'dev';
+  return 'prod';
+}
+
 export default function EnvToggle() {
-  const isDev = window.location.pathname.startsWith('/pikaboard-dev');
-  const targetUrl = isDev ? '/pikaboard/' : '/pikaboard-dev/';
-  const label = isDev ? 'DEV' : 'PROD';
-  const targetLabel = isDev ? 'PROD' : 'DEV';
+  const [isOpen, setIsOpen] = useState(false);
+  const currentEnv = getCurrentEnv();
+  const current = ENV_CONFIG[currentEnv];
   
+  const otherEnvs = (Object.keys(ENV_CONFIG) as Environment[]).filter(e => e !== currentEnv);
+
+  const handleNavigate = (env: Environment) => {
+    const config = ENV_CONFIG[env];
+    // Use full URL to avoid issues with base path
+    const url = `${window.location.origin}${config.path}`;
+    window.location.href = url;
+  };
+
   return (
-    <a
-      href={targetUrl}
-      className={`px-2 py-1 rounded text-xs font-bold transition-colors ${
-        isDev 
-          ? 'bg-orange-100 text-orange-700 hover:bg-orange-200' 
-          : 'bg-green-100 text-green-700 hover:bg-green-200'
-      }`}
-      title={`Switch to ${targetLabel}`}
-    >
-      {label} →
-    </a>
+    <div className="relative">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className={`px-2 py-1 rounded text-xs font-bold transition-colors ${current.color} ${current.hoverColor}`}
+      >
+        {current.label} ▾
+      </button>
+      
+      {isOpen && (
+        <>
+          {/* Backdrop */}
+          <div 
+            className="fixed inset-0 z-40" 
+            onClick={() => setIsOpen(false)}
+          />
+          
+          {/* Dropdown */}
+          <div className="absolute right-0 mt-1 z-50 bg-white rounded shadow-lg border border-gray-200 py-1 min-w-[80px]">
+            {otherEnvs.map((env) => {
+              const config = ENV_CONFIG[env];
+              return (
+                <button
+                  key={env}
+                  onClick={() => handleNavigate(env)}
+                  className={`w-full px-3 py-1.5 text-xs font-bold text-left transition-colors ${config.color} ${config.hoverColor}`}
+                >
+                  {config.label}
+                </button>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </div>
   );
 }
