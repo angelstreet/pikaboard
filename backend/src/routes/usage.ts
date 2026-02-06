@@ -470,7 +470,8 @@ usageRouter.get('/', (c) => {
   for (const [key, value] of Object.entries(aggregated.byBoard)) {
     byBoardWithNames[key] = {
       ...value,
-      name: key === 'unassigned' ? 'Unassigned' : (boardNameMap.get(key) || `Board ${key}`),
+      // 'Main' for unassigned (null) and board 1 (Pika's board)
+      name: (key === 'unassigned' || key === '1') ? 'Main' : (boardNameMap.get(key) || `Board ${key}`),
     };
   }
 
@@ -479,6 +480,67 @@ usageRouter.get('/', (c) => {
     byBoard: byBoardWithNames,
     pricing: PRICING,
     period,
+  });
+});
+
+// GET /api/usage/summary - Get lightweight usage summary for header
+usageRouter.get('/summary', (c) => {
+  const runsMapping = loadRunsMapping();
+  const sessionFiles = getAllSessionFiles();
+  const allUsages: TokenUsage[] = [];
+
+  for (const filePath of sessionFiles) {
+    const usages = parseSessionFile(filePath, runsMapping);
+    allUsages.push(...usages);
+  }
+
+  // Get date ranges for day and month
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+
+  // Calculate daily and monthly totals
+  let dailyAnthropic = 0;
+  let dailyKimi = 0;
+  let monthlyAnthropic = 0;
+  let monthlyKimi = 0;
+
+  for (const usage of allUsages) {
+    const usageDate = new Date(usage.date);
+    
+    // Anthropic = opus model
+    if (usage.model === 'opus') {
+      if (usage.date === today) {
+        dailyAnthropic += usage.cost;
+      }
+      if (usageDate >= monthStart) {
+        monthlyAnthropic += usage.cost;
+      }
+    }
+    
+    // Kimi = kimi model
+    if (usage.model === 'kimi') {
+      if (usage.date === today) {
+        dailyKimi += usage.cost;
+      }
+      if (usageDate >= monthStart) {
+        monthlyKimi += usage.cost;
+      }
+    }
+  }
+
+  return c.json({
+    daily: {
+      anthropic: dailyAnthropic,
+      kimi: dailyKimi,
+      total: dailyAnthropic + dailyKimi,
+    },
+    monthly: {
+      anthropic: monthlyAnthropic,
+      kimi: monthlyKimi,
+      total: monthlyAnthropic + monthlyKimi,
+    },
+    updatedAt: new Date().toISOString(),
   });
 });
 
