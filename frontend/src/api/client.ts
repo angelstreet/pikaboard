@@ -353,6 +353,16 @@ export interface UsageData {
     outputTokens: number;
     name: string;
   }>;
+  byAgent: Record<string, {
+    cost: number;
+    tokens: number;
+  }>;
+  byBoard: Record<string, {
+    cost: number;
+    tokens: number;
+    boardId: number | null;
+    name: string;
+  }>;
   total: {
     cost: number;
     tokens: number;

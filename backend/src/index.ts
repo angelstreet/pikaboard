@@ -19,6 +19,7 @@ import { systemRouter } from './routes/system.js';
 import { configRouter } from './routes/config.js';
 import { insightsRouter } from './routes/insights.js';
 import { proposalsRouter } from './routes/proposals.js';
+import { usageRouter } from './routes/usage.js';
 import { initDatabase } from './db/index.js';
 
 config();
@@ -52,6 +53,7 @@ app.route('/api/agents', agentsRouter);
 app.route('/api/config', configRouter);
 app.route('/api/insights', insightsRouter);
 app.route('/api/proposals', proposalsRouter);
+app.route('/api/usage', usageRouter);
 
 // Initialize database and start server only when not testing
 if (process.env.NODE_ENV !== 'test') {
