@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { TEAM_ROSTER, TeamMember } from '../config/team';
 import { api } from '../api/client';
+import LogViewer from './LogViewer';
 
 interface AgentStatus {
   agentId: string;
@@ -20,6 +21,7 @@ interface TeamRosterProps {
 export default function TeamRoster({ collapsed, onToggle }: TeamRosterProps) {
   const [statuses, setStatuses] = useState<Map<string, AgentStatus>>(new Map());
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
+  const [expandedLogs, setExpandedLogs] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   // Fetch agent statuses based on in_progress tasks and sub-agent counts
@@ -253,6 +255,15 @@ export default function TeamRoster({ collapsed, onToggle }: TeamRosterProps) {
                         ) : null}
                       </div>
                     </div>
+                  )}
+
+                  {/* Log Viewer */}
+                  {isSelected && (
+                    <LogViewer
+                      agentId={member.id}
+                      isOpen={expandedLogs === member.id}
+                      onToggle={() => setExpandedLogs(expandedLogs === member.id ? null : member.id)}
+                    />
                   )}
 
                   {isSelected && member.boards && member.boards.length > 0 && (

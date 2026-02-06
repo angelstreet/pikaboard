@@ -108,6 +108,20 @@ export interface AgentStats {
   };
 }
 
+export interface AgentLogEntry {
+  timestamp: string;
+  time: string;
+  summary: string;
+  fullContent?: string;
+  type: 'message' | 'tool' | 'system' | 'error';
+}
+
+export interface AgentLogs {
+  agentId: string;
+  logs: AgentLogEntry[];
+  count: number;
+}
+
 export interface ProposalItem {
   name: string;
   description?: string;
@@ -263,6 +277,10 @@ class ApiClient {
     return this.fetch(`/agents/${id}/stats`);
   }
 
+  async getAgentLogs(id: string, lines = 100): Promise<AgentLogs> {
+    return this.fetch(`/agents/${id}/logs?lines=${lines}`);
+  }
+
   // System
   async getSystemStats(): Promise<SystemStats> {
     return this.fetch<SystemStats>('/system');
@@ -271,6 +289,11 @@ class ApiClient {
   // Insights
   async getInsights(): Promise<InsightsData> {
     return this.fetch<InsightsData>('/insights');
+  }
+
+  // Usage
+  async getUsage(): Promise<UsageData> {
+    return this.fetch<UsageData>('/usage');
   }
 
   // Proposals
@@ -298,6 +321,51 @@ class ApiClient {
       body: JSON.stringify({ all: true, comment }),
     });
   }
+}
+
+// Usage
+export interface UsageData {
+  today: {
+    total: number;
+    byModel: Record<string, number>;
+    tokens: number;
+  };
+  thisWeek: {
+    total: number;
+    byModel: Record<string, number>;
+    tokens: number;
+  };
+  thisMonth: {
+    total: number;
+    byModel: Record<string, number>;
+    tokens: number;
+  };
+  daily: {
+    date: string;
+    cost: number;
+    tokens: number;
+    byModel: Record<string, number>;
+  }[];
+  byModel: Record<string, {
+    cost: number;
+    tokens: number;
+    inputTokens: number;
+    outputTokens: number;
+    name: string;
+  }>;
+  total: {
+    cost: number;
+    tokens: number;
+    sessions: number;
+  };
+  savings: {
+    amount: number;
+    percentage: number;
+  };
+  pricing: {
+    opus: { input: number; output: number; name: string; modelId: string; provider: string };
+    kimi: { input: number; output: number; name: string; modelId: string; provider: string };
+  };
 }
 
 // Insights

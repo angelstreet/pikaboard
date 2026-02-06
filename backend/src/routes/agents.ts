@@ -462,6 +462,144 @@ agentsRouter.get('/:id/stats', async (c) => {
   }
 });
 
+// Interface for log entry
+interface LogEntry {
+  timestamp: string;
+  time: string;
+  summary: string;
+  fullContent?: string;
+  type: 'message' | 'tool' | 'system' | 'error';
+}
+
+// GET /api/agents/:id/logs - Get agent session logs
+agentsRouter.get('/:id/logs', async (c) => {
+  const id = c.req.param('id');
+  const linesParam = c.req.query('lines');
+  const lines = parseInt(linesParam || '100', 10);
+  const agentPath = join(homedir(), '.openclaw', 'agents', id);
+
+  try {
+    const dirStat = await stat(agentPath);
+    if (!dirStat.isDirectory()) {
+      return c.json({ error: 'Agent not found' }, 404);
+    }
+
+    const sessionsDir = join(agentPath, 'sessions');
+    const logs: LogEntry[] = [];
+
+    try {
+      const files = await readdir(sessionsDir);
+      const jsonlFiles = files.filter((f) => f.endsWith('.jsonl') && !f.includes('.deleted.'));
+      
+      // Sort by modification time (newest first)
+      const filesWithStats = await Promise.all(
+        jsonlFiles.map(async (f) => {
+          const statInfo = await stat(join(sessionsDir, f));
+          return { file: f, mtime: statInfo.mtime };
+        })
+      );
+      filesWithStats.sort((a, b) => b.mtime.getTime() - a.mtime.getTime());
+
+      // Read most recent files to get enough lines
+      for (const { file } of filesWithStats.slice(0, 5)) {
+        if (logs.length >= lines) break;
+
+        const filePath = join(sessionsDir, file);
+        const fileContent = await readFile(filePath, 'utf-8');
+        const fileLines = fileContent.trim().split('\n').filter(Boolean);
+
+        // Process lines from the end
+        for (let i = fileLines.length - 1; i >= 0 && logs.length < lines; i--) {
+          try {
+            const entry = JSON.parse(fileLines[i]);
+            
+            // Skip session start and metadata entries
+            if (entry.type === 'session' || entry.type === 'model_change' || 
+                entry.type === 'thinking_level_change' || 
+                (entry.type === 'custom' && entry.customType?.startsWith('openclaw.'))) {
+              continue;
+            }
+
+            let logEntry: LogEntry | null = null;
+            const timestamp = entry.timestamp || new Date().toISOString();
+            const date = new Date(timestamp);
+            const timeStr = date.toLocaleTimeString('en-US', { 
+              hour: '2-digit', 
+              minute: '2-digit',
+              hour12: false 
+            });
+
+            // Extract message content
+            if (entry.type === 'message' && entry.message) {
+              const msg = entry.message;
+              
+              if (msg.role === 'assistant') {
+                // Get summary from content
+                let summary = 'Assistant response';
+                let fullContent = '';
+                
+                if (Array.isArray(msg.content)) {
+                  const textContent = msg.content
+                    .filter((c: { type: string; text?: string }) => c.type === 'text' || c.type === 'thinking')
+                    .map((c: { type: string; text?: string; thinking?: string }) => c.text || c.thinking || '')
+                    .join(' ');
+                  
+                  if (textContent) {
+                    summary = textContent.substring(0, 80).replace(/\n/g, ' ');
+                    fullContent = textContent;
+                  }
+                  
+                  // Check for tool calls
+                  const toolCalls = msg.content.filter((c: { type: string }) => c.type === 'toolCall');
+                  if (toolCalls.length > 0) {
+                    const toolNames = toolCalls.map((t: { name?: string }) => t.name || 'tool').join(', ');
+                    summary = `Using: ${toolNames}`;
+                  }
+                } else if (typeof msg.content === 'string') {
+                  summary = msg.content.substring(0, 80).replace(/\n/g, ' ');
+                  fullContent = msg.content;
+                }
+
+                // Check for errors
+                if (msg.stopReason === 'error' && msg.errorMessage) {
+                  const errorSummary = `Error: ${msg.errorMessage.substring(0, 60)}`;
+                  logEntry = { timestamp, time: timeStr, summary: errorSummary, fullContent, type: 'error' };
+                } else {
+                  logEntry = { timestamp, time: timeStr, summary, fullContent, type: 'message' };
+                }
+              } else if (msg.role === 'user') {
+                // Skip user messages for cleaner logs, or include brief summary
+                continue;
+              }
+            } else if (entry.type === 'tool_result' || entry.type === 'toolCall') {
+              const toolName = entry.name || entry.toolName || 'tool';
+              const toolSummary = `Tool: ${toolName}`;
+              logEntry = { timestamp, time: timeStr, summary: toolSummary, type: 'tool' };
+            }
+
+            if (logEntry) {
+              logs.unshift(logEntry); // Add to beginning to maintain chronological order
+            }
+          } catch {
+            // Skip malformed lines
+            continue;
+          }
+        }
+      }
+    } catch {
+      // No sessions directory or error reading
+    }
+
+    return c.json({ 
+      agentId: id, 
+      logs: logs.slice(-lines), // Ensure we only return requested number
+      count: logs.length 
+    });
+  } catch {
+    return c.json({ error: 'Agent not found' }, 404);
+  }
+});
+
 // GET /api/agents/:id - Get single agent details
 agentsRouter.get('/:id', async (c) => {
   const id = c.req.param('id');
