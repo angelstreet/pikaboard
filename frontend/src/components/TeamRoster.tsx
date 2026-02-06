@@ -204,19 +204,17 @@ export default function TeamRoster({ collapsed, onToggle }: TeamRosterProps) {
                       {member.avatar}
                     </div>
 
-                    {/* Info */}
+                    {/* Info - 2 lines only */}
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5 flex-wrap">
                         <span className="font-medium text-sm text-gray-900 dark:text-white">
                           {member.name}
                         </span>
                         {getRoleBadge(member)}
+                        {getStatusBadge(status?.status || 'idle')}
                       </div>
                       <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                         {member.function}
-                      </div>
-                      <div className="mt-1">
-                        {getStatusBadge(status?.status || 'idle')}
                       </div>
                     </div>
                   </div>
