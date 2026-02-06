@@ -127,6 +127,21 @@ export interface ProposalItem {
   description?: string;
 }
 
+export interface Question {
+  id: number;
+  agent: string;
+  question: string;
+  context: string | null;
+  status: 'pending' | 'answered';
+  answer: string | null;
+  created_at: string;
+  answered_at: string | null;
+}
+
+export interface QuestionsResponse {
+  questions: Question[];
+}
+
 export interface AgentProposals {
   agentId: string;
   items: ProposalItem[];
@@ -320,6 +335,27 @@ class ApiClient {
     return this.fetch(`/proposals/${agentId}/reject`, {
       method: 'POST',
       body: JSON.stringify({ all: true, comment }),
+    });
+  }
+
+  // Questions
+  async getQuestions(status?: 'pending' | 'answered'): Promise<Question[]> {
+    const query = status ? `?status=${status}` : '';
+    const res = await this.fetch<QuestionsResponse>(`/questions${query}`);
+    return res.questions;
+  }
+
+  async answerQuestion(id: number, answer: string): Promise<{ success: boolean; question: Question; message: string }> {
+    return this.fetch(`/questions/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ answer }),
+    });
+  }
+
+  async submitQuestion(agent: string, question: string, context?: string): Promise<{ success: boolean; question: Question; message: string }> {
+    return this.fetch('/questions', {
+      method: 'POST',
+      body: JSON.stringify({ agent, question, context }),
     });
   }
 }
