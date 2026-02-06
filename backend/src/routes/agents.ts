@@ -43,6 +43,32 @@ interface Agent {
   recentActivity: string[];
   lastSeen: string | null;
   configPath: string;
+  activeSubAgents: number;
+}
+
+// Get active sub-agent count for an agent
+async function getActiveSubAgentCount(agentId: string): Promise<number> {
+  const runsPath = join(homedir(), '.openclaw', 'subagents', 'runs.json');
+  try {
+    const content = await readFile(runsPath, 'utf-8');
+    const data = JSON.parse(content);
+    const runs = Object.values(data.runs || {}) as Array<{
+      label?: string;
+      status?: string;
+      endedAt?: number;
+    }>;
+    
+    // Count runs that are active (no endedAt) and belong to this agent
+    return runs.filter(run => {
+      if (run.endedAt) return false; // Already ended
+      if (!run.label) return false;
+      // Label format: "agentId-taskId-..." 
+      const labelAgent = run.label.split('-')[0].toLowerCase();
+      return labelAgent === agentId.toLowerCase();
+    }).length;
+  } catch {
+    return 0;
+  }
 }
 
 // Parse SOUL.md to extract structured info
@@ -199,6 +225,9 @@ agentsRouter.get('/', async (c) => {
 
       // Get runtime status (checks DB for in_progress tasks)
       const statusInfo = await getAgentStatus(agentPath, boardId);
+      
+      // Get active sub-agent count
+      const activeSubAgents = await getActiveSubAgentCount(dir.name);
 
       // Merge all data
       const agent: Agent = {
@@ -221,6 +250,7 @@ agentsRouter.get('/', async (c) => {
         recentActivity: [],
         lastSeen: statusInfo.lastSeen,
         configPath: agentPath,
+        activeSubAgents,
       };
 
       agents.push(agent);
@@ -475,6 +505,9 @@ agentsRouter.get('/:id', async (c) => {
       // No memory dir
     }
 
+    // Get active sub-agent count
+    const activeSubAgents = await getActiveSubAgentCount(id);
+
     const agent: Agent = {
       id,
       name: config.name || id.charAt(0).toUpperCase() + id.slice(1),
@@ -495,6 +528,7 @@ agentsRouter.get('/:id', async (c) => {
       recentActivity,
       lastSeen: statusInfo.lastSeen,
       configPath: agentPath,
+      activeSubAgents,
     };
 
     return c.json({ agent, soulMd: soulContent });

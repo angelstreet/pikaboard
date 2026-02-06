@@ -9,6 +9,7 @@ interface AgentStatus {
   taskId?: number;
   taskName?: string;
   lastSeen?: string;
+  activeSubAgents?: number;
 }
 
 interface TeamRosterProps {
@@ -21,19 +22,27 @@ export default function TeamRoster({ collapsed, onToggle }: TeamRosterProps) {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Fetch agent statuses based on in_progress tasks on their boards
+  // Fetch agent statuses based on in_progress tasks and sub-agent counts
   useEffect(() => {
     const fetchStatuses = async () => {
       try {
-        // Get all tasks to check in_progress status per board
-        const allTasks = await api.getTasks({});
+        // Get tasks and agents data in parallel
+        const [allTasks, agentsData] = await Promise.all([
+          api.getTasks({}),
+          api.getAgents(),
+        ]);
+        
         const statusMap = new Map<string, AgentStatus>();
 
-        // Initialize all team members as idle
+        // Initialize all team members as idle with sub-agent counts from API
         for (const member of TEAM_ROSTER) {
+          const agentInfo = agentsData.find((a: { id: string; activeSubAgents?: number }) => 
+            a.id.toLowerCase() === member.id.toLowerCase()
+          );
           statusMap.set(member.id, {
             agentId: member.id,
             status: 'idle',
+            activeSubAgents: agentInfo?.activeSubAgents || 0,
           });
         }
 
@@ -45,9 +54,10 @@ export default function TeamRoster({ collapsed, onToggle }: TeamRosterProps) {
           const member = TEAM_ROSTER.find(m => m.boardId === task.board_id);
           if (member) {
             const existing = statusMap.get(member.id);
-            // Only update if not already working, or if this task was updated more recently
+            // Only update if not already working
             if (existing?.status !== 'working') {
               statusMap.set(member.id, {
+                ...existing,
                 agentId: member.id,
                 status: 'working',
                 taskId: task.id,
@@ -213,8 +223,13 @@ export default function TeamRoster({ collapsed, onToggle }: TeamRosterProps) {
                         {getRoleBadge(member)}
                         {getStatusBadge(status?.status || 'idle')}
                       </div>
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
-                        {member.function}
+                      <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                        <span>{member.function}</span>
+                        {(status?.activeSubAgents ?? 0) > 0 && (
+                          <span className="px-1.5 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 rounded-full font-medium">
+                            {status?.activeSubAgents} worker{status?.activeSubAgents !== 1 ? 's' : ''}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
