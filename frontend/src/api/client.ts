@@ -71,6 +71,7 @@ export interface Agent {
   role: string;
   status: 'active' | 'idle' | 'offline' | 'busy';
   currentTask: string | null;
+  currentTaskId: number | null;
   purpose: string | null;
   personality: string | null;
   domain: string | null;

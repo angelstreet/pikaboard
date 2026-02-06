@@ -189,16 +189,15 @@ function AgentDetailView({
 
   return (
     <div className="divide-y divide-gray-200 dark:divide-gray-700">
-      {/* Header */}
+      {/* Header - 2 lines */}
       <div className="p-6 flex items-start justify-between">
         <div className="flex items-center gap-4">
           <span className="text-5xl">{emoji}</span>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {agent.name}
-            </h2>
-            <p className="text-gray-500 dark:text-gray-400">{agent.role}</p>
-            <div className="flex items-center gap-2 mt-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                {agent.name}
+              </h2>
               <StatusBadge status={agent.status} />
               {agent.boardId && (
                 <span className="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
@@ -206,6 +205,7 @@ function AgentDetailView({
                 </span>
               )}
             </div>
+            <p className="text-gray-500 dark:text-gray-400 mt-1">{agent.role}</p>
           </div>
         </div>
         <button
@@ -226,38 +226,21 @@ function AgentDetailView({
         </div>
       )}
 
-      {/* Current Task */}
+      {/* Current Task - with #ID prefix */}
       {agent.currentTask && (
         <div className="p-6">
           <h3 className="text-sm font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-wide mb-2">
             Currently Working On
           </h3>
           <div className="bg-purple-50 dark:bg-purple-900/30 rounded-lg p-4">
-            <p className="text-purple-900 dark:text-purple-200">{agent.currentTask}</p>
+            <p className="text-purple-900 dark:text-purple-200">
+              {agent.currentTaskId ? `#${agent.currentTaskId} ` : ''}{agent.currentTask}
+            </p>
           </div>
         </div>
       )}
 
-      {/* Skills */}
-      {agent.skills.length > 0 && (
-        <div className="p-6">
-          <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
-            Skills
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {agent.skills.map((skill) => (
-              <span
-                key={skill}
-                className="px-3 py-1 text-sm rounded-full bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
-              >
-                {skill}
-              </span>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Stats */}
+      {/* Stats - moved above Skills */}
       {stats && (
         <div className="p-6">
           <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
@@ -290,24 +273,43 @@ function AgentDetailView({
             </div>
           </div>
           
-          {/* Token breakdown */}
+          {/* Token breakdown - clearer labels */}
           <div className="mt-4 text-xs text-gray-500 dark:text-gray-400 space-y-1">
             <div className="flex justify-between">
-              <span>Input tokens:</span>
+              <span>Sent (input):</span>
               <span className="font-mono">{stats.tokens.input.toLocaleString()}</span>
             </div>
             <div className="flex justify-between">
-              <span>Output tokens:</span>
+              <span>Generated (output):</span>
               <span className="font-mono">{stats.tokens.output.toLocaleString()}</span>
             </div>
             <div className="flex justify-between">
-              <span>Cache read:</span>
+              <span>Cached (read):</span>
               <span className="font-mono">{stats.tokens.cacheRead.toLocaleString()}</span>
             </div>
             <div className="flex justify-between">
-              <span>Cache write:</span>
+              <span>Cached (write):</span>
               <span className="font-mono">{stats.tokens.cacheWrite.toLocaleString()}</span>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Skills */}
+      {agent.skills.length > 0 && (
+        <div className="p-6">
+          <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
+            Skills
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {agent.skills.map((skill) => (
+              <span
+                key={skill}
+                className="px-3 py-1 text-sm rounded-full bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+              >
+                {skill}
+              </span>
+            ))}
           </div>
         </div>
       )}

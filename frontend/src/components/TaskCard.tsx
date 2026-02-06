@@ -61,7 +61,9 @@ export function TaskCard({ task, onClick, isDragging }: TaskCardProps) {
       `}
     >
       <div className="flex items-start justify-between gap-2">
-        <h4 className="font-medium text-sm text-gray-900 dark:text-gray-100 flex-1">{task.name}</h4>
+        <h4 className="font-medium text-sm text-gray-900 dark:text-gray-100 flex-1">
+          <span className="text-gray-400 dark:text-gray-500">#{task.id}</span> {task.name}
+        </h4>
         {task.priority !== 'medium' && (
           <span className={`px-1.5 py-0.5 text-xs rounded font-medium ${priority.badge}`}>
             {priority.text}
@@ -141,7 +143,9 @@ export function TaskCardOverlay({ task }: { task: Task }) {
       `}
     >
       <div className="flex items-start justify-between gap-2">
-        <h4 className="font-medium text-sm text-gray-900 dark:text-gray-100 flex-1">{task.name}</h4>
+        <h4 className="font-medium text-sm text-gray-900 dark:text-gray-100 flex-1">
+          <span className="text-gray-400 dark:text-gray-500">#{task.id}</span> {task.name}
+        </h4>
         {task.priority !== 'medium' && (
           <span className={`px-1.5 py-0.5 text-xs rounded font-medium ${priority.badge}`}>
             {priority.text}

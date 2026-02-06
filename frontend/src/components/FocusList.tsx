@@ -126,10 +126,7 @@ export function FocusList({ tasks, onTaskClick }: FocusListProps) {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <span className="font-medium text-gray-900 dark:text-gray-100 truncate">
-                        {task.name}
-                      </span>
-                      <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">
-                        #{task.id}
+                        <span className="text-gray-400 dark:text-gray-500">#{task.id}</span> {task.name}
                       </span>
                     </div>
                     
