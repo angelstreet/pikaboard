@@ -96,7 +96,6 @@ export default function HeaderStatsBar() {
 
   // Get current usage display values
   const currentUsage = showMonthly && usage ? usage.monthly : (usage?.daily || { anthropic: 0, kimi: 0, total: 0 });
-  const periodLabel = showMonthly ? 'Month' : 'Today';
 
   return (
     <div className="bg-gray-800 text-gray-200 px-4 py-1.5 text-sm">
@@ -132,29 +131,18 @@ export default function HeaderStatsBar() {
           
           {/* Divider */}
           <span className="text-gray-600">|</span>
-          
-          {/* Anthropic Usage */}
+
+          {/* Usage */}
           <button
             onClick={() => setShowMonthly(!showMonthly)}
             className="flex items-center gap-2 hover:text-white transition-colors cursor-pointer"
             title={`Click to toggle ${showMonthly ? 'daily' : 'monthly'} view`}
           >
-            <span className="text-gray-400">🤖</span>
-            <span className="text-gray-400">{periodLabel}:</span>
-            <span className="font-semibold text-orange-400">
-              {formatCurrencyCompact(currentUsage.anthropic)}
-            </span>
-            <span className="text-gray-500 text-xs">(Anthropic)</span>
-          </button>
-          
-          {/* Total Usage (including Kimi) */}
-          <span className="text-gray-500">|</span>
-          <span className="flex items-center gap-1">
-            <span className="text-gray-400 text-xs">Total:</span>
+            <span className="text-gray-400">💰</span>
             <span className="font-semibold text-green-400">
               {formatCurrencyCompact(currentUsage.total)}
             </span>
-          </span>
+          </button>
         </div>
 
         {/* Status Indicator & Theme Toggle */}
