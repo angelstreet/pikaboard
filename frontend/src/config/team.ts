@@ -34,8 +34,8 @@ export const TEAM_ROSTER: TeamMember[] = [
     boards: ['pikaboard'],
   },
   {
-    id: 'tortue',
-    name: 'Tortue',
+    id: 'tortoise',
+    name: 'Tortoise',
     role: 'specialist',
     roleLabel: 'SPC',
     function: 'Personal Assistant',
