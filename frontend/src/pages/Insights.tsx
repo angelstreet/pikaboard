@@ -191,9 +191,22 @@ export default function Insights() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div>
-        <h2 className="text-2xl font-bold text-gray-900 dark:text-white">📊 Insights</h2>
-        <p className="text-gray-500 dark:text-gray-400 mt-1">Analytics and productivity metrics</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">📊 Insights</h2>
+          <p className="text-gray-500 dark:text-gray-400 mt-1">Analytics and productivity metrics</p>
+        </div>
+        <a
+          href="http://65.108.14.251:8080/grafana/"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors text-sm font-medium"
+        >
+          📊 Open Grafana
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+          </svg>
+        </a>
       </div>
 
       {/* Summary Stats */}
