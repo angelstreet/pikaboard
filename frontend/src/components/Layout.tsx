@@ -1,11 +1,13 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import HeaderStatsBar from './HeaderStatsBar';
 import EnvToggle from './EnvToggle';
 import TeamRoster from './TeamRoster';
+import { api } from '../api/client';
 
 const navItems = [
   { path: '/', label: '🏠 Dashboard', title: 'Dashboard' },
+  { path: '/inbox', label: '📥 Inbox', title: 'Inbox', hasBadge: true },
   { path: '/boards', label: '📋 Boards', title: 'Boards' },
   { path: '/agents', label: '🤖 Agents', title: 'Agents' },
   { path: '/chat', label: '💬 Chat', title: 'Chat' },
@@ -23,6 +25,24 @@ const COMMIT = import.meta.env.VITE_COMMIT || '?';
 export default function Layout() {
   const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [inboxCount, setInboxCount] = useState(0);
+
+  // Fetch inbox count for badge
+  useEffect(() => {
+    const fetchInboxCount = async () => {
+      try {
+        const data = await api.getProposals();
+        const count = data.proposals.reduce((sum, p) => sum + p.items.length, 0);
+        setInboxCount(count);
+      } catch {
+        // Silently fail - badge just won't show
+      }
+    };
+    fetchInboxCount();
+    // Poll every 30 seconds
+    const interval = setInterval(fetchInboxCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 dark:bg-gray-900 transition-colors">
@@ -42,13 +62,18 @@ export default function Layout() {
               <Link
                 key={item.path}
                 to={item.path}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors relative ${
                   location.pathname === item.path
                     ? 'bg-pika-100 text-pika-700 dark:bg-pika-900 dark:text-pika-300'
                     : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
                 }`}
               >
                 {item.label}
+                {item.hasBadge && inboxCount > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
+                    {inboxCount > 9 ? '9+' : inboxCount}
+                  </span>
+                )}
               </Link>
             ))}
           </nav>

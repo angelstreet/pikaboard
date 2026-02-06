@@ -3,6 +3,7 @@ import Layout from './components/Layout';
 import DashboardHome from './pages/DashboardHome';
 import Boards from './pages/Boards';
 import Agents from './pages/Agents';
+import Inbox from './pages/Inbox';
 import Insights from './pages/Insights';
 import Settings from './pages/Settings';
 import Library from './pages/Library';
@@ -15,6 +16,7 @@ function App() {
     <Routes>
       <Route path="/" element={<Layout />}>
         <Route index element={<DashboardHome />} />
+        <Route path="inbox" element={<Inbox />} />
         <Route path="boards" element={<Boards />} />
         <Route path="agents" element={<Agents />} />
         <Route path="chat" element={<Chat />} />
