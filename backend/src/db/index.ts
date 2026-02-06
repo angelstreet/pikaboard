@@ -60,6 +60,33 @@ export function initDatabase() {
     )
   `);
 
+  // Create goals table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS goals (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      description TEXT,
+      type TEXT DEFAULT 'global' CHECK(type IN ('global', 'agent')),
+      agent_id TEXT,
+      status TEXT DEFAULT 'active' CHECK(status IN ('active', 'paused', 'achieved')),
+      progress INTEGER DEFAULT 0,
+      deadline DATETIME,
+      board_id INTEGER REFERENCES boards(id),
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  // Create goal_tasks linking table
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS goal_tasks (
+      goal_id INTEGER NOT NULL REFERENCES goals(id) ON DELETE CASCADE,
+      task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (goal_id, task_id)
+    )
+  `);
+
   // Run migrations for existing databases
   runMigrations();
 
@@ -70,6 +97,11 @@ export function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_tasks_board ON tasks(board_id);
     CREATE INDEX IF NOT EXISTS idx_activity_type ON activity(type);
     CREATE INDEX IF NOT EXISTS idx_activity_created ON activity(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_goals_status ON goals(status);
+    CREATE INDEX IF NOT EXISTS idx_goals_type ON goals(type);
+    CREATE INDEX IF NOT EXISTS idx_goals_board ON goals(board_id);
+    CREATE INDEX IF NOT EXISTS idx_goal_tasks_goal ON goal_tasks(goal_id);
+    CREATE INDEX IF NOT EXISTS idx_goal_tasks_task ON goal_tasks(task_id);
   `);
 
   console.log('✅ Database initialized');

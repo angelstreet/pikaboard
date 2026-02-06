@@ -12,6 +12,7 @@ import { cronsRouter } from './routes/crons.js';
 import { skillsRouter } from './routes/skills.js';
 import { statsRouter } from './routes/stats.js';
 import { libraryRouter } from './routes/library.js';
+import { goalsRouter } from './routes/goals.js';
 import { initDatabase } from './db/index.js';
 
 config();
@@ -38,6 +39,7 @@ app.route('/api/crons', cronsRouter);
 app.route('/api/skills', skillsRouter);
 app.route('/api/stats', statsRouter);
 app.route('/api/library', libraryRouter);
+app.route('/api/goals', goalsRouter);
 
 // Initialize database and start server only when not testing
 if (process.env.NODE_ENV !== 'test') {
