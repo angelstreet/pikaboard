@@ -1,0 +1,6 @@
+[
+  { "id": 1, "name": "Main", "emoji": "⚡", "description": "General tasks and coordination", "show_testing": false },
+  { "id": 2, "name": "Personal", "emoji": "🏠", "description": "Personal tasks and reminders", "show_testing": false },
+  { "id": 3, "name": "Work", "emoji": "💼", "description": "Professional projects", "show_testing": true },
+  { "id": 4, "name": "Side Project", "emoji": "🚀", "description": "Building the next big thing", "show_testing": true }
+]

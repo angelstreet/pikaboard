@@ -1,0 +1,26 @@
+{
+  "tree": [
+    { "path": "SOUL.md", "type": "file" },
+    { "path": "MEMORY.md", "type": "file" },
+    { "path": "AGENTS.md", "type": "file" },
+    { "path": "memory/", "type": "dir" },
+    { "path": "memory/2026-02-01.md", "type": "file" },
+    { "path": "memory/2026-02-05.md", "type": "file" },
+    { "path": "memory/2026-02-06.md", "type": "file" },
+    { "path": "shared/", "type": "dir" },
+    { "path": "shared/projects/", "type": "dir" },
+    { "path": "shared/projects/demo-project/", "type": "dir" },
+    { "path": "shared/projects/demo-project/README.md", "type": "file" },
+    { "path": "shared/projects/demo-project/TODO.md", "type": "file" }
+  ],
+  "contents": {
+    "SOUL.md": "# Demo Agent\n\nI'm a helpful AI assistant designed to demonstrate the PikaBoard interface.\n\n## Personality\n\n- Friendly and professional\n- Concise but thorough\n- Always eager to help\n- Learning and adapting continuously\n\n## Capabilities\n\n- Task management and organization\n- Project planning and tracking\n- Code assistance and review\n- File management\n- General knowledge and research\n\n## Notes\n\nThis is a sandbox demo environment. All data shown here is mock data for demonstration purposes only.",
+    "MEMORY.md": "# Long-term Memory\n\n## About the User\n- Loves productivity tools and task management\n- Prefers dark mode interfaces\n- Works on multiple projects simultaneously\n- Values organization and clear workflows\n\n## Preferences\n- Communication style: concise and direct\n- Notification frequency: minimal\n- Preferred tools: markdown-based, keyboard-friendly\n\n## Past Interactions\n- Set up PikaBoard demo environment\n- Explored task management features\n- Customized board layouts",
+    "AGENTS.md": "# Active Agents\n\n## Pika\n**Role:** Task Coordinator\n**Status:** Active\n\nMain interface agent for PikaBoard. Handles task creation, updates, and organization.\n\n## Bulbi\n**Role:** Developer\n**Status:** Idle\n\nSpecializes in code generation, debugging, and technical tasks.\n\n## Mew\n**Role:** Research Assistant\n**Status:** Active\n\nHandles web search, information gathering, and analysis tasks.",
+    "memory/2026-02-01.md": "# Session Notes - February 1, 2026\n\n## Morning\n- Set up demo workspace\n- Configured initial boards and tasks\n- Reviewed project requirements\n\n## Afternoon\n- Created first demo tasks\n- Tested board layouts\n- Started documentation\n\n## Notes\nEverything looking good for the demo launch!",
+    "memory/2026-02-05.md": "# Session Notes - February 5, 2026\n\n## Tasks Completed\n- Finalized UI mockups\n- Implemented dark mode toggle\n- Added drag-and-drop functionality\n\n## Blockers\n- None!\n\n## Next Steps\n- Review with team\n- Deploy to staging",
+    "memory/2026-02-06.md": "# Session Notes - February 6, 2026\n\n## Today's Focus\n- Sandbox mode implementation\n- Mock data creation\n- Privacy safeguards\n\n## Progress\n- Created mock file system\n- Added demo client methods\n- Testing complete\n\n## Thoughts\nThe sandbox demo is coming together nicely. Users can now safely explore without exposing real data.",
+    "shared/projects/demo-project/README.md": "# Demo Project\n\nThis is a sample project for demonstration purposes.\n\n## Overview\n\nA showcase project to demonstrate PikaBoard's capabilities:\n- Task management\n- Progress tracking\n- Team collaboration\n\n## Getting Started\n\n1. Explore the boards\n2. Create and move tasks\n3. Try the different views\n\n## Features\n\n- ✅ Drag and drop interface\n- ✅ Real-time updates\n- ✅ Multiple board support\n- ✅ Activity tracking",
+    "shared/projects/demo-project/TODO.md": "# Demo Project TODO\n\n## In Progress\n- [ ] Finalize mock data\n- [ ] Test all features\n- [ ] Write documentation\n\n## Up Next\n- [ ] User feedback collection\n- [ ] Performance optimization\n- [ ] Mobile responsiveness\n\n## Done\n- [x] Initial setup\n- [x] Basic UI components\n- [x] Demo mode toggle"
+  }
+}
