@@ -190,18 +190,6 @@ export default function Settings() {
         ) : null}
       </div>
 
-      {/* Theme Note */}
-      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-4">
-        <div className="flex items-center gap-3">
-          <span className="text-xl">🎨</span>
-          <div>
-            <h4 className="text-sm font-medium text-gray-900 dark:text-white">Theme</h4>
-            <p className="text-xs text-gray-500 dark:text-gray-400">
-              Use the theme toggle in the sidebar header to switch between light and dark mode.
-            </p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

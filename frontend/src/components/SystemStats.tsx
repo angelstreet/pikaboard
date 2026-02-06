@@ -182,12 +182,8 @@ export default function SystemStats() {
             <span className={`font-mono ${data.memory.usagePercent > 80 ? 'text-red-400' : 'text-gray-600 dark:text-gray-300'}`}>
               RAM {data.memory.usagePercent}%
             </span>
-            <span className={`px-2 py-0.5 rounded text-xs font-medium ${
-              data.gateway.status === 'online'
-                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-            }`}>
-              Gateway {data.gateway.status}
+            <span className="font-mono text-gray-500 dark:text-gray-400 text-xs">
+              Load: {data.cpu.loadAvg[0].toFixed(2)} / {data.cpu.loadAvg[1].toFixed(2)}
             </span>
           </div>
           <span className={`text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`}>
@@ -233,31 +229,6 @@ export default function SystemStats() {
               </div>
             </div>
           )}
-
-          {/* Gateway Status */}
-          <div className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg">
-            <div className="flex items-center gap-3">
-              <div className={`w-3 h-3 rounded-full ${
-                data.gateway.status === 'online' ? 'bg-green-500' : 'bg-red-500'
-              } ${data.gateway.status === 'online' ? '' : 'animate-pulse'}`} />
-              <div>
-                <div className="text-sm font-medium text-gray-800 dark:text-gray-100">
-                  OpenClaw Gateway
-                </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">
-                  {data.gateway.url}
-                  {data.gateway.error && ` • ${data.gateway.error}`}
-                </div>
-              </div>
-            </div>
-            <span className={`px-2 py-1 rounded text-xs font-semibold uppercase ${
-              data.gateway.status === 'online'
-                ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
-            }`}>
-              {data.gateway.status}
-            </span>
-          </div>
 
           {/* Footer */}
           <div className="text-xs text-gray-400 text-right">
