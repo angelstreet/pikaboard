@@ -21,13 +21,13 @@ export default function TeamRoster({ collapsed, onToggle }: TeamRosterProps) {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Fetch agent statuses from recent activity
+  // Fetch agent statuses based on in_progress tasks on their boards
   useEffect(() => {
     const fetchStatuses = async () => {
       try {
-        const activity = await api.getActivity({ type: 'agent_activity', limit: 50 });
+        // Get all tasks to check in_progress status per board
+        const allTasks = await api.getTasks({});
         const statusMap = new Map<string, AgentStatus>();
-        const taskIdsToFetch = new Set<number>();
 
         // Initialize all team members as idle
         for (const member of TEAM_ROSTER) {
@@ -37,52 +37,23 @@ export default function TeamRoster({ collapsed, onToggle }: TeamRosterProps) {
           });
         }
 
-        // Check recent activity to determine current status
-        for (const act of activity) {
-          const meta = act.metadata as {
-            agent_label?: string;
-            status?: string;
-            task_summary?: string;
-            task_id?: number;
-          };
-
-          if (!meta?.agent_label) continue;
-
-          // Try to match agent label to team member
-          const agentId = meta.agent_label.toLowerCase().replace(/[^a-z]/g, '');
-          const member = TEAM_ROSTER.find(m => 
-            agentId.includes(m.id) || m.id.includes(agentId)
-          );
-
-          if (member && meta.status === 'running') {
-            if (meta.task_id) taskIdsToFetch.add(meta.task_id);
-            statusMap.set(member.id, {
-              agentId: member.id,
-              status: 'working',
-              currentTask: meta.task_summary,
-              taskId: meta.task_id,
-              lastSeen: act.created_at,
-            });
-          }
-        }
-
-        // Fetch task names for any task_ids we found
-        if (taskIdsToFetch.size > 0) {
-          try {
-            const tasks = await api.getTasks({});
-            const taskMap = new Map(tasks.map(t => [t.id, t.name]));
-            
-            // Update statuses with task names
-            for (const [agentId, status] of statusMap) {
-              if (status.taskId && taskMap.has(status.taskId)) {
-                statusMap.set(agentId, {
-                  ...status,
-                  taskName: taskMap.get(status.taskId),
-                });
-              }
+        // Find in_progress tasks and map to agents by boardId
+        const inProgressTasks = allTasks.filter(t => t.status === 'in_progress');
+        
+        for (const task of inProgressTasks) {
+          // Find which agent owns this board
+          const member = TEAM_ROSTER.find(m => m.boardId === task.board_id);
+          if (member) {
+            const existing = statusMap.get(member.id);
+            // Only update if not already working, or if this task was updated more recently
+            if (existing?.status !== 'working') {
+              statusMap.set(member.id, {
+                agentId: member.id,
+                status: 'working',
+                taskId: task.id,
+                taskName: task.name,
+              });
             }
-          } catch (err) {
-            console.error('Failed to fetch task names:', err);
           }
         }
 

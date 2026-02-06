@@ -9,7 +9,8 @@ export interface TeamMember {
   function: string;
   avatar: string;
   color: string;
-  boards?: string[]; // Which boards this agent owns
+  boardId?: number; // Primary board ID this agent owns
+  boards?: string[]; // Board names (legacy, for display)
 }
 
 export const TEAM_ROSTER: TeamMember[] = [
@@ -21,7 +22,8 @@ export const TEAM_ROSTER: TeamMember[] = [
     function: 'Main Agent',
     avatar: '⚡',
     color: '#FACC15', // yellow
-    boards: [], // Oversees all
+    boardId: 1, // Main
+    boards: [],
   },
   {
     id: 'bulbi',
@@ -31,6 +33,7 @@ export const TEAM_ROSTER: TeamMember[] = [
     function: 'PikaBoard Dev',
     avatar: '🌱',
     color: '#22C55E', // green
+    boardId: 6, // PikaBoard
     boards: ['pikaboard'],
   },
   {
@@ -41,6 +44,7 @@ export const TEAM_ROSTER: TeamMember[] = [
     function: 'Personal Assistant',
     avatar: '🐢',
     color: '#3B82F6', // blue
+    boardId: 2, // Personal
     boards: ['personal'],
   },
   {
@@ -51,6 +55,7 @@ export const TEAM_ROSTER: TeamMember[] = [
     function: 'Work Projects',
     avatar: '🔥',
     color: '#EF4444', // red
+    boardId: 3, // Work Projects
     boards: ['work'],
   },
   {
@@ -61,6 +66,7 @@ export const TEAM_ROSTER: TeamMember[] = [
     function: 'VirtualPyTest Dev',
     avatar: '🦊',
     color: '#A855F7', // purple
+    boardId: 4, // VirtualPyTest
     boards: ['virtualpytest'],
   },
   {
@@ -71,6 +77,7 @@ export const TEAM_ROSTER: TeamMember[] = [
     function: 'EZPlanning Dev',
     avatar: '🦆',
     color: '#F97316', // orange
+    boardId: 5, // AIIT/EZPlanning
     boards: ['ezplanning'],
   },
   {
@@ -81,6 +88,7 @@ export const TEAM_ROSTER: TeamMember[] = [
     function: 'Ideas & Product',
     avatar: '✨',
     color: '#EC4899', // pink
+    boardId: 7, // Ideas Lab
     boards: ['ideas'],
   },
 ];
