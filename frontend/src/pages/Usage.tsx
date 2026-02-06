@@ -1,6 +1,15 @@
 import { useEffect, useState } from 'react';
 import { api, UsageData } from '../api/client';
 
+// Period options
+const PERIOD_OPTIONS = [
+  { value: 'day', label: 'Today' },
+  { value: 'week', label: 'This Week' },
+  { value: 'month', label: 'This Month' },
+  { value: 'year', label: 'This Year' },
+  { value: 'all', label: 'All Time' },
+];
+
 // Format currency
 function formatCurrency(amount: number): string {
   if (amount >= 100) {
@@ -21,6 +30,11 @@ function formatTokens(tokens: number): string {
     return `${(tokens / 1000).toFixed(1)}k`;
   }
   return String(tokens);
+}
+
+// Get period label
+function getPeriodLabel(period: string): string {
+  return PERIOD_OPTIONS.find(p => p.value === period)?.label || period;
 }
 
 // Stat card component
@@ -254,15 +268,16 @@ export default function Usage() {
   const [data, setData] = useState<UsageData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [period, setPeriod] = useState('week');
 
   useEffect(() => {
     loadUsage();
-  }, []);
+  }, [period]);
 
   const loadUsage = async () => {
     try {
       setLoading(true);
-      const usage = await api.getUsage();
+      const usage = await api.getUsage(period);
       setData(usage);
       setError(null);
     } catch (err) {
@@ -296,49 +311,57 @@ export default function Usage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h2 className="text-2xl font-bold text-gray-900 dark:text-white">💳 Usage</h2>
           <p className="text-gray-500 dark:text-gray-400 mt-1">Token usage and cost tracking</p>
         </div>
-        <a
-          href="https://65.108.14.251:8080/grafana/"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors text-sm font-medium"
-        >
-          📊 Open Grafana
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-          </svg>
-        </a>
+        <div className="flex items-center gap-3">
+          {/* Period Filter */}
+          <select
+            value={period}
+            onChange={(e) => setPeriod(e.target.value)}
+            className="px-3 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-700 dark:text-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400"
+          >
+            {PERIOD_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <a
+            href="https://65.108.14.251:8080/grafana/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg transition-colors text-sm font-medium"
+          >
+            📊 Open Grafana
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+            </svg>
+          </a>
+        </div>
       </div>
 
-      {/* Cost Summary Cards */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Summary Card */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <StatCard
-          label="Today"
-          value={formatCurrency(data.today.total)}
-          subtitle={`${formatTokens(data.today.tokens)} tokens`}
-          icon="📅"
+          label={getPeriodLabel(period)}
+          value={formatCurrency(data.summary.total)}
+          subtitle={`${formatTokens(data.summary.tokens)} tokens`}
+          icon="📊"
         />
         <StatCard
-          label="This Week"
-          value={formatCurrency(data.thisWeek.total)}
-          subtitle={`${formatTokens(data.thisWeek.tokens)} tokens`}
-          icon="📈"
+          label="Sessions"
+          value={data.total.sessions.toLocaleString()}
+          subtitle="Analyzed sessions"
+          icon="📝"
         />
         <StatCard
-          label="This Month"
-          value={formatCurrency(data.thisMonth.total)}
-          subtitle={`${formatTokens(data.thisMonth.tokens)} tokens`}
-          icon="🗓️"
-        />
-        <StatCard
-          label="All Time"
-          value={formatCurrency(data.total.cost)}
-          subtitle={`${formatTokens(data.total.tokens)} tokens`}
-          icon="💰"
+          label="Avg Cost/Session"
+          value={formatCurrency(data.total.sessions > 0 ? data.summary.total / data.total.sessions : 0)}
+          subtitle="Average spend"
+          icon="💵"
         />
       </div>
 
@@ -353,15 +376,21 @@ export default function Usage() {
         <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6">
           <div className="mb-4">
             <h3 className="font-semibold text-gray-900 dark:text-white">Daily Spend</h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Cost trend over last 30 days</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">Cost trend over selected period</p>
           </div>
-          <BarChart
-            data={data.daily.map(d => ({ date: d.date, cost: d.cost }))}
-            labelKey="date"
-            valueKey="cost"
-            color="blue"
-            maxHeight={140}
-          />
+          {data.daily.length > 0 ? (
+            <BarChart
+              data={data.daily.map(d => ({ date: d.date, cost: d.cost }))}
+              labelKey="date"
+              valueKey="cost"
+              color="blue"
+              maxHeight={140}
+            />
+          ) : (
+            <div className="h-[140px] flex items-center justify-center text-gray-500 dark:text-gray-400 text-sm">
+              No data available for this period
+            </div>
+          )}
         </div>
 
         {/* Model Split */}
@@ -372,7 +401,7 @@ export default function Usage() {
           </div>
           <ModelSplitChart
             byModel={data.byModel}
-            total={data.total.cost}
+            total={data.summary.total}
           />
         </div>
       </div>
@@ -387,7 +416,7 @@ export default function Usage() {
           </div>
           <AgentBreakdownChart
             byAgent={data.byAgent}
-            total={data.total.cost}
+            total={data.summary.total}
           />
         </div>
 
@@ -399,7 +428,7 @@ export default function Usage() {
           </div>
           <BoardBreakdownChart
             byBoard={data.byBoard}
-            total={data.total.cost}
+            total={data.summary.total}
           />
         </div>
       </div>
@@ -408,7 +437,7 @@ export default function Usage() {
       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6">
         <div className="mb-4">
           <h3 className="font-semibold text-gray-900 dark:text-white">Token Breakdown</h3>
-          <p className="text-sm text-gray-gray-500 dark:text-gray-400">Input vs output tokens by model</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400">Input vs output tokens by model</p>
         </div>
         <div className="grid md:grid-cols-2 gap-6">
           {Object.entries(data.byModel).map(([key, model]) => (
@@ -462,11 +491,6 @@ export default function Usage() {
             </tbody>
           </table>
         </div>
-      </div>
-
-      {/* Bottom Stats */}
-      <div className="text-center text-sm text-gray-500 dark:text-gray-400">
-        Based on {data.total.sessions.toLocaleString()} sessions analyzed
       </div>
     </div>
   );

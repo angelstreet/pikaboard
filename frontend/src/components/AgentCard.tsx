@@ -83,8 +83,8 @@ export function AgentCard({ agent, onClick }: AgentCardProps) {
           )}
           {status.label}
           {agent.activeSubAgents > 0 && (
-            <span className="ml-2 px-2 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 rounded-full text-xs">
-              {agent.activeSubAgents} sub-agent{agent.activeSubAgents !== 1 ? 's' : ''}
+            <span className="ml-2 px-1.5 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300 rounded-full text-xs font-medium min-w-[1.25rem] text-center" title={`${agent.activeSubAgents} active sub-agent${agent.activeSubAgents !== 1 ? 's' : ''}`}>
+              {agent.activeSubAgents}
             </span>
           )}
         </div>

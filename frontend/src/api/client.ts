@@ -326,17 +326,7 @@ class ApiClient {
 
 // Usage
 export interface UsageData {
-  today: {
-    total: number;
-    byModel: Record<string, number>;
-    tokens: number;
-  };
-  thisWeek: {
-    total: number;
-    byModel: Record<string, number>;
-    tokens: number;
-  };
-  thisMonth: {
+  summary: {
     total: number;
     byModel: Record<string, number>;
     tokens: number;
@@ -377,6 +367,7 @@ export interface UsageData {
     opus: { input: number; output: number; name: string; modelId: string; provider: string };
     kimi: { input: number; output: number; name: string; modelId: string; provider: string };
   };
+  period: string;
 }
 
 // Insights
