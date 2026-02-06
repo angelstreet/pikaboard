@@ -27,6 +27,10 @@ function isPathAllowed(targetPath: string): boolean {
         if (parts.length >= 2 && parts[1] === 'memory') {
           return true;
         }
+        // Allow: agentName/research/...
+        if (parts.length >= 2 && parts[1] === 'research') {
+          return true;
+        }
         // Allow: agentName/SOUL.md
         if (parts.length === 2 && parts[1] === 'SOUL.md') {
           return true;
