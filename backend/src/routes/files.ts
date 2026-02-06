@@ -45,9 +45,14 @@ function isPathAllowed(targetPath: string): boolean {
 }
 
 // Expand ~ to homedir
+// Expand ~ to homedir and handle relative paths
 function expandPath(path: string): string {
   if (path.startsWith('~')) {
     return join(homedir(), path.slice(1));
+  }
+  // Relative paths resolve to workspace
+  if (!path.startsWith('/')) {
+    return join(homedir(), '.openclaw/workspace', path);
   }
   return path;
 }
