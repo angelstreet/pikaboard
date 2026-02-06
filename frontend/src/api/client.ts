@@ -278,24 +278,24 @@ class ApiClient {
     return this.fetch<ProposalsResponse>('/proposals');
   }
 
-  async approveProposal(agentId: string, index: number, boardId?: number): Promise<{ success: boolean; task: Task; message: string }> {
+  async approveProposal(agentId: string, index: number, options?: { boardId?: number; comment?: string }): Promise<{ success: boolean; task: Task; message: string }> {
     return this.fetch(`/proposals/${agentId}/approve`, {
       method: 'POST',
-      body: JSON.stringify({ index, boardId }),
+      body: JSON.stringify({ index, boardId: options?.boardId, comment: options?.comment }),
     });
   }
 
-  async rejectProposal(agentId: string, index: number): Promise<{ success: boolean; message: string }> {
+  async rejectProposal(agentId: string, index: number, comment?: string): Promise<{ success: boolean; message: string; comment?: string }> {
     return this.fetch(`/proposals/${agentId}/reject`, {
       method: 'POST',
-      body: JSON.stringify({ index }),
+      body: JSON.stringify({ index, comment }),
     });
   }
 
-  async rejectAllProposals(agentId: string): Promise<{ success: boolean; message: string }> {
+  async rejectAllProposals(agentId: string, comment?: string): Promise<{ success: boolean; message: string }> {
     return this.fetch(`/proposals/${agentId}/reject`, {
       method: 'POST',
-      body: JSON.stringify({ all: true }),
+      body: JSON.stringify({ all: true, comment }),
     });
   }
 }

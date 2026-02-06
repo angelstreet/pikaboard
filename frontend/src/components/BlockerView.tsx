@@ -10,6 +10,7 @@ export function BlockerView({ onTaskCreated }: BlockerViewProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [comments, setComments] = useState<Record<string, string>>({});
 
   const loadProposals = async () => {
     try {
@@ -28,11 +29,19 @@ export function BlockerView({ onTaskCreated }: BlockerViewProps) {
     loadProposals();
   }, []);
 
+  const getCommentKey = (agentId: string, index: number) => `${agentId}-${index}`;
+
+  const handleCommentChange = (agentId: string, index: number, value: string) => {
+    const key = getCommentKey(agentId, index);
+    setComments((prev) => ({ ...prev, [key]: value }));
+  };
+
   const handleApprove = async (agentId: string, index: number) => {
     const key = `${agentId}-${index}`;
+    const comment = comments[key];
     setActionLoading(key);
     try {
-      const result = await api.approveProposal(agentId, index);
+      const result = await api.approveProposal(agentId, index, { comment });
       // Update local state
       setProposals((prev) =>
         prev
@@ -46,6 +55,12 @@ export function BlockerView({ onTaskCreated }: BlockerViewProps) {
           })
           .filter((p) => p.items.length > 0)
       );
+      // Clear comment
+      setComments((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
       if (result.task && onTaskCreated) {
         onTaskCreated(result.task);
       }
@@ -58,9 +73,10 @@ export function BlockerView({ onTaskCreated }: BlockerViewProps) {
 
   const handleReject = async (agentId: string, index: number) => {
     const key = `${agentId}-${index}`;
+    const comment = comments[key];
     setActionLoading(key);
     try {
-      await api.rejectProposal(agentId, index);
+      await api.rejectProposal(agentId, index, comment);
       // Update local state
       setProposals((prev) =>
         prev
@@ -74,6 +90,12 @@ export function BlockerView({ onTaskCreated }: BlockerViewProps) {
           })
           .filter((p) => p.items.length > 0)
       );
+      // Clear comment
+      setComments((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
     } catch (err) {
       console.error('Failed to reject:', err);
     } finally {
@@ -87,6 +109,14 @@ export function BlockerView({ onTaskCreated }: BlockerViewProps) {
     try {
       await api.rejectAllProposals(agentId);
       setProposals((prev) => prev.filter((p) => p.agentId !== agentId));
+      // Clear all comments for this agent
+      setComments((prev) => {
+        const next = { ...prev };
+        Object.keys(next).forEach((k) => {
+          if (k.startsWith(`${agentId}-`)) delete next[k];
+        });
+        return next;
+      });
     } catch (err) {
       console.error('Failed to reject all:', err);
     } finally {
@@ -183,6 +213,7 @@ export function BlockerView({ onTaskCreated }: BlockerViewProps) {
             {agentProposal.items.map((item, index) => {
               const key = `${agentProposal.agentId}-${index}`;
               const isLoading = actionLoading === key;
+              const comment = comments[key] || '';
 
               return (
                 <div
@@ -215,21 +246,23 @@ export function BlockerView({ onTaskCreated }: BlockerViewProps) {
                       </button>
                     </div>
                   </div>
+                  {/* Comment field */}
+                  <div className="mt-2">
+                    <input
+                      type="text"
+                      placeholder="Add note (optional)..."
+                      value={comment}
+                      onChange={(e) => handleCommentChange(agentProposal.agentId, index, e.target.value)}
+                      disabled={isLoading}
+                      className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:bg-gray-50"
+                    />
+                  </div>
                 </div>
               );
             })}
           </div>
         </div>
       ))}
-
-      <div className="text-center pt-4">
-        <button
-          onClick={loadProposals}
-          className="text-sm text-blue-600 hover:text-blue-700 hover:underline"
-        >
-          Refresh
-        </button>
-      </div>
     </div>
   );
 }

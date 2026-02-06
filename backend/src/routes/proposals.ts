@@ -58,7 +58,7 @@ proposalsRouter.get('/', async (c) => {
 proposalsRouter.post('/:agentId/approve', async (c) => {
   const agentId = c.req.param('agentId');
   const body = await c.req.json();
-  const { index, boardId } = body as { index: number; boardId?: number };
+  const { index, boardId, comment } = body as { index: number; boardId?: number; comment?: string };
 
   const data = await readProposals();
   const agentProposals = data.proposals[agentId];
@@ -73,7 +73,14 @@ proposalsRouter.post('/:agentId/approve', async (c) => {
 
   const proposal = agentProposals.items[index];
   const proposalName = typeof proposal === 'string' ? proposal : proposal.name;
-  const proposalDesc = typeof proposal === 'string' ? '' : proposal.description || '';
+  let proposalDesc = typeof proposal === 'string' ? '' : proposal.description || '';
+  
+  // Append comment to description if provided
+  if (comment && comment.trim()) {
+    proposalDesc = proposalDesc 
+      ? `${proposalDesc}\n\n---\n**Note from reviewer:** ${comment.trim()}`
+      : `**Note from reviewer:** ${comment.trim()}`;
+  }
 
   // Look up agent's board_id from their SOUL.md or config
   let targetBoardId = boardId;
@@ -127,7 +134,7 @@ proposalsRouter.post('/:agentId/approve', async (c) => {
 proposalsRouter.post('/:agentId/reject', async (c) => {
   const agentId = c.req.param('agentId');
   const body = await c.req.json();
-  const { index, all } = body as { index?: number; all?: boolean };
+  const { index, all, comment } = body as { index?: number; all?: boolean; comment?: string };
 
   const data = await readProposals();
   const agentProposals = data.proposals[agentId];
@@ -141,7 +148,8 @@ proposalsRouter.post('/:agentId/reject', async (c) => {
     agentProposals.items = [];
     agentProposals.pending = false;
     await writeProposals(data);
-    return c.json({ success: true, message: `All proposals rejected for ${agentId}` });
+    const msg = comment ? `All proposals rejected for ${agentId}: ${comment}` : `All proposals rejected for ${agentId}`;
+    return c.json({ success: true, message: msg, comment: comment || null });
   }
 
   if (index === undefined || index < 0 || index >= agentProposals.items.length) {
@@ -158,9 +166,14 @@ proposalsRouter.post('/:agentId/reject', async (c) => {
 
   await writeProposals(data);
 
+  const msg = comment 
+    ? `Proposal "${rejectedName}" rejected for ${agentId}: ${comment}`
+    : `Proposal "${rejectedName}" rejected for ${agentId}`;
+
   return c.json({ 
     success: true, 
-    message: `Proposal "${rejectedName}" rejected for ${agentId}`,
+    message: msg,
+    comment: comment || null,
   });
 });
 
