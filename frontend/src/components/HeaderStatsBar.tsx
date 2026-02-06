@@ -99,10 +99,16 @@ export default function HeaderStatsBar() {
 
         {/* Status Indicator & Theme Toggle */}
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
+          <a
+            href="/openclaw/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 cursor-pointer hover:opacity-80 transition-opacity"
+            title="Open OpenClaw Gateway"
+          >
             <div className={`w-2 h-2 rounded-full ${color} ${pulse ? 'animate-pulse' : ''}`} />
             <span className="text-xs text-gray-400">{text}</span>
-          </div>
+          </a>
           <ThemeToggle />
         </div>
       </div>
