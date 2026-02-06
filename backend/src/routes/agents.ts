@@ -150,7 +150,7 @@ async function getAgentStatus(agentDir: string, boardId: number | null): Promise
   };
 
   try {
-    // First, check database for in_progress tasks on this agent's board
+    // Check database for in_progress tasks on this agent's board
     if (boardId) {
       const inProgressTask = db.prepare(`
         SELECT id, name FROM tasks 
@@ -160,10 +160,10 @@ async function getAgentStatus(agentDir: string, boardId: number | null): Promise
       `).get(boardId) as { id: number; name: string } | undefined;
 
       if (inProgressTask) {
-        result.status = 'busy';
+        // Store current task info but don't set status to busy here
+        // Status will be determined by activeSubAgents count in the route handler
         result.currentTask = `#${inProgressTask.id}: ${inProgressTask.name}`;
         result.lastSeen = new Date().toISOString();
-        return result; // If busy, we're done
       }
     }
 
@@ -246,8 +246,17 @@ agentsRouter.get('/', async (c) => {
       // Check for pending proposals
       const pendingApproval = await hasPendingProposals(dir.name);
       
-      // Determine final status (blocked if pending approval and not busy)
+      // Determine final status
+      // Only show WORKING (busy) if there are active sub-agents
       let finalStatus = config.status || statusInfo.status;
+      if (activeSubAgents > 0) {
+        // Has active sub-agents - mark as busy
+        finalStatus = 'busy';
+      } else if (statusInfo.currentTask) {
+        // Has in_progress task but no active sub-agents - mark as idle
+        finalStatus = 'idle';
+      }
+      // Apply blocked status if pending approval (but not if busy with active work)
       if (pendingApproval && finalStatus !== 'busy') {
         finalStatus = 'blocked';
       }
@@ -674,7 +683,16 @@ agentsRouter.get('/:id', async (c) => {
     const pendingApproval = await hasPendingProposals(id);
     
     // Determine final status
+    // Only show WORKING (busy) if there are active sub-agents
     let finalStatus = config.status || statusInfo.status;
+    if (activeSubAgents > 0) {
+      // Has active sub-agents - mark as busy
+      finalStatus = 'busy';
+    } else if (statusInfo.currentTask) {
+      // Has in_progress task but no active sub-agents - mark as idle
+      finalStatus = 'idle';
+    }
+    // Apply blocked status if pending approval (but not if busy with active work)
     if (pendingApproval && finalStatus !== 'busy') {
       finalStatus = 'blocked';
     }
