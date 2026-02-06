@@ -17,7 +17,7 @@ interface RootDir {
 }
 
 const getToken = (): string => {
-  return 'REDACTED_TOKEN';
+  return localStorage.getItem('pikaboard_token') || '';
 };
 
 const headers = {

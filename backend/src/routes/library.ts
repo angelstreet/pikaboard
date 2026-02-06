@@ -30,7 +30,7 @@ interface Plugin {
 
 // Helper: Load all agent configs
 function loadAgentConfigs(): AgentConfig[] {
-  const agentsPath = process.env.OPENCLAW_AGENTS_PATH || '/home/jndoye/.openclaw/agents';
+  const agentsPath = process.env.OPENCLAW_AGENTS_PATH || `${process.env.HOME || '~'}/.openclaw/agents`;
   const configs: AgentConfig[] = [];
 
   if (!existsSync(agentsPath)) return configs;
@@ -71,7 +71,7 @@ libraryRouter.get('/agents', (c) => {
 
 // GET /api/library/skills - List installed skills
 libraryRouter.get('/skills', (c) => {
-  const skillsPath = process.env.OPENCLAW_SKILLS_PATH || '/home/jndoye/.openclaw/workspace/skills';
+  const skillsPath = process.env.OPENCLAW_SKILLS_PATH || `${process.env.HOME || '~'}/.openclaw/workspace/skills`;
   const agentConfigs = loadAgentConfigs();
 
   if (!existsSync(skillsPath)) {
@@ -141,7 +141,7 @@ libraryRouter.get('/skills', (c) => {
 
 // GET /api/library/plugins - List channel plugins
 libraryRouter.get('/plugins', (c) => {
-  const configPath = process.env.OPENCLAW_CONFIG_PATH || '/home/jndoye/.openclaw/openclaw.json';
+  const configPath = process.env.OPENCLAW_CONFIG_PATH || `${process.env.HOME || '~'}/.openclaw/openclaw.json`;
   const agentConfigs = loadAgentConfigs();
 
   if (!existsSync(configPath)) {

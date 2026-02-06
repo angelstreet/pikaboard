@@ -139,7 +139,7 @@ export interface ProposalsResponse {
 
 // Token for API requests (auth handled at nginx level for UI)
 const getToken = (): string => {
-  return 'REDACTED_TOKEN';
+  return localStorage.getItem('pikaboard_token') || '';
 };
 
 // API Client

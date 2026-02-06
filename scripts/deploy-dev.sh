@@ -2,7 +2,7 @@
 # Deploy PikaBoard DEVELOPMENT (dev branch)
 set -e
 
-PIKABOARD_DIR="/home/jndoye/.openclaw/workspace/pikaboard"
+PIKABOARD_DIR="${PIKABOARD_DIR:-$HOME/.openclaw/workspace/pikaboard}"
 cd "$PIKABOARD_DIR"
 
 echo "🚀 Deploying PikaBoard DEVELOPMENT..."

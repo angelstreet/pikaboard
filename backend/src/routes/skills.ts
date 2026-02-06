@@ -14,7 +14,7 @@ interface Skill {
 
 // GET /api/skills - List installed skills
 skillsRouter.get('/', (c) => {
-  const skillsPath = process.env.OPENCLAW_SKILLS_PATH || '/home/jndoye/.openclaw/workspace/skills';
+  const skillsPath = process.env.OPENCLAW_SKILLS_PATH || `${process.env.HOME || '~'}/.openclaw/workspace/skills`;
 
   if (!existsSync(skillsPath)) {
     return c.json({
@@ -82,7 +82,7 @@ skillsRouter.get('/', (c) => {
 // GET /api/skills/:name - Get skill details
 skillsRouter.get('/:name', (c) => {
   const name = c.req.param('name');
-  const skillsPath = process.env.OPENCLAW_SKILLS_PATH || '/home/jndoye/.openclaw/workspace/skills';
+  const skillsPath = process.env.OPENCLAW_SKILLS_PATH || `${process.env.HOME || '~'}/.openclaw/workspace/skills`;
   const skillDir = join(skillsPath, name);
 
   if (!existsSync(skillDir) || !statSync(skillDir).isDirectory()) {

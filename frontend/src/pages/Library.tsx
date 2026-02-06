@@ -35,7 +35,7 @@ const PLUGIN_ICONS: Record<string, string> = {
 };
 
 const getToken = (): string => {
-  return 'REDACTED_TOKEN';
+  return localStorage.getItem('pikaboard_token') || '';
 };
 
 export default function Library() {

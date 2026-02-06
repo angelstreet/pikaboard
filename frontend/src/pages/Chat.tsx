@@ -29,13 +29,9 @@ export default function Chat() {
 
   // Get WebSocket URL based on environment
   const getWebSocketUrl = () => {
-    // Use relative path for production, direct localhost for development
-    if (window.location.hostname === 'localhost') {
-      return 'ws://localhost:18789/ws';
-    }
-    // For production, use the same host with ws:// protocol
+    // Always use relative path through nginx proxy
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    return `${protocol}//${window.location.host}/ws`;
+    return `${protocol}//${window.location.host}/openclaw/ws`;
   };
 
   // Scroll to bottom of messages

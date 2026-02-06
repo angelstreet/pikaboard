@@ -26,7 +26,7 @@ interface WorkspaceConfig {
 }
 
 const getToken = (): string => {
-  return 'REDACTED_TOKEN';
+  return localStorage.getItem('pikaboard_token') || '';
 };
 
 function ConfigRow({ label, value, mono = false }: { label: string; value: string | number; mono?: boolean }) {
