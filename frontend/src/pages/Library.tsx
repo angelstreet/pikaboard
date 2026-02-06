@@ -1,10 +1,19 @@
 import { useState, useEffect } from 'react';
 
+interface Agent {
+  id: string;
+  name: string;
+  emoji: string;
+  skills: string[];
+  plugins: string[];
+}
+
 interface Skill {
   name: string;
   description?: string;
   version?: string;
   hasSkillMd: boolean;
+  usedBy: { id: string; name: string; emoji: string }[];
 }
 
 interface Plugin {
@@ -12,6 +21,7 @@ interface Plugin {
   enabled: boolean;
   connected?: boolean;
   config?: Record<string, string>;
+  usedBy: { id: string; name: string; emoji: string }[];
 }
 
 const PLUGIN_ICONS: Record<string, string> = {
@@ -32,6 +42,8 @@ export default function Library() {
   const [tab, setTab] = useState<'skills' | 'plugins'>('skills');
   const [skills, setSkills] = useState<Skill[]>([]);
   const [plugins, setPlugins] = useState<Plugin[]>([]);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -54,11 +66,13 @@ export default function Library() {
       if (skillsRes.ok) {
         const data = await skillsRes.json();
         setSkills(data.skills || []);
+        if (data.agents) setAgents(data.agents);
       }
 
       if (pluginsRes.ok) {
         const data = await pluginsRes.json();
         setPlugins(data.plugins || []);
+        if (data.agents && agents.length === 0) setAgents(data.agents);
       }
     } catch (error) {
       console.error('Failed to fetch library data:', error);
@@ -66,6 +80,15 @@ export default function Library() {
       setLoading(false);
     }
   };
+
+  // Filter by agent
+  const filteredSkills = selectedAgent
+    ? skills.filter((s) => s.usedBy.some((a) => a.id === selectedAgent))
+    : skills;
+
+  const filteredPlugins = selectedAgent
+    ? plugins.filter((p) => p.usedBy.some((a) => a.id === selectedAgent))
+    : plugins;
 
   return (
     <div className="space-y-6">
@@ -87,6 +110,38 @@ export default function Library() {
         </a>
       </div>
 
+      {/* Agent Filter Bar */}
+      {agents.length > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm text-gray-500 dark:text-gray-400">Filter by agent:</span>
+          <button
+            onClick={() => setSelectedAgent(null)}
+            className={`px-3 py-1 rounded-full text-sm transition-colors ${
+              selectedAgent === null
+                ? 'bg-pika-500 text-white'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+            }`}
+          >
+            All
+          </button>
+          {agents.map((agent) => (
+            <button
+              key={agent.id}
+              onClick={() => setSelectedAgent(selectedAgent === agent.id ? null : agent.id)}
+              title={agent.name}
+              className={`px-3 py-1 rounded-full text-sm transition-colors flex items-center gap-1 ${
+                selectedAgent === agent.id
+                  ? 'bg-pika-500 text-white'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+            >
+              <span>{agent.emoji}</span>
+              <span>{agent.name}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Tabs */}
       <div className="border-b border-gray-200 dark:border-gray-700">
         <nav className="-mb-px flex gap-4">
@@ -98,7 +153,7 @@ export default function Library() {
                 : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
             }`}
           >
-            🛠️ Skills ({skills.length})
+            🛠️ Skills ({filteredSkills.length})
           </button>
           <button
             onClick={() => setTab('plugins')}
@@ -108,7 +163,7 @@ export default function Library() {
                 : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300'
             }`}
           >
-            🔌 Plugins ({plugins.length})
+            🔌 Plugins ({filteredPlugins.length})
           </button>
         </nav>
       </div>
@@ -117,9 +172,9 @@ export default function Library() {
       {loading ? (
         <div className="text-center py-12 text-gray-500 dark:text-gray-400">Loading...</div>
       ) : tab === 'skills' ? (
-        <SkillsList skills={skills} />
+        <SkillsList skills={filteredSkills} />
       ) : (
-        <PluginsList plugins={plugins} />
+        <PluginsList plugins={filteredPlugins} />
       )}
     </div>
   );
@@ -156,10 +211,24 @@ function SkillsList({ skills }: { skills: Skill[] }) {
               {skill.description}
             </p>
           )}
-          <div className="mt-2 flex items-center gap-2">
+          <div className="mt-3 flex items-center justify-between">
+            <div className="flex items-center gap-1">
+              {skill.usedBy && skill.usedBy.length > 0 ? (
+                <>
+                  <span className="text-xs text-gray-400 dark:text-gray-500 mr-1">Used by:</span>
+                  {skill.usedBy.map((agent) => (
+                    <span key={agent.id} title={agent.name} className="text-base cursor-default">
+                      {agent.emoji}
+                    </span>
+                  ))}
+                </>
+              ) : (
+                <span className="text-xs text-gray-400 dark:text-gray-500 italic">Not assigned</span>
+              )}
+            </div>
             {skill.hasSkillMd && (
               <span className="text-xs px-2 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
-                SKILL.md
+                docs
               </span>
             )}
           </div>
@@ -194,6 +263,21 @@ function PluginsList({ plugins }: { plugins: Plugin[] }) {
                   Mode: {plugin.config.mode}
                 </p>
               )}
+              {/* Used by agents */}
+              <div className="flex items-center gap-1 mt-1">
+                {plugin.usedBy && plugin.usedBy.length > 0 ? (
+                  <>
+                    <span className="text-xs text-gray-400 dark:text-gray-500 mr-1">Used by:</span>
+                    {plugin.usedBy.map((agent) => (
+                      <span key={agent.id} title={agent.name} className="text-sm cursor-default">
+                        {agent.emoji}
+                      </span>
+                    ))}
+                  </>
+                ) : (
+                  <span className="text-xs text-gray-400 dark:text-gray-500 italic">Not assigned</span>
+                )}
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-2">

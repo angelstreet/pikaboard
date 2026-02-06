@@ -4,11 +4,20 @@ import { join } from 'path';
 
 export const libraryRouter = new Hono();
 
+interface AgentConfig {
+  id: string;
+  name: string;
+  emoji: string;
+  skills: string[];
+  plugins: string[];
+}
+
 interface Skill {
   name: string;
   description?: string;
   version?: string;
   hasSkillMd: boolean;
+  usedBy: { id: string; name: string; emoji: string }[];
 }
 
 interface Plugin {
@@ -16,14 +25,57 @@ interface Plugin {
   enabled: boolean;
   connected?: boolean;
   config?: Record<string, unknown>;
+  usedBy: { id: string; name: string; emoji: string }[];
 }
+
+// Helper: Load all agent configs
+function loadAgentConfigs(): AgentConfig[] {
+  const agentsPath = process.env.OPENCLAW_AGENTS_PATH || '/home/jndoye/.openclaw/agents';
+  const configs: AgentConfig[] = [];
+
+  if (!existsSync(agentsPath)) return configs;
+
+  try {
+    const entries = readdirSync(agentsPath, { withFileTypes: true });
+    for (const entry of entries) {
+      if (!entry.isDirectory() || entry.name.startsWith('.')) continue;
+
+      const configPath = join(agentsPath, entry.name, 'config.json');
+      if (existsSync(configPath)) {
+        try {
+          const config = JSON.parse(readFileSync(configPath, 'utf-8'));
+          configs.push({
+            id: entry.name,
+            name: config.name || entry.name,
+            emoji: config.emoji || '🤖',
+            skills: config.skills || [],
+            plugins: config.plugins || [],
+          });
+        } catch {
+          // Skip invalid configs
+        }
+      }
+    }
+  } catch {
+    // Ignore errors
+  }
+
+  return configs;
+}
+
+// GET /api/library/agents - List all agents with their configs
+libraryRouter.get('/agents', (c) => {
+  const agents = loadAgentConfigs();
+  return c.json({ agents });
+});
 
 // GET /api/library/skills - List installed skills
 libraryRouter.get('/skills', (c) => {
   const skillsPath = process.env.OPENCLAW_SKILLS_PATH || '/home/jndoye/.openclaw/workspace/skills';
+  const agentConfigs = loadAgentConfigs();
 
   if (!existsSync(skillsPath)) {
-    return c.json({ skills: [], warning: 'Skills directory not found' });
+    return c.json({ skills: [], agents: agentConfigs, warning: 'Skills directory not found' });
   }
 
   try {
@@ -37,9 +89,15 @@ libraryRouter.get('/skills', (c) => {
       const skillMdPath = join(skillDir, 'SKILL.md');
       const packagePath = join(skillDir, 'package.json');
 
+      // Find which agents use this skill
+      const usedBy = agentConfigs
+        .filter((agent) => agent.skills.includes(entry.name))
+        .map((agent) => ({ id: agent.id, name: agent.name, emoji: agent.emoji }));
+
       const skill: Skill = {
         name: entry.name,
         hasSkillMd: existsSync(skillMdPath),
+        usedBy,
       };
 
       // Get version from package.json if exists
@@ -74,19 +132,20 @@ libraryRouter.get('/skills', (c) => {
     }
 
     skills.sort((a, b) => a.name.localeCompare(b.name));
-    return c.json({ skills });
+    return c.json({ skills, agents: agentConfigs });
   } catch (error) {
     console.error('Error scanning skills:', error);
-    return c.json({ skills: [], error: 'Failed to scan skills' }, 500);
+    return c.json({ skills: [], agents: agentConfigs, error: 'Failed to scan skills' }, 500);
   }
 });
 
 // GET /api/library/plugins - List channel plugins
 libraryRouter.get('/plugins', (c) => {
   const configPath = process.env.OPENCLAW_CONFIG_PATH || '/home/jndoye/.openclaw/openclaw.json';
+  const agentConfigs = loadAgentConfigs();
 
   if (!existsSync(configPath)) {
-    return c.json({ plugins: [], warning: 'OpenClaw config not found' });
+    return c.json({ plugins: [], agents: agentConfigs, warning: 'OpenClaw config not found' });
   }
 
   try {
@@ -106,10 +165,16 @@ libraryRouter.get('/plugins', (c) => {
       // Skip if not configured at all
       if (!channelConfig && !pluginConfig) continue;
 
+      // Find which agents use this plugin
+      const usedBy = agentConfigs
+        .filter((agent) => agent.plugins.includes(name))
+        .map((agent) => ({ id: agent.id, name: agent.name, emoji: agent.emoji }));
+
       const plugin: Plugin = {
         name,
         enabled: channelConfig?.enabled ?? pluginConfig?.enabled ?? false,
         connected: channelConfig?.enabled ?? false,
+        usedBy,
       };
 
       // Add sanitized config (no tokens)
@@ -123,9 +188,9 @@ libraryRouter.get('/plugins', (c) => {
       plugins.push(plugin);
     }
 
-    return c.json({ plugins });
+    return c.json({ plugins, agents: agentConfigs });
   } catch (error) {
     console.error('Error reading plugins:', error);
-    return c.json({ plugins: [], error: 'Failed to read config' }, 500);
+    return c.json({ plugins: [], agents: agentConfigs, error: 'Failed to read config' }, 500);
   }
 });

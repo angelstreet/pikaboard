@@ -226,6 +226,36 @@ class ApiClient {
   async getSystemStats(): Promise<SystemStats> {
     return this.fetch<SystemStats>('/system');
   }
+
+  // Insights
+  async getInsights(): Promise<InsightsData> {
+    return this.fetch<InsightsData>('/insights');
+  }
+}
+
+// Insights
+export interface InsightsData {
+  summary: {
+    completedToday: number;
+    completedThisWeek: number;
+    completedThisMonth: number;
+    totalTasks: number;
+    totalCompleted: number;
+    avgCompletionHours: number;
+    currentStreak: number;
+  };
+  completions: {
+    daily: { date: string; count: number }[];
+    weekly: { week: string; count: number }[];
+    monthly: { month: string; count: number }[];
+  };
+  distributions: {
+    priority: Record<string, number>;
+    status: Record<string, number>;
+  };
+  agents: Record<string, { actions: number; lastActive: string | null }>;
+  activityByType: Record<string, number>;
+  activityTrend: { date: string; count: number }[];
 }
 
 // System Stats
