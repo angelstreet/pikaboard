@@ -147,7 +147,7 @@ export default function Inbox() {
 
   const totalItems = proposals.reduce((sum, p) => sum + p.items.length, 0) + questions.length;
 
-  if (loading && proposals.length === 0) {
+  if (loading && proposals.length === 0 && questions.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-gray-500 dark:text-gray-400">Loading inbox...</div>
