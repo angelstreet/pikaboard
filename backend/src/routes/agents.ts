@@ -2,6 +2,7 @@ import { Hono } from 'hono';
 import { readdir, readFile, stat } from 'fs/promises';
 import { join } from 'path';
 import { homedir } from 'os';
+import { db } from '../db';
 
 export const agentsRouter = new Hono();
 
@@ -94,13 +95,12 @@ function parseSoulMd(content: string): {
   return result;
 }
 
-// Get agent status from session files or config
-async function getAgentStatus(agentDir: string): Promise<{
+// Get agent status from database tasks and memory files
+async function getAgentStatus(agentDir: string, boardId: number | null): Promise<{
   status: 'active' | 'idle' | 'offline' | 'busy';
   lastSeen: string | null;
   currentTask: string | null;
 }> {
-  // Try to read session or state files to determine status
   const result = {
     status: 'offline' as 'active' | 'idle' | 'offline' | 'busy',
     lastSeen: null as string | null,
@@ -108,6 +108,23 @@ async function getAgentStatus(agentDir: string): Promise<{
   };
 
   try {
+    // First, check database for in_progress tasks on this agent's board
+    if (boardId) {
+      const inProgressTask = db.prepare(`
+        SELECT id, name FROM tasks 
+        WHERE board_id = ? AND status = 'in_progress' 
+        ORDER BY updated_at DESC 
+        LIMIT 1
+      `).get(boardId) as { id: number; name: string } | undefined;
+
+      if (inProgressTask) {
+        result.status = 'busy';
+        result.currentTask = `#${inProgressTask.id}: ${inProgressTask.name}`;
+        result.lastSeen = new Date().toISOString();
+        return result; // If busy, we're done
+      }
+    }
+
     // Check for recent memory files as activity indicator
     const memoryDir = join(agentDir, 'memory');
     const memoryStat = await stat(memoryDir).catch(() => null);
@@ -127,21 +144,6 @@ async function getAgentStatus(agentDir: string): Promise<{
           const sorted = datedFiles.sort().reverse();
           result.lastSeen = sorted[0].replace('.md', '');
           result.status = 'idle';
-        }
-      }
-    }
-
-    // Check workspace for TASKS.md or current work
-    const tasksPath = join(agentDir, 'TASKS.md');
-    const tasksContent = await readFile(tasksPath, 'utf-8').catch(() => null);
-    if (tasksContent) {
-      // Look for in_progress tasks
-      const inProgressMatch = tasksContent.match(/## In Progress\s*\n([\s\S]*?)(?=\n##|$)/i);
-      if (inProgressMatch) {
-        const taskLines = inProgressMatch[1].trim().split('\n').filter((l) => l.startsWith('-'));
-        if (taskLines.length > 0) {
-          result.currentTask = taskLines[0].replace(/^-\s*\[.\]\s*/, '').trim();
-          result.status = 'busy';
         }
       }
     }
@@ -190,8 +192,11 @@ agentsRouter.get('/', async (c) => {
         // No SOUL.md
       }
 
-      // Get runtime status
-      const statusInfo = await getAgentStatus(agentPath);
+      // Determine boardId first (needed for status check)
+      const boardId = config.board_id || soulData.boardId;
+
+      // Get runtime status (checks DB for in_progress tasks)
+      const statusInfo = await getAgentStatus(agentPath, boardId);
 
       // Merge all data
       const agent: Agent = {
@@ -269,8 +274,11 @@ agentsRouter.get('/:id', async (c) => {
       // No SOUL.md
     }
 
-    // Get status
-    const statusInfo = await getAgentStatus(agentPath);
+    // Determine boardId first (needed for status check)
+    const boardId = config.board_id || soulData.boardId;
+
+    // Get status (checks DB for in_progress tasks)
+    const statusInfo = await getAgentStatus(agentPath, boardId);
 
     // Get recent memory entries for activity
     const recentActivity: string[] = [];
