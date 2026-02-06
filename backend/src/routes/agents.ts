@@ -27,7 +27,7 @@ interface Agent {
   id: string;
   name: string;
   role: string;
-  status: 'active' | 'idle' | 'offline' | 'busy';
+  status: 'active' | 'idle' | 'offline' | 'busy' | 'blocked';
   currentTask: string | null;
   purpose: string | null;
   personality: string | null;
@@ -44,6 +44,7 @@ interface Agent {
   lastSeen: string | null;
   configPath: string;
   activeSubAgents: number;
+  pendingApproval: boolean;
 }
 
 // Get active sub-agent count for an agent
@@ -68,6 +69,19 @@ async function getActiveSubAgentCount(agentId: string): Promise<number> {
     }).length;
   } catch {
     return 0;
+  }
+}
+
+// Check if agent has pending proposals awaiting approval
+async function hasPendingProposals(agentId: string): Promise<boolean> {
+  const proposalsPath = join(homedir(), '.openclaw', 'workspace', 'data', 'pending-proposals.json');
+  try {
+    const content = await readFile(proposalsPath, 'utf-8');
+    const data = JSON.parse(content);
+    const agentProposals = data.proposals?.[agentId.toLowerCase()];
+    return agentProposals?.pending === true;
+  } catch {
+    return false;
   }
 }
 
@@ -125,12 +139,12 @@ function parseSoulMd(content: string): {
 
 // Get agent status from database tasks and memory files
 async function getAgentStatus(agentDir: string, boardId: number | null): Promise<{
-  status: 'active' | 'idle' | 'offline' | 'busy';
+  status: 'active' | 'idle' | 'offline' | 'busy' | 'blocked';
   lastSeen: string | null;
   currentTask: string | null;
 }> {
   const result = {
-    status: 'offline' as 'active' | 'idle' | 'offline' | 'busy',
+    status: 'offline' as 'active' | 'idle' | 'offline' | 'busy' | 'blocked',
     lastSeen: null as string | null,
     currentTask: null as string | null,
   };
@@ -228,13 +242,22 @@ agentsRouter.get('/', async (c) => {
       
       // Get active sub-agent count
       const activeSubAgents = await getActiveSubAgentCount(dir.name);
+      
+      // Check for pending proposals
+      const pendingApproval = await hasPendingProposals(dir.name);
+      
+      // Determine final status (blocked if pending approval and not busy)
+      let finalStatus = config.status || statusInfo.status;
+      if (pendingApproval && finalStatus !== 'busy') {
+        finalStatus = 'blocked';
+      }
 
       // Merge all data
       const agent: Agent = {
         id: dir.name,
         name: config.name || dir.name.charAt(0).toUpperCase() + dir.name.slice(1),
         role: config.role || soulData.domain || 'Agent',
-        status: config.status || statusInfo.status,
+        status: finalStatus,
         currentTask: statusInfo.currentTask,
         purpose: soulData.purpose,
         personality: soulData.personality,
@@ -251,14 +274,15 @@ agentsRouter.get('/', async (c) => {
         lastSeen: statusInfo.lastSeen,
         configPath: agentPath,
         activeSubAgents,
+        pendingApproval,
       };
 
       agents.push(agent);
     }
 
-    // Sort by status (active first, then idle, then offline)
-    const statusOrder = { busy: 0, active: 1, idle: 2, offline: 3 };
-    agents.sort((a, b) => statusOrder[a.status] - statusOrder[b.status]);
+    // Sort by status (busy first, then blocked, then active, then idle, then offline)
+    const statusOrder = { busy: 0, blocked: 1, active: 2, idle: 3, offline: 4 };
+    agents.sort((a, b) => (statusOrder[a.status] ?? 5) - (statusOrder[b.status] ?? 5));
 
     return c.json({ agents });
   } catch (err) {
@@ -507,12 +531,21 @@ agentsRouter.get('/:id', async (c) => {
 
     // Get active sub-agent count
     const activeSubAgents = await getActiveSubAgentCount(id);
+    
+    // Check for pending proposals
+    const pendingApproval = await hasPendingProposals(id);
+    
+    // Determine final status
+    let finalStatus = config.status || statusInfo.status;
+    if (pendingApproval && finalStatus !== 'busy') {
+      finalStatus = 'blocked';
+    }
 
     const agent: Agent = {
       id,
       name: config.name || id.charAt(0).toUpperCase() + id.slice(1),
       role: config.role || soulData.domain || 'Agent',
-      status: config.status || statusInfo.status,
+      status: finalStatus,
       currentTask: statusInfo.currentTask,
       purpose: soulData.purpose,
       personality: soulData.personality,
@@ -529,6 +562,7 @@ agentsRouter.get('/:id', async (c) => {
       lastSeen: statusInfo.lastSeen,
       configPath: agentPath,
       activeSubAgents,
+      pendingApproval,
     };
 
     return c.json({ agent, soulMd: soulContent });

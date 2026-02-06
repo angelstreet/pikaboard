@@ -34,19 +34,26 @@ export default function TeamRoster({ collapsed, onToggle }: TeamRosterProps) {
         
         const statusMap = new Map<string, AgentStatus>();
 
-        // Initialize all team members as idle with sub-agent counts from API
+        // Initialize all team members with status from API
         for (const member of TEAM_ROSTER) {
-          const agentInfo = agentsData.find((a: { id: string; activeSubAgents?: number }) => 
+          const agentInfo = agentsData.find((a: { id: string; status?: string; activeSubAgents?: number; pendingApproval?: boolean }) => 
             a.id.toLowerCase() === member.id.toLowerCase()
           );
+          
+          // Use API status (includes 'blocked' for pending proposals)
+          let status: AgentStatus['status'] = 'idle';
+          if (agentInfo?.status === 'blocked' || agentInfo?.pendingApproval) {
+            status = 'blocked';
+          }
+          
           statusMap.set(member.id, {
             agentId: member.id,
-            status: 'idle',
+            status,
             activeSubAgents: agentInfo?.activeSubAgents || 0,
           });
         }
 
-        // Find in_progress tasks and map to agents by boardId
+        // Find in_progress tasks and map to agents by boardId (overrides blocked)
         const inProgressTasks = allTasks.filter(t => t.status === 'in_progress');
         
         for (const task of inProgressTasks) {
@@ -54,16 +61,14 @@ export default function TeamRoster({ collapsed, onToggle }: TeamRosterProps) {
           const member = TEAM_ROSTER.find(m => m.boardId === task.board_id);
           if (member) {
             const existing = statusMap.get(member.id);
-            // Only update if not already working
-            if (existing?.status !== 'working') {
-              statusMap.set(member.id, {
-                ...existing,
-                agentId: member.id,
-                status: 'working',
-                taskId: task.id,
-                taskName: task.name,
-              });
-            }
+            // Working overrides blocked
+            statusMap.set(member.id, {
+              ...existing,
+              agentId: member.id,
+              status: 'working',
+              taskId: task.id,
+              taskName: task.name,
+            });
           }
         }
 

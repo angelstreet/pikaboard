@@ -69,10 +69,11 @@ export interface Agent {
   id: string;
   name: string;
   role: string;
-  status: 'active' | 'idle' | 'offline' | 'busy';
+  status: 'active' | 'idle' | 'offline' | 'busy' | 'blocked';
   currentTask: string | null;
   currentTaskId: number | null;
   activeSubAgents: number;
+  pendingApproval: boolean;
   purpose: string | null;
   personality: string | null;
   domain: string | null;
