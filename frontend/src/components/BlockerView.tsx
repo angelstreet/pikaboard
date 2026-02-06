@@ -165,9 +165,9 @@ export function BlockerView({ onTaskCreated }: BlockerViewProps) {
 
   if (proposals.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 text-gray-500">
-        <span className="text-4xl mb-4">✅</span>
-        <p className="text-lg font-medium">No pending proposals</p>
+      <div className="flex flex-col items-center justify-center h-48 sm:h-64 text-gray-500 px-4 text-center">
+        <span className="text-3xl sm:text-4xl mb-3 sm:mb-4">✅</span>
+        <p className="text-base sm:text-lg font-medium">No pending proposals</p>
         <p className="text-sm mt-1">All agents are unblocked</p>
       </div>
     );

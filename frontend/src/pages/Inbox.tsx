@@ -192,8 +192,8 @@ export default function Inbox() {
         </h2>
 
         {proposals.length === 0 ? (
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8 text-center">
-            <span className="text-4xl mb-4 block">✨</span>
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 sm:p-8 text-center">
+            <span className="text-3xl sm:text-4xl mb-3 sm:mb-4 block">✨</span>
             <p className="text-gray-600 dark:text-gray-400">No pending approvals</p>
             <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">All agents are unblocked</p>
           </div>
@@ -298,8 +298,8 @@ export default function Inbox() {
         </h2>
 
         {questions.length === 0 ? (
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-8 text-center">
-            <span className="text-4xl mb-4 block">💬</span>
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 sm:p-8 text-center">
+            <span className="text-3xl sm:text-4xl mb-3 sm:mb-4 block">💬</span>
             <p className="text-gray-600 dark:text-gray-400">No pending questions</p>
             <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">Agents will ask when they need help</p>
           </div>
