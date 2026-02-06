@@ -161,7 +161,7 @@ agentsRouter.get('/', async (c) => {
 
   try {
     const entries = await readdir(agentsDir, { withFileTypes: true });
-    const dirs = entries.filter((e) => e.isDirectory() && e.name !== 'main');
+    const dirs = entries.filter((e) => e.isDirectory());
 
     for (const dir of dirs) {
       const agentPath = join(agentsDir, dir.name);
