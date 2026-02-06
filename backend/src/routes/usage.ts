@@ -45,6 +45,53 @@ function loadRunsMapping(): Map<string, string> {
   return map;
 }
 
+// Extract agent name from session file content
+// Looks for patterns like "[cron:... agent-name] You are AgentName" or "You are AgentName"
+function extractAgentFromContent(filePath: string): string | null {
+  try {
+    // Read first few lines of the file
+    const content = readFileSync(filePath, 'utf-8');
+    const lines = content.split('\n').slice(0, 50); // Check first 50 lines
+
+    for (const line of lines) {
+      try {
+        const entry = JSON.parse(line);
+        // Look for user messages with agent identity
+        if (entry.type === 'message' && entry.message?.role === 'user' && entry.message?.content) {
+          let text = '';
+          if (typeof entry.message.content === 'string') {
+            text = entry.message.content;
+          } else if (Array.isArray(entry.message.content)) {
+            for (const item of entry.message.content) {
+              if (typeof item === 'object' && item !== null && 'text' in item && typeof item.text === 'string') {
+                text = item.text;
+                break;
+              }
+            }
+          }
+
+          // Pattern 1: [cron:... agent-name] You are AgentName
+          const cronMatch = text.match(/\[cron:[^\]]+\s+([a-z]+)-heartbeat\]/i);
+          if (cronMatch) {
+            return cronMatch[1].charAt(0).toUpperCase() + cronMatch[1].slice(1).toLowerCase();
+          }
+
+          // Pattern 2: You are AgentName, ...
+          const youAreMatch = text.match(/You are ([A-Z][a-z]+)(?:,| specialist| agent)/);
+          if (youAreMatch) {
+            return youAreMatch[1];
+          }
+        }
+      } catch {
+        continue;
+      }
+    }
+  } catch {
+    // Ignore errors
+  }
+  return null;
+}
+
 interface TokenUsage {
   date: string;
   model: 'opus' | 'kimi' | 'unknown';
@@ -151,7 +198,16 @@ function parseSessionFile(filePath: string, runsMapping: Map<string, string>): T
 
   // Extract session ID from filename for agent lookup
   const sessionId = filePath.split('/').pop()?.replace('.jsonl', '') || '';
-  const agentName = runsMapping.get(sessionId) || 'unknown';
+  let agentName = runsMapping.get(sessionId);
+  
+  // If not found in runs.json, try to extract from session content
+  if (!agentName) {
+    const contentAgent = extractAgentFromContent(filePath);
+    agentName = contentAgent || 'Pika';
+  } else {
+    // Capitalize the agent name from runs.json
+    agentName = agentName.charAt(0).toUpperCase() + agentName.slice(1).toLowerCase();
+  }
 
   try {
     const content = readFileSync(filePath, 'utf-8');
