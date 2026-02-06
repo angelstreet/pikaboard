@@ -198,8 +198,10 @@ filesRouter.get('/content', (c) => {
 filesRouter.get('/roots', (c) => {
   const roots = [
     { path: '~/.openclaw/agents', label: '🤖 Agents', exists: existsSync(join(homedir(), '.openclaw/agents')) },
-    { path: '~/.openclaw/workspace/shared', label: '📁 Shared', exists: existsSync(join(homedir(), '.openclaw/workspace/shared')) },
     { path: '~/.openclaw/workspace/memory', label: '📝 Memory', exists: existsSync(join(homedir(), '.openclaw/workspace/memory')) },
+    { path: '~/.openclaw/workspace/research', label: '🔬 Research', exists: existsSync(join(homedir(), '.openclaw/workspace/research')) },
+    { path: '~/.openclaw/workspace/docs', label: '📚 Docs', exists: existsSync(join(homedir(), '.openclaw/workspace/docs')) },
+    { path: '~/.openclaw/workspace/shared', label: '📁 Shared', exists: existsSync(join(homedir(), '.openclaw/workspace/shared')) },
   ];
   
   return c.json({ roots: roots.filter(r => r.exists) });
