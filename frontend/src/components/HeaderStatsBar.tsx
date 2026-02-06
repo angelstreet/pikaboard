@@ -1,8 +1,20 @@
 import { useState, useEffect } from 'react';
-import { api, Task } from '../api/client';
+import { api, Task, UsageSummary } from '../api/client';
 import ThemeToggle from './ThemeToggle';
 
 type ConnectionStatus = 'connected' | 'disconnected' | 'loading';
+
+// Format currency for display
+function formatCurrencyCompact(amount: number): string {
+  if (amount >= 100) {
+    return `$${amount.toFixed(0)}`;
+  } else if (amount >= 1) {
+    return `$${amount.toFixed(2)}`;
+  } else if (amount >= 0.01) {
+    return `$${amount.toFixed(3)}`;
+  }
+  return amount > 0 ? `<$0.01` : '$0';
+}
 
 export default function HeaderStatsBar() {
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -12,6 +24,8 @@ export default function HeaderStatsBar() {
     total: 0,
   });
   const [status, setStatus] = useState<ConnectionStatus>('loading');
+  const [usage, setUsage] = useState<UsageSummary | null>(null);
+  const [showMonthly, setShowMonthly] = useState(false);
 
   // Update time every minute
   useEffect(() => {
@@ -27,7 +41,7 @@ export default function HeaderStatsBar() {
       try {
         const tasks: Task[] = await api.getTasks();
         const inbox = tasks.filter((t) => t.status === 'inbox').length;
-        const active = tasks.filter((t) => ['up_next', 'in_progress', 'testing', 'in_review'].includes(t.status)).length;
+        const active = tasks.filter((t) => ['up_next', 'in_progress', 'in_review'].includes(t.status)).length;
         setTaskCounts({ inbox, active, total: tasks.length });
         setStatus('connected');
       } catch {
@@ -38,6 +52,22 @@ export default function HeaderStatsBar() {
     fetchTasks();
     const poller = setInterval(fetchTasks, 30000);
     return () => clearInterval(poller);
+  }, []);
+
+  // Poll usage every 60 seconds
+  useEffect(() => {
+    const fetchUsage = async () => {
+      try {
+        const data = await api.getUsageSummary();
+        setUsage(data);
+      } catch (e) {
+        console.error('Failed to fetch usage:', e);
+      }
+    };
+
+    fetchUsage();
+    const usagePoller = setInterval(fetchUsage, 60000);
+    return () => clearInterval(usagePoller);
   }, []);
 
   const formatDate = (date: Date) => {
@@ -64,6 +94,10 @@ export default function HeaderStatsBar() {
 
   const { color, text, pulse } = statusConfig[status];
 
+  // Get current usage display values
+  const currentUsage = showMonthly && usage ? usage.monthly : (usage?.daily || { anthropic: 0, kimi: 0, total: 0 });
+  const periodLabel = showMonthly ? 'Month' : 'Today';
+
   return (
     <div className="bg-gray-800 text-gray-200 px-4 py-1.5 text-sm">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
@@ -75,7 +109,7 @@ export default function HeaderStatsBar() {
           <span className="font-mono">{formatTime(currentTime)}</span>
         </div>
 
-        {/* Task Stats */}
+        {/* Task Stats & Usage */}
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <span className="text-gray-400">📥</span>
@@ -95,6 +129,32 @@ export default function HeaderStatsBar() {
               Total: <span className="font-semibold text-gray-300">{taskCounts.total}</span>
             </span>
           </div>
+          
+          {/* Divider */}
+          <span className="text-gray-600">|</span>
+          
+          {/* Anthropic Usage */}
+          <button
+            onClick={() => setShowMonthly(!showMonthly)}
+            className="flex items-center gap-2 hover:text-white transition-colors cursor-pointer"
+            title={`Click to toggle ${showMonthly ? 'daily' : 'monthly'} view`}
+          >
+            <span className="text-gray-400">🤖</span>
+            <span className="text-gray-400">{periodLabel}:</span>
+            <span className="font-semibold text-orange-400">
+              {formatCurrencyCompact(currentUsage.anthropic)}
+            </span>
+            <span className="text-gray-500 text-xs">(Anthropic)</span>
+          </button>
+          
+          {/* Total Usage (including Kimi) */}
+          <span className="text-gray-500">|</span>
+          <span className="flex items-center gap-1">
+            <span className="text-gray-400 text-xs">Total:</span>
+            <span className="font-semibold text-green-400">
+              {formatCurrencyCompact(currentUsage.total)}
+            </span>
+          </span>
         </div>
 
         {/* Status Indicator & Theme Toggle */}

@@ -171,7 +171,6 @@ export default function Insights() {
     inbox: 'bg-yellow-500',
     up_next: 'bg-purple-500',
     in_progress: 'bg-blue-500',
-    testing: 'bg-cyan-500',
     in_review: 'bg-orange-500',
     done: 'bg-green-500',
   };

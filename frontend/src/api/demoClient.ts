@@ -136,7 +136,6 @@ export const demoApi = {
       icon: board.icon || '📋',
       color: board.color || '#3b82f6',
       position: data.boards.length,
-      show_testing: board.show_testing || false,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
@@ -250,7 +249,7 @@ export const demoApi = {
 
     const completedThisWeek = tasks.filter(t => t.completed_at && new Date(t.completed_at) >= weekAgo).length;
     const inbox = tasks.filter(t => t.status === 'inbox').length;
-    const active = tasks.filter(t => ['in_progress', 'testing', 'in_review', 'up_next'].includes(t.status)).length;
+    const active = tasks.filter(t => ['in_progress', 'in_review', 'up_next'].includes(t.status)).length;
     const done = tasks.filter(t => t.status === 'done').length;
     const overdue = tasks.filter(t => t.deadline && new Date(t.deadline) < now && t.status !== 'done').length;
 
@@ -334,7 +333,6 @@ export const demoApi = {
       inbox: tasks.filter(t => t.status === 'inbox').length,
       up_next: tasks.filter(t => t.status === 'up_next').length,
       in_progress: tasks.filter(t => t.status === 'in_progress').length,
-      testing: tasks.filter(t => t.status === 'testing').length,
       in_review: tasks.filter(t => t.status === 'in_review').length,
       done: tasks.filter(t => t.status === 'done').length,
     };

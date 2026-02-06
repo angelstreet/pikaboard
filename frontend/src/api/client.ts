@@ -5,7 +5,6 @@ export interface Board {
   icon: string;
   color: string;
   position: number;
-  show_testing: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -14,7 +13,7 @@ export interface Task {
   id: number;
   name: string;
   description: string | null;
-  status: 'inbox' | 'up_next' | 'in_progress' | 'testing' | 'in_review' | 'done';
+  status: 'inbox' | 'up_next' | 'in_progress' | 'in_review' | 'done';
   priority: 'low' | 'medium' | 'high' | 'urgent';
   tags: string[] | string;
   board_id: number | null;
@@ -312,6 +311,10 @@ class ApiClient {
     return this.fetch<UsageData>(`/usage${query}`);
   }
 
+  async getUsageSummary(): Promise<UsageSummary> {
+    return this.fetch<UsageSummary>('/usage/summary');
+  }
+
   // Proposals
   async getProposals(): Promise<ProposalsResponse> {
     return this.fetch<ProposalsResponse>('/proposals');
@@ -404,6 +407,21 @@ export interface UsageData {
     kimi: { input: number; output: number; name: string; modelId: string; provider: string };
   };
   period: string;
+}
+
+// Usage Summary (for header)
+export interface UsageSummary {
+  daily: {
+    anthropic: number;
+    kimi: number;
+    total: number;
+  };
+  monthly: {
+    anthropic: number;
+    kimi: number;
+    total: number;
+  };
+  updatedAt: string;
 }
 
 // Insights

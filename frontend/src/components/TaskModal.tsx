@@ -13,7 +13,6 @@ const statuses = [
   { value: 'inbox', label: '📥 Inbox' },
   { value: 'up_next', label: '⏳ Up Next' },
   { value: 'in_progress', label: '🚧 In Progress' },
-  { value: 'testing', label: '🧪 Testing' },
   { value: 'in_review', label: '👀 In Review' },
   { value: 'done', label: '✅ Done' },
 ];
