@@ -1,0 +1,129 @@
+[
+  {
+    "id": 1,
+    "name": "Set up CI/CD pipeline",
+    "description": "Configure GitHub Actions for automated testing and deployment.",
+    "status": "done",
+    "priority": "high",
+    "board_id": 4,
+    "tags": ["devops", "automation"],
+    "created_at": "2026-02-01T10:00:00Z",
+    "completed_at": "2026-02-03T14:30:00Z",
+    "rating": 5
+  },
+  {
+    "id": 2,
+    "name": "Design landing page",
+    "description": "Create mockups for the product landing page. Include hero section, features, and pricing.",
+    "status": "in_review",
+    "priority": "high",
+    "board_id": 4,
+    "tags": ["design", "marketing"],
+    "created_at": "2026-02-02T09:00:00Z"
+  },
+  {
+    "id": 3,
+    "name": "Implement user authentication",
+    "description": "Add login/signup with OAuth support (Google, GitHub).",
+    "status": "in_progress",
+    "priority": "urgent",
+    "board_id": 4,
+    "tags": ["backend", "security"],
+    "created_at": "2026-02-03T11:00:00Z"
+  },
+  {
+    "id": 4,
+    "name": "Write API documentation",
+    "description": "Document all REST endpoints with examples using OpenAPI/Swagger.",
+    "status": "up_next",
+    "priority": "medium",
+    "board_id": 4,
+    "tags": ["docs"],
+    "created_at": "2026-02-04T08:00:00Z"
+  },
+  {
+    "id": 5,
+    "name": "Fix mobile responsive issues",
+    "description": "Dashboard doesn't render correctly on phones. Check breakpoints.",
+    "status": "inbox",
+    "priority": "high",
+    "board_id": 4,
+    "tags": ["bug", "mobile"],
+    "created_at": "2026-02-05T16:00:00Z"
+  },
+  {
+    "id": 6,
+    "name": "Weekly team sync",
+    "description": "Review progress and plan next sprint.",
+    "status": "done",
+    "priority": "medium",
+    "board_id": 1,
+    "tags": ["meeting"],
+    "created_at": "2026-02-01T09:00:00Z",
+    "completed_at": "2026-02-01T10:00:00Z",
+    "rating": 4
+  },
+  {
+    "id": 7,
+    "name": "Research competitor pricing",
+    "description": "Analyze pricing models of similar SaaS products.",
+    "status": "in_progress",
+    "priority": "medium",
+    "board_id": 3,
+    "tags": ["research", "business"],
+    "created_at": "2026-02-04T14:00:00Z"
+  },
+  {
+    "id": 8,
+    "name": "Book dentist appointment",
+    "description": "Annual checkup - call Dr. Smith's office.",
+    "status": "inbox",
+    "priority": "low",
+    "board_id": 2,
+    "tags": ["health"],
+    "created_at": "2026-02-05T08:00:00Z"
+  },
+  {
+    "id": 9,
+    "name": "Prepare investor pitch deck",
+    "description": "Update slides with latest metrics and roadmap.",
+    "status": "up_next",
+    "priority": "urgent",
+    "board_id": 3,
+    "tags": ["fundraising"],
+    "created_at": "2026-02-05T10:00:00Z"
+  },
+  {
+    "id": 10,
+    "name": "Add dark mode toggle",
+    "description": "Implement theme switching with system preference detection.",
+    "status": "done",
+    "priority": "medium",
+    "board_id": 4,
+    "tags": ["feature", "ux"],
+    "created_at": "2026-02-02T11:00:00Z",
+    "completed_at": "2026-02-02T16:00:00Z",
+    "rating": 5
+  },
+  {
+    "id": 11,
+    "name": "Set up error monitoring",
+    "description": "Integrate Sentry for frontend error tracking.",
+    "status": "testing",
+    "priority": "high",
+    "board_id": 4,
+    "tags": ["devops", "monitoring"],
+    "created_at": "2026-02-04T13:00:00Z"
+  },
+  {
+    "id": 12,
+    "name": "Renew domain registration",
+    "description": "myapp.com expires next month.",
+    "status": "up_next",
+    "priority": "high",
+    "board_id": 2,
+    "tags": ["admin"],
+    "created_at": "2026-02-05T09:00:00Z",
+    "deadline": "2026-03-01T00:00:00Z"
+  }
+]

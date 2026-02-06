@@ -303,6 +303,10 @@ class ApiClient {
     return this.fetch<SystemStats>('/system');
   }
 
+  async getSystemHealth(): Promise<SystemHealth> {
+    return this.fetch<SystemHealth>('/system/health');
+  }
+
   // Insights
   async getInsights(): Promise<InsightsData> {
     return this.fetch<InsightsData>('/insights');
@@ -479,6 +483,50 @@ export interface SystemStats {
     url?: string;
     error?: string;
   };
+  uptime: number;
+  hostname: string;
+  platform: string;
+  timestamp: string;
+}
+
+// System Health (from /proc/stat and /proc/meminfo)
+export interface SystemHealth {
+  status: 'healthy' | 'warning' | 'critical';
+  alerts?: string[];
+  cpu: {
+    model: string;
+    cores: number;
+    usagePercent: number;
+    loadAvg: number[];
+    procStat?: {
+      user: number;
+      nice: number;
+      system: number;
+      idle: number;
+      iowait: number;
+      irq: number;
+      softirq: number;
+      steal: number;
+      total: number;
+    };
+  };
+  memory: {
+    total: number;
+    used: number;
+    free: number;
+    available: number;
+    buffers: number;
+    cached: number;
+    usagePercent: number;
+  };
+  disk: Array<{
+    filesystem: string;
+    size: string;
+    used: string;
+    available: string;
+    usePercent: number;
+    mountpoint: string;
+  }>;
   uptime: number;
   hostname: string;
   platform: string;

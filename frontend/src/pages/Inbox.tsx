@@ -1,5 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { api, AgentProposals, Question } from '../api/client';
+
+interface AgentQuestions {
+  agentId: string;
+  items: Question[];
+}
 
 export default function Inbox() {
   const [proposals, setProposals] = useState<AgentProposals[]>([]);
@@ -144,6 +149,23 @@ export default function Inbox() {
   const getAgentName = (agentId: string): string => {
     return agentId.charAt(0).toUpperCase() + agentId.slice(1);
   };
+
+  // Group questions by agent
+  const questionsByAgent = useMemo<AgentQuestions[]>(() => {
+    const grouped = questions.reduce((acc, q) => {
+      const agentId = q.agent.toLowerCase();
+      if (!acc[agentId]) {
+        acc[agentId] = [];
+      }
+      acc[agentId].push(q);
+      return acc;
+    }, {} as Record<string, Question[]>);
+
+    return Object.entries(grouped).map(([agentId, items]) => ({
+      agentId,
+      items: items.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
+    }));
+  }, [questions]);
 
   const totalItems = proposals.reduce((sum, p) => sum + p.items.length, 0) + questions.length;
 
@@ -312,72 +334,95 @@ export default function Inbox() {
           </div>
         ) : (
           <div className="space-y-4">
-            {questions.map((q) => {
-              const isLoading = actionLoading === `question-${q.id}`;
-              return (
-                <div
-                  key={q.id}
-                  className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4"
-                >
-                  <div className="flex items-start gap-3">
-                    <span className="text-2xl">{getAgentEmoji(q.agent)}</span>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="font-semibold text-gray-900 dark:text-white">
-                          {getAgentName(q.agent)}
-                        </span>
-                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                          {new Date(q.created_at).toLocaleString()}
-                        </span>
-                      </div>
-                      <p className="text-gray-700 dark:text-gray-300">{q.question}</p>
-                      {q.context && (
-                        <p className="text-sm text-gray-500 dark:text-gray-400 mt-2 italic">
-                          Context: {q.context}
-                        </p>
-                      )}
-                      {replyingTo === q.id ? (
-                        <div className="mt-3 flex gap-2">
-                          <input
-                            type="text"
-                            value={replyText}
-                            onChange={(e) => setReplyText(e.target.value)}
-                            placeholder="Type your reply..."
-                            className="flex-1 text-sm px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            autoFocus
-                            onKeyDown={(e) => e.key === 'Enter' && !isLoading && handleReply(q.id)}
-                          />
-                          <button
-                            onClick={() => handleReply(q.id)}
-                            disabled={isLoading}
-                            className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50"
-                          >
-                            {isLoading ? '...' : 'Send'}
-                          </button>
-                          <button
-                            onClick={() => {
-                              setReplyingTo(null);
-                              setReplyText('');
-                            }}
-                            disabled={isLoading}
-                            className="px-4 py-2 bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-gray-500 disabled:opacity-50"
-                          >
-                            Cancel
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => setReplyingTo(q.id)}
-                          className="mt-3 text-sm text-blue-600 dark:text-blue-400 hover:underline"
-                        >
-                          Reply →
-                        </button>
-                      )}
+            {questionsByAgent.map((agentQuestions) => (
+              <div
+                key={agentQuestions.agentId}
+                className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden"
+              >
+                {/* Agent Header */}
+                <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center gap-3">
+                    <span className="text-2xl">{getAgentEmoji(agentQuestions.agentId)}</span>
+                    <div>
+                      <h3 className="font-semibold text-gray-900 dark:text-white">
+                        {getAgentName(agentQuestions.agentId)}
+                      </h3>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
+                        {agentQuestions.items.length} question{agentQuestions.items.length > 1 ? 's' : ''} waiting
+                      </p>
                     </div>
                   </div>
                 </div>
-              );
-            })}
+
+                {/* Questions List */}
+                <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                  {agentQuestions.items.map((q) => {
+                    const isLoading = actionLoading === `question-${q.id}`;
+                    return (
+                      <div
+                        key={q.id}
+                        className="px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-gray-900 dark:text-white font-medium">{q.question}</p>
+                            {q.context && (
+                              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 italic">
+                                Context: {q.context}
+                              </p>
+                            )}
+                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-2">
+                              {new Date(q.created_at).toLocaleString()}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {/* Reply Section */}
+                        <div className="mt-3">
+                          {replyingTo === q.id ? (
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                value={replyText}
+                                onChange={(e) => setReplyText(e.target.value)}
+                                placeholder="Type your reply..."
+                                className="flex-1 text-sm px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                autoFocus
+                                onKeyDown={(e) => e.key === 'Enter' && !isLoading && handleReply(q.id)}
+                              />
+                              <button
+                                onClick={() => handleReply(q.id)}
+                                disabled={isLoading}
+                                className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                              >
+                                {isLoading ? '...' : 'Send'}
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setReplyingTo(null);
+                                  setReplyText('');
+                                }}
+                                disabled={isLoading}
+                                className="px-4 py-2 bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-gray-500 disabled:opacity-50"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => setReplyingTo(q.id)}
+                              className="text-sm text-blue-600 dark:text-blue-400 hover:underline"
+                            >
+                              Reply →
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
           </div>
         )}
       </section>

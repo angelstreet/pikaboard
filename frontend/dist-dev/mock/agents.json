@@ -1,0 +1,44 @@
+[
+  {
+    "id": "pika",
+    "name": "Pika",
+    "emoji": "⚡",
+    "role": "Captain",
+    "purpose": "Coordinates the team, talks to humans, makes decisions.",
+    "status": "idle",
+    "skills": ["coordination", "planning"],
+    "plugins": ["slack", "whatsapp"]
+  },
+  {
+    "id": "bulbi",
+    "name": "Bulbi",
+    "emoji": "🌱",
+    "role": "Software Development",
+    "purpose": "Ships fast, quality code. React, TypeScript, Node.js expert.",
+    "status": "working",
+    "currentTask": "Building new dashboard features",
+    "skills": ["coding-agent", "github"],
+    "plugins": ["slack"]
+  },
+  {
+    "id": "tortoise",
+    "name": "Tortoise",
+    "emoji": "🐢",
+    "role": "Personal Assistant",
+    "purpose": "Handles calendar, reminders, and personal tasks.",
+    "status": "idle",
+    "skills": ["gmail", "calendar"],
+    "plugins": ["whatsapp"]
+  },
+  {
+    "id": "mew",
+    "name": "Mew",
+    "emoji": "✨",
+    "role": "Ideas & Product",
+    "purpose": "Turns raw ideas into actionable plans. Writes PRDs.",
+    "status": "working",
+    "currentTask": "Drafting product requirements",
+    "skills": ["research", "writing"],
+    "plugins": []
+  }
+]

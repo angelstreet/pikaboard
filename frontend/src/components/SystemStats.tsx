@@ -1,39 +1,5 @@
 import { useState, useEffect } from 'react';
-import { api } from '../api/client';
-
-interface DiskInfo {
-  filesystem: string;
-  size: string;
-  used: string;
-  available: string;
-  usePercent: number;
-  mountpoint: string;
-}
-
-interface SystemData {
-  cpu: {
-    model: string;
-    cores: number;
-    usagePercent: number;
-    loadAvg: number[];
-  };
-  memory: {
-    total: number;
-    used: number;
-    free: number;
-    usagePercent: number;
-  };
-  disk: DiskInfo[];
-  gateway: {
-    status: 'online' | 'offline' | 'unknown';
-    url?: string;
-    error?: string;
-  };
-  uptime: number;
-  hostname: string;
-  platform: string;
-  timestamp: string;
-}
+import { api, SystemHealth } from '../api/client';
 
 function formatBytes(bytes: number): string {
   const units = ['B', 'KB', 'MB', 'GB', 'TB'];
@@ -103,7 +69,7 @@ function ProgressBar({ value, label, subLabel }: ProgressBarProps) {
 }
 
 export default function SystemStats() {
-  const [data, setData] = useState<SystemData | null>(null);
+  const [data, setData] = useState<SystemHealth | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
@@ -111,7 +77,7 @@ export default function SystemStats() {
   useEffect(() => {
     const fetchStats = async () => {
       try {
-        const stats = await api.getSystemStats();
+        const stats = await api.getSystemHealth();
         setData(stats);
         setError(null);
       } catch (err) {
@@ -122,7 +88,7 @@ export default function SystemStats() {
     };
 
     fetchStats();
-    const interval = setInterval(fetchStats, 10000); // Poll every 10s
+    const interval = setInterval(fetchStats, 5000); // Poll every 5s for more responsive alerts
     return () => clearInterval(interval);
   }, []);
 
@@ -151,10 +117,12 @@ export default function SystemStats() {
 
   if (!data) return null;
 
-  const hasAlert = data.cpu.usagePercent > 80 || data.memory.usagePercent > 80 || data.disk.some(d => d.usePercent > 80);
+  const hasAlert = data.status === 'warning' || data.status === 'critical';
+  const statusColor = data.status === 'critical' ? 'text-red-500' : data.status === 'warning' ? 'text-yellow-500' : 'text-green-500';
+  const ringColor = data.status === 'critical' ? 'ring-2 ring-red-500 ring-opacity-50' : data.status === 'warning' ? 'ring-2 ring-yellow-500 ring-opacity-50' : '';
 
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-lg shadow transition-all ${hasAlert ? 'ring-2 ring-red-500 ring-opacity-50' : ''}`}>
+    <div className={`bg-white dark:bg-gray-800 rounded-lg shadow transition-all ${ringColor}`}>
       {/* Header */}
       <button
         onClick={() => setExpanded(!expanded)}
@@ -165,10 +133,17 @@ export default function SystemStats() {
           <div className="text-left">
             <div className="font-semibold text-gray-800 dark:text-gray-100 flex items-center gap-2">
               System Monitor
-              {hasAlert && <span className="text-red-500 animate-pulse text-sm">●</span>}
+              {hasAlert && <span className={`${statusColor} animate-pulse text-sm`}>●</span>}
             </div>
             <div className="text-xs text-gray-500 dark:text-gray-400">
               {data.hostname} • up {formatUptime(data.uptime)}
+              <span className={`ml-2 px-1.5 py-0.5 rounded text-xs font-medium ${
+                data.status === 'healthy' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' :
+                data.status === 'warning' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' :
+                'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+              }`}>
+                {data.status.toUpperCase()}
+              </span>
             </div>
           </div>
         </div>
@@ -195,6 +170,24 @@ export default function SystemStats() {
       {/* Expanded Details */}
       {expanded && (
         <div className="px-4 pb-4 space-y-4 border-t border-gray-100 dark:border-gray-700 pt-4">
+          {/* Alerts */}
+          {data.alerts && data.alerts.length > 0 && (
+            <div className={`p-3 rounded-lg ${data.status === 'critical' ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800' : 'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800'}`}>
+              <div className={`font-medium mb-2 flex items-center gap-2 ${data.status === 'critical' ? 'text-red-700 dark:text-red-400' : 'text-yellow-700 dark:text-yellow-400'}`}>
+                <span>⚠️</span>
+                <span>Resource Alerts</span>
+              </div>
+              <ul className="space-y-1">
+                {data.alerts.map((alert, idx) => (
+                  <li key={idx} className={`text-sm ${data.status === 'critical' ? 'text-red-600 dark:text-red-300' : 'text-yellow-600 dark:text-yellow-300'} flex items-start gap-2`}>
+                    <span className="mt-1">•</span>
+                    <span>{alert}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
           {/* CPU & Memory */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
@@ -208,7 +201,7 @@ export default function SystemStats() {
               <ProgressBar
                 value={data.memory.usagePercent}
                 label="Memory"
-                subLabel={`${formatBytes(data.memory.used)} / ${formatBytes(data.memory.total)}`}
+                subLabel={`${formatBytes(data.memory.used)} / ${formatBytes(data.memory.total)} (${formatBytes(data.memory.available)} available)`}
               />
             </div>
           </div>
