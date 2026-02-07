@@ -12,6 +12,18 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // Check URL ?token= param first
+    const params = new URLSearchParams(window.location.search);
+    const urlToken = params.get('token');
+    if (urlToken) {
+      // Clean the URL (remove token from address bar)
+      const url = new URL(window.location.href);
+      url.searchParams.delete('token');
+      window.history.replaceState({}, '', url.toString());
+      validateToken(urlToken);
+      return;
+    }
+
     const stored = localStorage.getItem('pikaboard_token');
     if (stored) {
       validateToken(stored);

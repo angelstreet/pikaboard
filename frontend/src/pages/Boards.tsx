@@ -136,6 +136,14 @@ export default function Boards() {
     })
   );
 
+  // Notify TeamRoster of selected board
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent('board-selected', { detail: { boardId: currentBoard?.id ?? null } }));
+    return () => {
+      window.dispatchEvent(new CustomEvent('board-selected', { detail: { boardId: null } }));
+    };
+  }, [currentBoard?.id]);
+
   // Load boards on mount
   useEffect(() => {
     loadBoards();

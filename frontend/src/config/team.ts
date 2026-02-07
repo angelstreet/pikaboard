@@ -102,6 +102,17 @@ export const TEAM_ROSTER: TeamMember[] = [
     boardId: 12, // Ops
     boards: ['ops'],
   },
+  {
+    id: 'lanturn',
+    name: 'Lanturn',
+    role: 'specialist',
+    roleLabel: 'QA',
+    function: 'Operations & QA',
+    avatar: '🔦',
+    color: '#0EA5E9', // sky blue
+    boardId: undefined, // No own board - works across all
+    boards: [],
+  },
 ];
 
 export function getTeamMember(id: string): TeamMember | undefined {

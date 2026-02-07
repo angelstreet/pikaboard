@@ -408,6 +408,27 @@ export default function Insights() {
         color: COLORS.primary[index % COLORS.primary.length],
       }));
 
+    // Agent productivity over time: daily tasks completed per agent
+    const agentOverTime: Array<{ date: string; fullDate: string; [agentName: string]: string | number }> = [];
+    const dateSet = new Set<string>();
+    completionTrend.forEach(d => dateSet.add(d.fullDate));
+    const sortedDates = Array.from(dateSet).sort();
+    sortedDates.forEach(date => {
+      const dateStr = formatDate(date);
+      const row: any = { date: dateStr, fullDate: date };
+      agents.forEach(agent => {
+        const agentName = agent.name.toLowerCase();
+        const count = filteredTasks.filter(task =>
+          task.status === 'done' &&
+          task.completed_at &&
+          new Date(task.completed_at).toISOString().split('T')[0] === new Date(date).toISOString().split('T')[0] &&
+          (Array.isArray(task.tags) ? task.tags : (task.tags?.split(',') || [])).some((tag: string) => tag.toLowerCase().includes(agentName))
+        ).length;
+        row[agentName] = count;
+      });
+      agentOverTime.push(row);
+    });
+
     return {
       completionTrend,
       agentData,
@@ -417,6 +438,7 @@ export default function Insights() {
       activityTypeData,
       boardData,
       agentPieData,
+      agentOverTime,
       filteredData,
       filteredTasks,
     };

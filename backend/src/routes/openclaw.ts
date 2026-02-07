@@ -86,31 +86,33 @@ openclawRoutes.get('/context', async (c) => {
   }
 });
 
-// Reset a session (like /new command)
+// Reset main agent sessions by removing from session store
 openclawRoutes.post('/sessions/reset', async (c) => {
   try {
-    const body = await c.req.json().catch(() => ({}));
-    const sessionKey = body.sessionKey || 'agent:main:slack:channel:d0acnlfgm9b';
-    
-    // Call OpenClaw gateway to reset session
-    // The gateway listens on port 18789 and uses WebSocket JSON-RPC
-    // For now, we'll delete the session from the sessions file directly
+    const fs = await import('fs/promises');
     const sessionsPath = '/home/jndoye/.openclaw/agents/main/sessions/sessions.json';
     
-    const fs = await import('fs/promises');
-    const sessionsData = await fs.readFile(sessionsPath, 'utf-8');
-    const sessions = JSON.parse(sessionsData);
+    const raw = await fs.readFile(sessionsPath, 'utf-8');
+    const sessions = JSON.parse(raw);
     
-    if (sessions[sessionKey]) {
-      delete sessions[sessionKey];
-      await fs.writeFile(sessionsPath, JSON.stringify(sessions, null, 2));
-      return c.json({ success: true, message: `Session ${sessionKey} reset` });
+    const cleared: string[] = [];
+    for (const key of Object.keys(sessions)) {
+      if (key.startsWith('agent:main:')) {
+        cleared.push(key);
+        delete sessions[key];
+      }
     }
     
-    return c.json({ success: false, message: 'Session not found' }, 404);
-  } catch (error) {
-    console.error('Failed to reset session:', error);
-    return c.json({ error: 'Failed to reset session' }, 500);
+    await fs.writeFile(sessionsPath, JSON.stringify(sessions, null, 2));
+    
+    return c.json({ 
+      success: true, 
+      message: `Cleared ${cleared.length} main sessions`,
+      cleared
+    });
+  } catch (error: any) {
+    console.error('Failed to reset sessions:', error?.message);
+    return c.json({ error: 'Failed to reset sessions: ' + error?.message }, 500);
   }
 });
 

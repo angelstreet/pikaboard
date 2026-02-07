@@ -14,7 +14,18 @@ import Usage from './pages/Usage';
 import Goals from './pages/Goals';
 import Reminders from './pages/Reminders';
 
-// Auth disabled - handled at nginx level
+// Read ?token= from URL and store in localStorage
+(() => {
+  const params = new URLSearchParams(window.location.search);
+  const urlToken = params.get('token');
+  if (urlToken) {
+    localStorage.setItem('pikaboard_token', urlToken);
+    const url = new URL(window.location.href);
+    url.searchParams.delete('token');
+    window.history.replaceState({}, '', url.toString());
+  }
+})();
+
 function App() {
   return (
     <>

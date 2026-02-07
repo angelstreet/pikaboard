@@ -23,6 +23,16 @@ export default function TeamRoster({ collapsed, onToggle }: TeamRosterProps) {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [expandedLogs, setExpandedLogs] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [activeBoardId, setActiveBoardId] = useState<number | null>(null);
+
+  // Listen for board selection from Boards page
+  useEffect(() => {
+    const handler = (e: Event) => {
+      setActiveBoardId((e as CustomEvent<{ boardId: number | null }>).detail.boardId);
+    };
+    window.addEventListener('board-selected', handler);
+    return () => window.removeEventListener('board-selected', handler);
+  }, []);
 
   // Fetch agent statuses based on in_progress tasks and sub-agent counts
   useEffect(() => {
@@ -142,6 +152,7 @@ export default function TeamRoster({ collapsed, onToggle }: TeamRosterProps) {
         <div className="flex-1 overflow-y-auto py-2">
           {TEAM_ROSTER.map((member) => {
             const status = statuses.get(member.id);
+            const isBoardOwner = activeBoardId != null && member.boardId === activeBoardId;
             return (
               <button
                 key={member.id}
@@ -149,7 +160,10 @@ export default function TeamRoster({ collapsed, onToggle }: TeamRosterProps) {
                   onToggle();
                   setSelectedAgent(member.id);
                 }}
-                className="w-full p-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex justify-center relative"
+                className={`w-full p-2 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors flex justify-center relative ${
+                  isBoardOwner ? 'ring-2 ring-inset rounded-sm' : ''
+                }`}
+                style={isBoardOwner ? { '--tw-ring-color': member.color } as React.CSSProperties : undefined}
                 title={`${member.name}: ${status?.status || 'idle'}`}
               >
                 <span className="text-lg">{member.avatar}</span>
@@ -203,14 +217,20 @@ export default function TeamRoster({ collapsed, onToggle }: TeamRosterProps) {
             {TEAM_ROSTER.map((member) => {
               const status = statuses.get(member.id);
               const isSelected = selectedAgent === member.id;
+              const isBoardOwner = activeBoardId != null && member.boardId === activeBoardId;
 
               return (
                 <button
                   key={member.id}
                   onClick={() => setSelectedAgent(isSelected ? null : member.id)}
-                  className={`w-full p-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors ${
+                  className={`w-full p-3 text-left hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-all border-l-[3px] ${
+                    isBoardOwner
+                      ? ''
+                      : 'border-l-transparent'
+                  } ${
                     isSelected ? 'bg-pika-50 dark:bg-pika-900/20' : ''
                   }`}
+                  style={isBoardOwner ? { borderLeftColor: member.color, backgroundColor: `${member.color}12` } : undefined}
                 >
                   <div className="flex items-start gap-3">
                     {/* Avatar */}

@@ -1,0 +1,139 @@
+/* Quote Widget CSS - Standalone floating citation widget */
+.qw-container {
+  position: fixed;
+  z-index: 9999;
+  max-width: 380px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  pointer-events: none;
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+
+.qw-container.qw-hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Positions */
+.qw-bottom-right { bottom: 24px; right: 24px; }
+.qw-bottom-left { bottom: 24px; left: 24px; }
+.qw-top-right { top: 24px; right: 24px; }
+.qw-top-left { top: 24px; left: 24px; }
+.qw-bottom-center { bottom: 24px; left: 50%; transform: translateX(-50%); }
+.qw-top-center { top: 24px; left: 50%; transform: translateX(-50%); }
+
+/* Card */
+.qw-card {
+  padding: 20px 24px;
+  border-radius: 12px;
+  pointer-events: auto;
+  position: relative;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.12);
+  line-height: 1.6;
+}
+
+.qw-close {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  background: none;
+  border: none;
+  font-size: 18px;
+  cursor: pointer;
+  opacity: 0.4;
+  transition: opacity 0.2s;
+  padding: 4px;
+  line-height: 1;
+}
+.qw-close:hover { opacity: 1; }
+
+.qw-text {
+  font-size: 15px;
+  margin: 0 0 10px 0;
+  font-style: italic;
+}
+
+.qw-text::before { content: '\201C'; }
+.qw-text::after { content: '\201D'; }
+
+.qw-author {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0;
+  text-align: right;
+}
+
+.qw-author::before { content: '— '; }
+
+.qw-meta {
+  font-size: 11px;
+  opacity: 0.5;
+  text-align: right;
+  margin-top: 2px;
+}
+
+/* Theme: Dark */
+.qw-theme-dark .qw-card {
+  background: #1a1a2e;
+  color: #e0e0e0;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.qw-theme-dark .qw-close { color: #e0e0e0; }
+.qw-theme-dark .qw-author { color: #a78bfa; }
+
+/* Theme: Light */
+.qw-theme-light .qw-card {
+  background: #ffffff;
+  color: #1a1a2e;
+  border: 1px solid rgba(0,0,0,0.08);
+}
+.qw-theme-light .qw-close { color: #1a1a2e; }
+.qw-theme-light .qw-author { color: #6d28d9; }
+
+/* Theme: Minimal */
+.qw-theme-minimal .qw-card {
+  background: transparent;
+  color: #333;
+  box-shadow: none;
+  border-left: 3px solid #6d28d9;
+  border-radius: 0;
+  padding: 12px 20px;
+}
+.qw-theme-minimal .qw-close { color: #333; }
+.qw-theme-minimal .qw-author { color: #6d28d9; }
+
+/* Animations */
+/* Fade */
+.qw-anim-fade.qw-hidden { opacity: 0; }
+.qw-anim-fade { opacity: 1; transition: opacity 0.5s ease; }
+
+/* Slide Left */
+.qw-anim-slide-left.qw-hidden { opacity: 0; transform: translateX(60px); }
+.qw-anim-slide-left { opacity: 1; transform: translateX(0); transition: opacity 0.5s ease, transform 0.5s ease; }
+
+/* Slide Right */
+.qw-anim-slide-right.qw-hidden { opacity: 0; transform: translateX(-60px); }
+.qw-anim-slide-right { opacity: 1; transform: translateX(0); transition: opacity 0.5s ease, transform 0.5s ease; }
+
+/* Slide Up */
+.qw-anim-slide-up.qw-hidden { opacity: 0; transform: translateY(40px); }
+.qw-anim-slide-up { opacity: 1; transform: translateY(0); transition: opacity 0.5s ease, transform 0.5s ease; }
+
+/* Center position animation fix */
+.qw-bottom-center.qw-anim-slide-left.qw-hidden { transform: translateX(calc(-50% + 60px)); }
+.qw-bottom-center.qw-anim-slide-left { transform: translateX(-50%); }
+.qw-bottom-center.qw-anim-slide-right.qw-hidden { transform: translateX(calc(-50% - 60px)); }
+.qw-bottom-center.qw-anim-slide-right { transform: translateX(-50%); }
+.qw-bottom-center.qw-anim-slide-up.qw-hidden { transform: translate(-50%, 40px); }
+.qw-bottom-center.qw-anim-slide-up { transform: translateX(-50%); }
+.qw-top-center.qw-anim-slide-left.qw-hidden { transform: translateX(calc(-50% + 60px)); }
+.qw-top-center.qw-anim-slide-left { transform: translateX(-50%); }
+.qw-top-center.qw-anim-slide-right.qw-hidden { transform: translateX(calc(-50% - 60px)); }
+.qw-top-center.qw-anim-slide-right { transform: translateX(-50%); }
+.qw-top-center.qw-anim-slide-up.qw-hidden { transform: translate(-50%, 40px); }
+.qw-top-center.qw-anim-slide-up { transform: translateX(-50%); }
+
+/* Responsive */
+@media (max-width: 480px) {
+  .qw-container { max-width: calc(100vw - 32px) !important; left: 16px !important; right: 16px !important; }
+  .qw-bottom-center, .qw-top-center { transform: none !important; }
+}

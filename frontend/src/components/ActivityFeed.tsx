@@ -26,6 +26,8 @@ const AGENT_EMOJIS: Record<string, string> = {
   evoli: '🦊',
   psykokwak: '🦆',
   mew: '✨',
+  porygon: '🔵',
+  'pika-ops': '⚡🔧',
 };
 
 // Map session ID or agent label to display name with emoji

@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api, Task, UsageSummary, InsightsData } from '../api/client';
 import ThemeToggle from './ThemeToggle';
+import { useConfirmModal } from './ConfirmModal';
 
 type ConnectionStatus = 'connected' | 'disconnected' | 'loading';
 type TimePeriod = 'today' | 'alltime';
@@ -26,6 +27,7 @@ function formatTokensK(count: number): string {
 }
 
 export default function HeaderStatsBar() {
+  const { confirm, ConfirmModalComponent } = useConfirmModal();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [taskCounts, setTaskCounts] = useState<{ inbox: number; active: number; done: number; total: number }>({
     inbox: 0,
@@ -129,8 +131,15 @@ export default function HeaderStatsBar() {
 
   // Reset session (like /new)
   const handleResetSession = async () => {
-    if (!confirm('Clear the current session? This is like running /new.')) return;
-    
+    const confirmed = await confirm({
+      title: 'Clear Session',
+      message: 'Clear the current session? This is like running /new.',
+      confirmText: 'Clear',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+
     setIsResetting(true);
     try {
       const res = await fetch('/api/openclaw/sessions/reset', {
@@ -142,7 +151,8 @@ export default function HeaderStatsBar() {
         body: JSON.stringify({}),
       });
       if (res.ok) {
-        // After reset, fetch new initial context
+        // Wait briefly for session to clear, then fetch new context
+        await new Promise(r => setTimeout(r, 1500));
         const contextRes = await fetch('/api/openclaw/context', {
           headers: { Authorization: `Bearer ${localStorage.getItem('pikaboard_token') || ''}` },
         });
@@ -194,6 +204,8 @@ export default function HeaderStatsBar() {
     : (insights?.summary.totalCompleted ?? taskCounts.done);
 
   return (
+    <>
+    <ConfirmModalComponent />
     <div className="bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-200 px-4 py-1.5 text-sm">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         {/* Date & Time - Compact on mobile */}
@@ -328,5 +340,6 @@ export default function HeaderStatsBar() {
         </div>
       </div>
     </div>
+    </>
   );
 }
