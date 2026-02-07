@@ -182,6 +182,7 @@ export interface AgentLogs {
   count: number;
 }
 
+// Legacy types kept for backward compatibility (proposals/questions removed in favor of task-based inbox)
 export interface ProposalItem {
   name: string;
   description?: string;
@@ -199,13 +200,13 @@ export interface Question {
   answered_at: string | null;
 }
 
-export interface QuestionsResponse {
-  questions: Question[];
-}
-
 export interface AgentProposals {
   agentId: string;
   items: ProposalItem[];
+}
+
+export interface QuestionsResponse {
+  questions: Question[];
 }
 
 export interface ProposalsResponse {

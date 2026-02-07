@@ -5,6 +5,7 @@ import EnvToggle from './EnvToggle';
 import TeamRoster from './TeamRoster';
 import MobileNav from './MobileNav';
 import MobileDrawer from './MobileDrawer';
+import { QuoteWidget } from './QuoteWidget';
 import { api } from '../api/client';
 import { useTaskNotifications } from '../hooks/useTaskNotifications';
 
@@ -49,28 +50,8 @@ export default function Layout() {
   useEffect(() => {
     const fetchInboxCount = async () => {
       try {
-        const results = await Promise.allSettled([
-          api.getProposals(),
-          api.getQuestions('pending', 'approval'),
-          api.getQuestions('pending', 'question'),
-        ]);
-
-        let count = 0;
-        const proposalsRes = results[0];
-        const approvalsRes = results[1];
-        const questionsRes = results[2];
-
-        if (proposalsRes.status === 'fulfilled') {
-          count += proposalsRes.value.proposals.reduce((sum, p) => sum + p.items.length, 0);
-        }
-        if (approvalsRes.status === 'fulfilled') {
-          count += approvalsRes.value.length;
-        }
-        if (questionsRes.status === 'fulfilled') {
-          count += questionsRes.value.length;
-        }
-
-        setInboxCount(count);
+        const inboxTasks = await api.getTasks({ status: 'inbox' });
+        setInboxCount(inboxTasks.length);
       } catch {
         // Silently fail - badge just won't show
       }
@@ -191,6 +172,7 @@ export default function Layout() {
       </footer>
       <MobileNav onMenuClick={() => setDrawerOpen(true)} />
       <MobileDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      <QuoteWidget interval={60000} />
     </div>
   );
 }
