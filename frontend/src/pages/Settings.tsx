@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import SystemStats from '../components/SystemStats';
+import { API_BASE_URL } from '../api/client';
 
 interface WorkspaceConfig {
   workspace: {
@@ -78,7 +79,7 @@ export default function Settings() {
   useEffect(() => {
     const fetchConfig = async () => {
       try {
-        const res = await fetch('/api/config', {
+        const res = await fetch(`${API_BASE_URL}/config`, {
           headers: {
             Authorization: `Bearer ${getToken()}`,
             'Content-Type': 'application/json',

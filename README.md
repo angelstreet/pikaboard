@@ -175,6 +175,8 @@ PikaBoard is designed to work with [OpenClaw](https://github.com/openclaw/opencl
 
 ## 📝 API Reference
 
+Full backend API documentation: `backend/API.md`
+
 ### Tasks
 - `GET /api/tasks` — List all tasks (filter: `?status=`, `?board_id=`)
 - `POST /api/tasks` — Create task

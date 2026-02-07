@@ -5,6 +5,7 @@ export interface Board {
   icon: string;
   color: string;
   position: number;
+  show_testing?: number;
   created_at: string;
   updated_at: string;
 }
@@ -13,9 +14,9 @@ export interface Task {
   id: number;
   name: string;
   description: string | null;
-  status: 'inbox' | 'up_next' | 'in_progress' | 'in_review' | 'done' | 'rejected';
+  status: 'inbox' | 'up_next' | 'in_progress' | 'testing' | 'in_review' | 'done' | 'rejected';
   priority: 'low' | 'medium' | 'high' | 'urgent';
-  tags: string[] | string;
+  tags: string[];
   board_id: number | null;
   position: number;
   deadline: string | null;
@@ -70,7 +71,7 @@ export interface Goal {
   title: string;
   description: string | null;
   type: 'global' | 'agent';
-  agent_id: number | null;
+  agent_id: string | null;
   status: 'active' | 'paused' | 'achieved';
   progress: number;
   deadline: string | null;
@@ -214,9 +215,16 @@ class ApiCache {
 
 const apiCache = new ApiCache();
 
+function normalizeBaseUrl(url: string): string {
+  // Avoid accidental double slashes when concatenating.
+  return url.endsWith('/') ? url.slice(0, -1) : url;
+}
+
+export const API_BASE_URL = normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL || '/api');
+
 // API Client
 class ApiClient {
-  private baseUrl = '/api';
+  private baseUrl = API_BASE_URL;
 
   private async fetch<T>(path: string, options: RequestInit = {}): Promise<T> {
     const token = getToken();
@@ -301,7 +309,7 @@ class ApiClient {
     if (params?.search) search.set('search', params.search);
     if (params?.tag) search.set('tag', params.tag);
     const query = search.toString();
-    const res = await this.fetch<{ tasks: (Task & { board_name?: string })[] }>(`/tasks${query ? `?${query}` : ''}`);
+    const res = await this.cachedFetch<{ tasks: (Task & { board_name?: string })[] }>(`/tasks${query ? `?${query}` : ''}`);
     return res.tasks;
   }
 
@@ -368,7 +376,7 @@ class ApiClient {
 
   // Agents
   async getAgents(): Promise<Agent[]> {
-    const res = await this.fetch<{ agents: Agent[] }>('/agents');
+    const res = await this.cachedFetch<{ agents: Agent[] }>('/agents');
     return res.agents;
   }
 
@@ -399,17 +407,17 @@ class ApiClient {
 
   // Insights
   async getInsights(): Promise<InsightsData> {
-    return this.fetch<InsightsData>('/insights');
+    return this.cachedFetch<InsightsData>('/insights');
   }
 
   // Usage
   async getUsage(period?: string): Promise<UsageData> {
     const query = period ? `?period=${period}` : '';
-    return this.fetch<UsageData>(`/usage${query}`);
+    return this.cachedFetch<UsageData>(`/usage${query}`);
   }
 
   async getUsageSummary(): Promise<UsageSummary> {
-    return this.fetch<UsageSummary>('/usage/summary');
+    return this.cachedFetch<UsageSummary>('/usage/summary');
   }
 
   // Proposals

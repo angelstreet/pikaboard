@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import { API_BASE_URL } from '../api/client';
 
 interface FileEntry {
   name: string;
@@ -54,7 +55,7 @@ export default function Files() {
 
   const fetchRoots = async () => {
     try {
-      const res = await fetch('/api/files/roots', { headers });
+      const res = await fetch(`${API_BASE_URL}/files/roots`, { headers });
       if (res.ok) {
         const data = await res.json();
         setRoots(data.roots || []);
@@ -74,7 +75,7 @@ export default function Files() {
     setSelectedFile(null);
     
     try {
-      const res = await fetch(`/api/files?path=${encodeURIComponent(path)}`, { headers });
+      const res = await fetch(`${API_BASE_URL}/files?path=${encodeURIComponent(path)}`, { headers });
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || 'Failed to load directory');
@@ -96,7 +97,7 @@ export default function Files() {
     setError(null);
     
     try {
-      const res = await fetch(`/api/files/content?path=${encodeURIComponent(path)}`, { headers });
+      const res = await fetch(`${API_BASE_URL}/files/content?path=${encodeURIComponent(path)}`, { headers });
       if (!res.ok) {
         const data = await res.json();
         throw new Error(data.error || 'Failed to read file');

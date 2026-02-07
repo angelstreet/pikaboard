@@ -264,7 +264,7 @@ export default function Insights() {
 
   const loadInsights = async () => {
     try {
-      setLoading(true);
+      if (!data) setLoading(true);
       const [insights, boardsData, tasksData, usage, agentsData] = await Promise.all([
         api.getInsights(),
         api.getBoards(),

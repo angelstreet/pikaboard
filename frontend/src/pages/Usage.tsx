@@ -276,7 +276,7 @@ export default function Usage() {
 
   const loadUsage = async () => {
     try {
-      setLoading(true);
+      if (!data) setLoading(true);
       const usage = await api.getUsage(period);
       setData(usage);
       setError(null);

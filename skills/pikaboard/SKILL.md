@@ -66,7 +66,7 @@ Reference tasks by ID:
 
 ## API Reference
 
-See `references/api.md` for full endpoint documentation.
+See `backend/API.md` for full endpoint documentation (single canonical doc).
 
 ### Common Operations
 

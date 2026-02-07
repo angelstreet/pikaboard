@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { API_BASE_URL } from '../api/client';
 
 interface Agent {
   id: string;
@@ -59,8 +60,8 @@ export default function Library() {
       };
 
       const [skillsRes, pluginsRes] = await Promise.all([
-        fetch('/api/library/skills', { headers }),
-        fetch('/api/library/plugins', { headers }),
+        fetch(`${API_BASE_URL}/library/skills`, { headers }),
+        fetch(`${API_BASE_URL}/library/plugins`, { headers }),
       ]);
 
       if (skillsRes.ok) {

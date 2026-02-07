@@ -1,4 +1,5 @@
 import { useState, useEffect, ReactNode } from 'react';
+import { API_BASE_URL } from '../api/client';
 
 interface AuthGuardProps {
   children: ReactNode;
@@ -21,8 +22,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
 
   async function validateToken(t: string) {
     try {
-      const baseUrl = import.meta.env.PROD ? '/pikaboard/api' : '/api';
-      const res = await fetch(`${baseUrl}/tasks?limit=1`, {
+      const res = await fetch(`${API_BASE_URL}/tasks`, {
         headers: { Authorization: `Bearer ${t}` },
       });
       if (res.ok) {

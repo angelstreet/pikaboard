@@ -10,6 +10,7 @@ interface QuestionRow {
   status: string;
   answer: string | null;
   type: string;
+  task_id: number | null;
   created_at: string;
   answered_at: string | null;
 }
@@ -37,6 +38,13 @@ function ensureQuestionsTable() {
     db.prepare('SELECT type FROM questions LIMIT 1').get();
   } catch {
     db.exec(`ALTER TABLE questions ADD COLUMN type TEXT DEFAULT 'question'`);
+  }
+  
+  // Migration: Add task_id column if not exists
+  try {
+    db.prepare('SELECT task_id FROM questions LIMIT 1').get();
+  } catch {
+    db.exec(`ALTER TABLE questions ADD COLUMN task_id INTEGER REFERENCES tasks(id)`);
   }
   
   // Update status check constraint - SQLite doesn't support ALTER TABLE for CHECK, 
@@ -99,11 +107,12 @@ questionsRouter.get('/:id', (c) => {
 // POST /api/questions - Agent submits a question or approval
 questionsRouter.post('/', async (c) => {
   const body = await c.req.json();
-  const { agent, type, question, context } = body as { 
+  const { agent, type, question, context, task_id } = body as { 
     agent: string; 
     type?: 'question' | 'approval';
     question: string; 
     context?: string;
+    task_id?: number;
   };
   
   if (!agent || !question) {
@@ -113,11 +122,11 @@ questionsRouter.post('/', async (c) => {
   const questionType = type === 'approval' ? 'approval' : 'question';
   
   const stmt = db.prepare(`
-    INSERT INTO questions (agent, type, question, context, status)
-    VALUES (?, ?, ?, ?, 'pending')
+    INSERT INTO questions (agent, type, question, context, task_id, status)
+    VALUES (?, ?, ?, ?, ?, 'pending')
   `);
   
-  const result = stmt.run(agent, questionType, question, context || null);
+  const result = stmt.run(agent, questionType, question, context || null, task_id || null);
   const id = result.lastInsertRowid;
   
   const created = db.prepare('SELECT * FROM questions WHERE id = ?').get(id);
@@ -259,4 +268,39 @@ questionsRouter.delete('/:id', (c) => {
   db.prepare('DELETE FROM questions WHERE id = ?').run(id);
   
   return c.json({ success: true, message: 'Question deleted' });
+});
+
+// POST /api/questions/cleanup - Auto-close questions linked to done/rejected tasks
+questionsRouter.post('/cleanup', (c) => {
+  // Find pending questions/approvals with task_id where task is done or rejected
+  const staleQuestions = db.prepare(`
+    SELECT q.id, q.question, q.task_id, t.status as task_status, t.name as task_name
+    FROM questions q
+    JOIN tasks t ON q.task_id = t.id
+    WHERE q.status = 'pending'
+    AND t.status IN ('done', 'archived')
+  `).all() as Array<{ id: number; question: string; task_id: number; task_status: string; task_name: string }>;
+  
+  let closed = 0;
+  for (const q of staleQuestions) {
+    db.prepare(`
+      UPDATE questions 
+      SET status = 'auto_closed', 
+          answer = ?,
+          answered_at = CURRENT_TIMESTAMP
+      WHERE id = ?
+    `).run(`Auto-closed: linked task #${q.task_id} is ${q.task_status}`, q.id);
+    closed++;
+  }
+  
+  return c.json({ 
+    success: true, 
+    closed,
+    details: staleQuestions.map(q => ({
+      id: q.id,
+      question: q.question,
+      task_id: q.task_id,
+      task_status: q.task_status
+    }))
+  });
 });
