@@ -472,7 +472,6 @@ export default function Goals() {
 
         {/* Board Filter - Horizontal chips */}
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-xs text-gray-500 dark:text-gray-500 mr-1">Boards:</span>
           {boards.map((board) => (
             <button
               key={board.id}
