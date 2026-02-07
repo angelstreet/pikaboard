@@ -353,15 +353,8 @@ export default function ActivityFeed() {
       
       {/* Footer */}
       {activity.length > 0 && (
-        <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800 flex items-center justify-between text-xs text-gray-500 dark:text-gray-400">
+        <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-800 text-xs text-gray-500 dark:text-gray-400">
           <span>Showing {activity.length} entries</span>
-          <button
-            onClick={loadActivity}
-            className="text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
-            disabled={loading}
-          >
-            {loading ? <span className="animate-spin">⏳</span> : '🔄'} Refresh
-          </button>
         </div>
       )}
     </div>

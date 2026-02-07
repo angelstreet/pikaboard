@@ -178,13 +178,6 @@ export default function Inbox() {
             Review agent approvals and answer questions
           </p>
         </div>
-        <button
-          onClick={loadData}
-          disabled={loading}
-          className="px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 self-start sm:self-auto"
-        >
-          {loading ? '...' : '🔄 Refresh'}
-        </button>
       </div>
 
       {error && (

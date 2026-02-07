@@ -81,12 +81,6 @@ export default function Agents() {
             Your AI team at a glance
           </p>
         </div>
-        <button
-          onClick={loadAgents}
-          className="px-3 py-2 text-sm bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-        >
-          ↻ Refresh
-        </button>
       </div>
 
       {/* Stats Bar */}
