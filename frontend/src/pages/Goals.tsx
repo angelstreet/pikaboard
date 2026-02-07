@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { api, type Agent, type Goal } from '../api/client';
+import { api, type Agent, type Goal, type Board } from '../api/client';
 import { Modal } from '../components/Modal';
 
 // Status badge component
@@ -333,12 +333,16 @@ function isOverdue(dateStr: string): boolean {
 export default function Goals() {
   const cachedGoals = api.getCached<{ goals: Goal[] }>('/goals');
   const cachedAgents = api.getCached<{ agents: Agent[] }>('/agents');
+  const cachedBoards = api.getCached<Board[]>('/boards');
 
   const [goals, setGoals] = useState<Goal[]>(cachedGoals?.goals ?? []);
   const [agents, setAgents] = useState<Agent[]>(cachedAgents?.agents ?? []);
+  const [boards, setBoards] = useState<Board[]>(cachedBoards ?? []);
   const [loading, setLoading] = useState(!cachedGoals);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'all' | 'global' | 'agent'>('all');
+  const [filterType, setFilterType] = useState<'all' | 'agent' | 'board'>('all');
+  const [selectedAgentId, setSelectedAgentId] = useState<string>('');
+  const [selectedBoardId, setSelectedBoardId] = useState<string>('');
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
 
   useEffect(() => {
@@ -348,12 +352,14 @@ export default function Goals() {
   const loadGoals = async () => {
     try {
       if (!goals.length) setLoading(true);
-      const [goalsData, agentsData] = await Promise.all([
+      const [goalsData, agentsData, boardsData] = await Promise.all([
         api.getGoals(),
         api.getAgents(),
+        api.getBoards(),
       ]);
       setGoals(goalsData.goals);
       setAgents(agentsData);
+      setBoards(boardsData);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load goals');
@@ -363,13 +369,24 @@ export default function Goals() {
   };
 
   const filteredGoals = goals.filter((goal) => {
-    if (activeTab === 'all') return true;
-    return goal.type === activeTab;
+    if (filterType === 'all') return true;
+    if (filterType === 'agent' && selectedAgentId) {
+      // Filter by agent - match agent_id or agent's board_id
+      const agent = agents.find(a => a.id === selectedAgentId);
+      if (agent?.boardId) {
+        return goal.board_id === agent.boardId || goal.agent_id === selectedAgentId;
+      }
+      return goal.agent_id === selectedAgentId;
+    }
+    if (filterType === 'board' && selectedBoardId) {
+      return goal.board_id === Number(selectedBoardId);
+    }
+    return true;
   });
 
-  const getAgent = (agentId: number | null) => {
+  const getAgent = (agentId: string | null) => {
     if (!agentId) return undefined;
-    return agents.find((a) => a.id === String(agentId));
+    return agents.find((a) => a.id === agentId);
   };
 
   if (loading) {
@@ -409,23 +426,64 @@ export default function Goals() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1 w-fit">
-        {(['all', 'global', 'agent'] as const).map((tab) => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-              activeTab === tab
-                ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
-            }`}
+      {/* Filters */}
+      <div className="flex flex-wrap items-center gap-3">
+        {/* Filter Type Tabs */}
+        <div className="flex gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+          {(['all', 'agent', 'board'] as const).map((type) => (
+            <button
+              key={type}
+              onClick={() => {
+                setFilterType(type);
+                if (type === 'all') {
+                  setSelectedAgentId('');
+                  setSelectedBoardId('');
+                }
+              }}
+              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                filterType === type
+                  ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+              }`}
+            >
+              {type === 'all' && 'All'}
+              {type === 'agent' && '🤖 By Agent'}
+              {type === 'board' && '📋 By Board'}
+            </button>
+          ))}
+        </div>
+
+        {/* Agent Dropdown */}
+        {filterType === 'agent' && (
+          <select
+            value={selectedAgentId}
+            onChange={(e) => setSelectedAgentId(e.target.value)}
+            className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white"
           >
-            {tab === 'all' && 'All Goals'}
-            {tab === 'global' && '🌍 Global'}
-            {tab === 'agent' && '👤 Per-Agent'}
-          </button>
-        ))}
+            <option value="">Select agent...</option>
+            {agents.filter(a => a.id !== 'main' && a.id !== 'pika-ops').map((agent) => (
+              <option key={agent.id} value={agent.id}>
+                {agent.name}
+              </option>
+            ))}
+          </select>
+        )}
+
+        {/* Board Dropdown */}
+        {filterType === 'board' && (
+          <select
+            value={selectedBoardId}
+            onChange={(e) => setSelectedBoardId(e.target.value)}
+            className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white"
+          >
+            <option value="">Select board...</option>
+            {boards.map((board) => (
+              <option key={board.id} value={board.id}>
+                {board.icon} {board.name}
+              </option>
+            ))}
+          </select>
+        )}
       </div>
 
       {/* Goals Grid */}
@@ -447,9 +505,13 @@ export default function Goals() {
             No goals found
           </h3>
           <p className="text-gray-500 dark:text-gray-400">
-            {activeTab === 'all' 
+            {filterType === 'all' 
               ? 'Get started by creating your first goal'
-              : `No ${activeTab} goals yet`
+              : filterType === 'agent' && selectedAgentId
+              ? `No goals for this agent yet`
+              : filterType === 'board' && selectedBoardId
+              ? `No goals for this board yet`
+              : 'Select an agent or board to filter'
             }
           </p>
         </div>
