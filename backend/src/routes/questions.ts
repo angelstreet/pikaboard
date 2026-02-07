@@ -1,6 +1,19 @@
 import { Hono } from 'hono';
 import { db } from '../db/index.js';
 
+// Type for question row from database
+interface QuestionRow {
+  id: number;
+  agent: string;
+  question: string;
+  context: string | null;
+  status: string;
+  answer: string | null;
+  type: string;
+  created_at: string;
+  answered_at: string | null;
+}
+
 export const questionsRouter = new Hono();
 
 // Initialize questions table if not exists
@@ -117,29 +130,38 @@ questionsRouter.post('/', async (c) => {
   }, 201);
 });
 
-// PATCH /api/questions/:id - Answer a question
+// PATCH /api/questions/:id - Answer a question or update type
 questionsRouter.patch('/:id', async (c) => {
   const id = parseInt(c.req.param('id'), 10);
   const body = await c.req.json();
-  const { answer } = body as { answer: string };
+  const { answer, type } = body as { answer?: string; type?: 'question' | 'approval' };
   
-  if (!answer) {
-    return c.json({ error: 'Answer is required' }, 400);
+  if (!answer && !type) {
+    return c.json({ error: 'Answer or type is required' }, 400);
   }
   
-  const existing = db.prepare('SELECT * FROM questions WHERE id = ?').get(id);
+  const existing = db.prepare('SELECT * FROM questions WHERE id = ?').get(id) as QuestionRow | undefined;
   
   if (!existing) {
     return c.json({ error: 'Question not found' }, 404);
   }
   
-  const stmt = db.prepare(`
-    UPDATE questions 
-    SET answer = ?, status = 'answered', answered_at = CURRENT_TIMESTAMP
-    WHERE id = ?
-  `);
+  // Build update dynamically
+  const updates: string[] = [];
+  const params: (string | number)[] = [];
   
-  stmt.run(answer, id);
+  if (answer) {
+    updates.push("answer = ?", "status = 'answered'", "answered_at = CURRENT_TIMESTAMP");
+    params.push(answer);
+  }
+  if (type && ['question', 'approval'].includes(type)) {
+    updates.push("type = ?");
+    params.push(type);
+  }
+  
+  params.push(id);
+  const stmt = db.prepare(`UPDATE questions SET ${updates.join(', ')} WHERE id = ?`);
+  stmt.run(...params);
   
   const updated = db.prepare('SELECT * FROM questions WHERE id = ?').get(id);
   
@@ -156,7 +178,7 @@ questionsRouter.post('/:id/approve', async (c) => {
   const body = await c.req.json();
   const { comment } = body as { comment?: string };
   
-  const existing = db.prepare('SELECT * FROM questions WHERE id = ?').get(id);
+  const existing = db.prepare('SELECT * FROM questions WHERE id = ?').get(id) as QuestionRow | undefined;
   
   if (!existing) {
     return c.json({ error: 'Approval request not found' }, 404);
@@ -191,7 +213,7 @@ questionsRouter.post('/:id/reject', async (c) => {
   const body = await c.req.json();
   const { comment } = body as { comment?: string };
   
-  const existing = db.prepare('SELECT * FROM questions WHERE id = ?').get(id);
+  const existing = db.prepare('SELECT * FROM questions WHERE id = ?').get(id) as QuestionRow | undefined;
   
   if (!existing) {
     return c.json({ error: 'Approval request not found' }, 404);
@@ -224,7 +246,7 @@ questionsRouter.post('/:id/reject', async (c) => {
 questionsRouter.delete('/:id', (c) => {
   const id = parseInt(c.req.param('id'), 10);
   
-  const existing = db.prepare('SELECT * FROM questions WHERE id = ?').get(id);
+  const existing = db.prepare('SELECT * FROM questions WHERE id = ?').get(id) as QuestionRow | undefined;
   
   if (!existing) {
     return c.json({ error: 'Question not found' }, 404);

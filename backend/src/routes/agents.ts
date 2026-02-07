@@ -4,7 +4,7 @@ import { createReadStream, existsSync } from 'fs';
 import { createInterface } from 'readline';
 import { join } from 'path';
 import { homedir } from 'os';
-import { db } from '../db';
+import { db } from '../db/index.js';
 
 export const agentsRouter = new Hono();
 

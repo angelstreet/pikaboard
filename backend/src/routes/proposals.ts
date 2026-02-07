@@ -3,7 +3,7 @@ import { readFile, writeFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { join } from 'path';
 import { homedir } from 'os';
-import { db } from '../db';
+import { db } from '../db/index.js';
 
 export const proposalsRouter = new Hono();
 
