@@ -13,6 +13,7 @@ import Chat from './pages/Chat';
 import Usage from './pages/Usage';
 import Goals from './pages/Goals';
 import Reminders from './pages/Reminders';
+import QuoteWidget from './components/QuoteWidget';
 
 // Read ?token= from URL and store in localStorage
 (() => {
@@ -43,6 +44,7 @@ function App() {
           },
         },
       }} />
+      <QuoteWidget />
       <Routes>
       <Route path="/" element={<Layout />}>
         <Route index element={<DashboardHome />} />
