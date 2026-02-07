@@ -12,6 +12,7 @@ import Files from './pages/Files';
 import Chat from './pages/Chat';
 import Usage from './pages/Usage';
 import Goals from './pages/Goals';
+import Reminders from './pages/Reminders';
 
 // Auth disabled - handled at nginx level
 function App() {
@@ -37,6 +38,7 @@ function App() {
         <Route path="inbox" element={<Inbox />} />
         <Route path="boards" element={<Boards />} />
         <Route path="goals" element={<Goals />} />
+        <Route path="reminders" element={<Reminders />} />
         <Route path="agents" element={<Agents />} />
         <Route path="chat" element={<Chat />} />
         <Route path="files" element={<Files />} />

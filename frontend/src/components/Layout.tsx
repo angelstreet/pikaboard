@@ -13,6 +13,7 @@ const navItems = [
   { path: '/inbox', label: '📥 Inbox', title: 'Inbox', hasBadge: true },
   { path: '/boards', label: '📋 Boards', title: 'Boards' },
   { path: '/goals', label: '🎯 Goals', title: 'Goals' },
+  { path: '/reminders', label: '🔔 Reminders', title: 'Reminders' },
   { path: '/agents', label: '🤖 Agents', title: 'Agents' },
   { path: '/chat', label: '💬 Chat', title: 'Chat' },
   { path: '/files', label: '📁 Files', title: 'Files' },
