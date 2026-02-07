@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { api, AgentProposals, ProposalsResponse, Question } from '../api/client';
 
 interface GroupedQuestions {
@@ -27,6 +27,12 @@ export default function Inbox() {
   const [proposalsOpen, setProposalsOpen] = useState(true);
   const [approvalsOpen, setApprovalsOpen] = useState(true);
   const [questionsOpen, setQuestionsOpen] = useState(true);
+
+  // If a section is empty, keep it collapsed by default. If it has items, open it by default.
+  // Once the user toggles a section, stop auto-managing that section's open state.
+  const proposalsTouchedRef = useRef(false);
+  const approvalsTouchedRef = useRef(false);
+  const questionsTouchedRef = useRef(false);
 
   const loadData = async () => {
     try {
@@ -151,6 +157,18 @@ export default function Inbox() {
   const proposalItemCount = useMemo(() => {
     return proposals.reduce((sum, p) => sum + p.items.length, 0);
   }, [proposals]);
+
+  useEffect(() => {
+    if (!proposalsTouchedRef.current) setProposalsOpen(proposalItemCount > 0);
+  }, [proposalItemCount]);
+
+  useEffect(() => {
+    if (!approvalsTouchedRef.current) setApprovalsOpen(approvals.length > 0);
+  }, [approvals.length]);
+
+  useEffect(() => {
+    if (!questionsTouchedRef.current) setQuestionsOpen(questions.length > 0);
+  }, [questions.length]);
 
   const handleProposalCommentChange = (agentId: string, index: number, value: string) => {
     const key = `proposal-${agentId}-${index}`;
@@ -309,7 +327,10 @@ export default function Inbox() {
       {/* Blockers Section */}
       <section>
         <button
-          onClick={() => setProposalsOpen(!proposalsOpen)}
+          onClick={() => {
+            proposalsTouchedRef.current = true;
+            setProposalsOpen((v) => !v);
+          }}
           className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
         >
           <span className={`inline-block transition-transform ${proposalsOpen ? 'rotate-90' : ''}`}>▶</span>
@@ -420,7 +441,10 @@ export default function Inbox() {
       {/* Approvals Section */}
       <section>
         <button
-          onClick={() => setApprovalsOpen(!approvalsOpen)}
+          onClick={() => {
+            approvalsTouchedRef.current = true;
+            setApprovalsOpen((v) => !v);
+          }}
           className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
         >
           <span className={`inline-block transition-transform ${approvalsOpen ? 'rotate-90' : ''}`}>▶</span>
@@ -523,7 +547,10 @@ export default function Inbox() {
       {/* Questions Section */}
       <section>
         <button
-          onClick={() => setQuestionsOpen(!questionsOpen)}
+          onClick={() => {
+            questionsTouchedRef.current = true;
+            setQuestionsOpen((v) => !v);
+          }}
           className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
         >
           <span className={`inline-block transition-transform ${questionsOpen ? 'rotate-90' : ''}`}>▶</span>

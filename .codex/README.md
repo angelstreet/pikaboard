@@ -55,8 +55,14 @@ This file is a **bootstrap context** for assistants. It documents where to find 
   - `curl -s -H "Authorization: Bearer $PIKABOARD_TOKEN" http://127.0.0.1:3001/api/tasks`
 - List boards:
   - `curl -s -H "Authorization: Bearer $PIKABOARD_TOKEN" http://127.0.0.1:3001/api/boards`
-- Inbox (questions/approvals):
-  - `curl -s -H "Authorization: Bearer $PIKABOARD_TOKEN" http://127.0.0.1:3001/api/questions?status=pending`
+- Inbox (blockers + questions/approvals):
+  - Blockers (agent proposals): `curl -s -H "Authorization: Bearer $PIKABOARD_TOKEN" http://127.0.0.1:3001/api/proposals`
+  - Questions/approvals: `curl -s -H "Authorization: Bearer $PIKABOARD_TOKEN" http://127.0.0.1:3001/api/questions?status=pending`
+
+## UI Navigation Notes
+- `/boards`: Kanban board only (no Focus/Blockers tabs).
+- `/inbox`: includes Blockers (agent proposals) plus pending approvals and questions.
+- `/`: Dashboard includes the Focus List summary.
 
 ### OpenClaw agent status
 - Agent heartbeat/status endpoint: `http://127.0.0.1:18789/openclaw/api/status`
