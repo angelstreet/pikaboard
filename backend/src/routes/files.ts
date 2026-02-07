@@ -5,19 +5,44 @@ import { homedir } from 'os';
 
 export const filesRouter = new Hono();
 
-// Whitelist of allowed directories (with ~ expanded)
-const ALLOWED_PATHS = [
-  join(homedir(), '.openclaw/workspace'),             // Main workspace (docs, memory, shared)
-  join(homedir(), '.openclaw/workspace-bulbi'),       // Bulbi workspace
-  join(homedir(), '.openclaw/workspace-evoli'),       // Evoli workspace
-  join(homedir(), '.openclaw/workspace-mew'),         // Mew workspace
-  join(homedir(), '.openclaw/workspace-porygon'),     // Porygon workspace
-  join(homedir(), '.openclaw/workspace-psykokwak'),   // Psykokwak workspace
-  join(homedir(), '.openclaw/workspace-sala'),        // Sala workspace
-  join(homedir(), '.openclaw/workspace-tortoise'),    // Tortoise workspace
-  join(homedir(), '.openclaw/workspace-pika-ops'),    // Pika-Ops workspace
-  join(homedir(), '.openclaw/agents'),                // Agent configs (SOUL.md, memory/)
-];
+// Agent emoji mapping
+const AGENT_EMOJIS: Record<string, string> = {
+  pika: '⚡', bulbi: '🌱', tortoise: '🐢', sala: '🦎', evoli: '🦊',
+  psykokwak: '🦆', mew: '✨', porygon: '🔷', lanturn: '🔦', 'pika-ops': '⚡🔧',
+};
+
+// Discover agent workspaces dynamically
+function discoverAgentWorkspaces(): { name: string; path: string }[] {
+  const openclawDir = join(homedir(), '.openclaw');
+  try {
+    const entries = readdirSync(openclawDir, { withFileTypes: true });
+    return entries
+      .filter(e => e.isDirectory() && e.name.startsWith('workspace-'))
+      .map(e => ({
+        name: e.name.replace('workspace-', ''),
+        path: join(openclawDir, e.name),
+      }))
+      .filter(w => w.name !== 'main') // Skip workspace-main (that's the main workspace)
+      .sort((a, b) => a.name.localeCompare(b.name));
+  } catch {
+    return [];
+  }
+}
+
+// Build allowed paths dynamically
+function buildAllowedPaths(): string[] {
+  const paths = [
+    join(homedir(), '.openclaw/workspace'),  // Main workspace (docs, memory, shared)
+    join(homedir(), '.openclaw/agents'),      // Agent configs (SOUL.md, memory/)
+  ];
+  for (const ws of discoverAgentWorkspaces()) {
+    paths.push(ws.path);
+  }
+  return paths;
+}
+
+// Whitelist of allowed directories (with ~ expanded) - rebuilt on each check to pick up new workspaces
+let ALLOWED_PATHS = buildAllowedPaths();
 // Check if a path is within allowed directories
 function isPathAllowed(targetPath: string): boolean {
   const resolved = resolve(targetPath);
@@ -221,12 +246,26 @@ filesRouter.get('/content', (c) => {
 
 // GET /api/files/roots - List available root directories
 filesRouter.get('/roots', (c) => {
+  // Refresh allowed paths to pick up newly created workspaces
+  ALLOWED_PATHS = buildAllowedPaths();
+
   const roots = [
     { path: '~/.openclaw/agents', label: '🤖 Agents', exists: existsSync(join(homedir(), '.openclaw/agents')) },
     { path: '~/.openclaw/workspace/memory', label: '📝 Memory', exists: existsSync(join(homedir(), '.openclaw/workspace/memory')) },
     { path: '~/.openclaw/workspace/docs', label: '📚 Docs', exists: existsSync(join(homedir(), '.openclaw/workspace/docs')) },
     { path: '~/.openclaw/workspace/shared', label: '📁 Shared', exists: existsSync(join(homedir(), '.openclaw/workspace/shared')) },
   ];
-  
+
+  // Add discovered agent workspaces
+  for (const ws of discoverAgentWorkspaces()) {
+    const emoji = AGENT_EMOJIS[ws.name] || '🔹';
+    const label = `${emoji} ${ws.name.charAt(0).toUpperCase() + ws.name.slice(1)}`;
+    roots.push({
+      path: ws.path.replace(homedir(), '~'),
+      label,
+      exists: true, // already filtered by discoverAgentWorkspaces
+    });
+  }
+
   return c.json({ roots: roots.filter(r => r.exists) });
 });
