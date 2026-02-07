@@ -17,6 +17,31 @@ interface ActivityMetadata {
   ended_at?: string;
 }
 
+// Agent emoji mapping
+const AGENT_EMOJIS: Record<string, string> = {
+  pika: '⚡',
+  bulbi: '🌱',
+  tortoise: '🐢',
+  sala: '🦎',
+  evoli: '🦊',
+  psykokwak: '🦆',
+  mew: '✨',
+};
+
+// Map session ID or agent label to display name with emoji
+function getAgentDisplayName(agentLabel?: string): { emoji: string; name: string; full: string } {
+  if (!agentLabel) {
+    return { emoji: '🤖', name: 'Unknown', full: '🤖 Unknown' };
+  }
+
+  // Extract agent ID from session ID (e.g., "bulbi-2026-02-07-001" -> "bulbi")
+  const agentId = agentLabel.split('-')[0].toLowerCase();
+  const emoji = AGENT_EMOJIS[agentId] || '🤖';
+  const name = agentId.charAt(0).toUpperCase() + agentId.slice(1);
+
+  return { emoji, name, full: `${emoji} ${name}` };
+}
+
 function getTimeAgo(date: Date): string {
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
@@ -102,6 +127,7 @@ function ActivityItem({
   
   const isAgent = activity.type === 'agent_activity';
   const isRunning = metadata?.status === 'running';
+  const agentDisplay = getAgentDisplayName(metadata?.agent_label);
   
   return (
     <div 
@@ -116,7 +142,7 @@ function ActivityItem({
               {isAgent && metadata?.agent_label && (
                 <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full mb-1">
                   <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" style={{ display: isRunning ? 'inline-block' : 'none' }}></span>
-                  {metadata.agent_label}
+                  {agentDisplay.full}
                 </span>
               )}
               <p className="text-sm text-gray-700 dark:text-gray-300 break-words">
