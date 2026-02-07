@@ -1,31 +1,24 @@
 import { useState } from 'react';
 
-type Environment = 'prod' | 'dev' | 'sandbox';
+type Environment = 'prod' | 'dev';
 
 const ENV_CONFIG: Record<Environment, { path: string; label: string; color: string; hoverColor: string }> = {
   prod: {
     path: '/pikaboard/',
     label: 'PROD',
-    color: 'bg-green-100 text-green-700',
-    hoverColor: 'hover:bg-green-200',
+    color: 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300',
+    hoverColor: 'hover:bg-green-200 dark:hover:bg-green-800/50',
   },
   dev: {
     path: '/pikaboard-dev/',
     label: 'DEV',
-    color: 'bg-orange-100 text-orange-700',
-    hoverColor: 'hover:bg-orange-200',
-  },
-  sandbox: {
-    path: '/pikaboard-sandbox/',
-    label: 'SAND',
-    color: 'bg-purple-100 text-purple-700',
-    hoverColor: 'hover:bg-purple-200',
+    color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/50 dark:text-orange-300',
+    hoverColor: 'hover:bg-orange-200 dark:hover:bg-orange-800/50',
   },
 };
 
 function getCurrentEnv(): Environment {
   const path = window.location.pathname;
-  if (path.startsWith('/pikaboard-sandbox')) return 'sandbox';
   if (path.startsWith('/pikaboard-dev')) return 'dev';
   return 'prod';
 }
@@ -62,7 +55,7 @@ export default function EnvToggle() {
           />
           
           {/* Dropdown */}
-          <div className="absolute right-0 mt-1 z-50 bg-white rounded shadow-lg border border-gray-200 py-1 min-w-[80px]">
+          <div className="absolute right-0 mt-1 z-50 bg-white dark:bg-gray-800 rounded shadow-lg border border-gray-200 dark:border-gray-700 py-1 min-w-[80px]">
             {otherEnvs.map((env) => {
               const config = ENV_CONFIG[env];
               return (

@@ -37,7 +37,7 @@ export default function HeaderStatsBar() {
   const [status, setStatus] = useState<ConnectionStatus>('loading');
   const [usage, setUsage] = useState<UsageSummary | null>(null);
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('today');
-  const [contextTokens, setContextTokens] = useState({ current: 0, total: 200000 });
+  const [contextTokens, setContextTokens] = useState({ current: 0, total: 200000, initial: 0 });
   const [isResetting, setIsResetting] = useState(false);
 
   // Update time every minute
@@ -109,7 +109,15 @@ export default function HeaderStatsBar() {
         });
         if (res.ok) {
           const data = await res.json();
-          setContextTokens({ current: data.current || 0, total: data.total || 200000 });
+          const current = data.current || 0;
+          const total = data.total || 200000;
+          // Store initial context (baseline after reset) - use stored value or current if first load
+          const storedInitial = localStorage.getItem('pikaboard_initial_context');
+          const initial = storedInitial ? parseInt(storedInitial, 10) : current;
+          if (!storedInitial && current > 0) {
+            localStorage.setItem('pikaboard_initial_context', current.toString());
+          }
+          setContextTokens({ current, total, initial });
         }
       } catch (e) {
         console.error('Failed to fetch context:', e);
@@ -134,7 +142,19 @@ export default function HeaderStatsBar() {
         body: JSON.stringify({}),
       });
       if (res.ok) {
-        setContextTokens({ current: 0, total: contextTokens.total });
+        // After reset, fetch new initial context
+        const contextRes = await fetch('/api/openclaw/context', {
+          headers: { Authorization: `Bearer ${localStorage.getItem('pikaboard_token') || ''}` },
+        });
+        if (contextRes.ok) {
+          const data = await contextRes.json();
+          const newInitial = data.current || 0;
+          localStorage.setItem('pikaboard_initial_context', newInitial.toString());
+          setContextTokens({ current: newInitial, total: data.total || contextTokens.total, initial: newInitial });
+        } else {
+          localStorage.removeItem('pikaboard_initial_context');
+          setContextTokens({ current: 0, total: contextTokens.total, initial: 0 });
+        }
       }
     } catch (e) {
       console.error('Failed to reset session:', e);
@@ -235,12 +255,20 @@ export default function HeaderStatsBar() {
               </span>
               <span className="md:hidden font-semibold text-yellow-400 text-xs">{taskCounts.inbox}</span>
             </div>
-            <div className="flex items-center gap-1" title="Context Tokens">
+            <div className="flex items-center gap-1" title={`Context: ${formatTokensK(contextTokens.current)}/${formatTokensK(contextTokens.total)} (initial: ${formatTokensK(contextTokens.initial)})`}>
               <span className="text-gray-400 text-xs">🧮</span>
-              <span className="hidden md:inline text-xs">
-                Context: <span className="font-semibold text-blue-400">{formatTokensK(contextTokens.current)}/{formatTokensK(contextTokens.total)}</span>
-              </span>
-              <span className="md:hidden font-semibold text-blue-400 text-xs">{formatTokensK(contextTokens.current)}/{formatTokensK(contextTokens.total)}</span>
+              {(() => {
+                const pct = contextTokens.total > 0 ? (contextTokens.current / contextTokens.total) * 100 : 0;
+                const colorClass = pct > 75 ? 'text-red-400' : 'text-blue-400';
+                return (
+                  <>
+                    <span className="hidden md:inline text-xs">
+                      Context: <span className={`font-semibold ${colorClass}`}>{formatTokensK(contextTokens.current)}/{formatTokensK(contextTokens.total)}</span>
+                    </span>
+                    <span className={`md:hidden font-semibold ${colorClass} text-xs`}>{formatTokensK(contextTokens.current)}/{formatTokensK(contextTokens.total)}</span>
+                  </>
+                );
+              })()}
               <button
                 onClick={handleResetSession}
                 disabled={isResetting}

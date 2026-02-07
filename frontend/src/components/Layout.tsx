@@ -96,17 +96,17 @@ export default function Layout() {
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">PikaBoard</h1>
             <EnvToggle />
           </div>
-          <nav className="flex gap-1 items-center">
+          <nav className="flex items-center bg-gray-100 dark:bg-gray-700/50 rounded-lg p-1">
             {/* Primary nav items */}
-            {primaryNavItems.map((item) => (
+            {primaryNavItems.map((item, index) => (
               <Link
                 key={item.path}
                 to={item.path}
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors relative ${
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors relative whitespace-nowrap ${
                   location.pathname === item.path
-                    ? 'bg-pika-100 text-pika-700 dark:bg-pika-900 dark:text-pika-300'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
-                }`}
+                    ? 'bg-pika-600 text-white shadow-sm'
+                    : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-600 dark:hover:text-white'
+                } ${index > 0 ? 'ml-1' : ''}`}
               >
                 {item.label}
                 {item.hasBadge && inboxCount > 0 && (
@@ -118,12 +118,12 @@ export default function Layout() {
             ))}
             
             {/* More dropdown */}
-            <div className="relative group">
+            <div className="relative group ml-1">
               <button
-                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-1 ${
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-1 ${
                   moreNavItems.some(item => location.pathname === item.path)
-                    ? 'bg-pika-100 text-pika-700 dark:bg-pika-900 dark:text-pika-300'
-                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+                    ? 'bg-pika-600 text-white shadow-sm'
+                    : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-600 dark:hover:text-white'
                 }`}
               >
                 More
