@@ -51,7 +51,11 @@ export default function Layout() {
     const fetchInboxCount = async () => {
       try {
         const inboxTasks = await api.getTasks({ status: 'inbox' });
-        setInboxCount(inboxTasks.length);
+        const actionable = inboxTasks.filter((t: { name: string }) => {
+          const upper = t.name.toUpperCase();
+          return upper.startsWith('[APPROVAL]') || upper.startsWith('[QUESTION]') || upper.startsWith('[BLOCKER]');
+        });
+        setInboxCount(actionable.length);
       } catch {
         // Silently fail - badge just won't show
       }

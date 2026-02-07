@@ -62,18 +62,20 @@ export default function Inbox() {
   const approvals = useMemo(() => tasks.filter(t => getSection(t.name) === 'approval' && isActionable(t.name)), [tasks]);
   const questions = useMemo(() => tasks.filter(t => getSection(t.name) === 'question' && isActionable(t.name)), [tasks]);
   const blockers = useMemo(() => tasks.filter(t => getSection(t.name) === 'blocker' && isActionable(t.name)), [tasks]);
-  const otherTasks = useMemo(() => {
+  const historyTasks = useMemo(() => {
     const handled = new Set([...approvals, ...questions, ...blockers].map(t => t.id));
-    return tasks.filter(t => !handled.has(t.id));
+    return tasks.filter(t => !handled.has(t.id))
+      .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+      .slice(0, 5);
   }, [tasks, approvals, questions, blockers]);
 
   // Auto-open sections with items
   useEffect(() => { if (!approvalsTouched.current) setApprovalsOpen(approvals.length > 0); }, [approvals.length]);
   useEffect(() => { if (!questionsTouched.current) setQuestionsOpen(questions.length > 0); }, [questions.length]);
   useEffect(() => { if (!blockersTouched.current) setBlockersOpen(blockers.length > 0); }, [blockers.length]);
-  useEffect(() => { if (!otherTouched.current) setOtherOpen(otherTasks.length > 0); }, [otherTasks.length]);
+  useEffect(() => { if (!otherTouched.current) setOtherOpen(historyTasks.length > 0); }, [historyTasks.length]);
 
-  const totalItems = tasks.length;
+  const totalItems = approvals.length + questions.length + blockers.length;
 
   const getAgentEmoji = (name: string): string => {
     const emojis: Record<string, string> = { pika: '⚡', bulbi: '🌱', tortoise: '🐢', sala: '🦎', evoli: '🦊', psykokwak: '🦆', mew: '✨' };
@@ -383,18 +385,18 @@ export default function Inbox() {
         ))}
       </section>
 
-      {/* Other Inbox Tasks */}
+      {/* History */}
       <section>
         <SectionToggle
           open={otherOpen}
           onToggle={() => { otherTouched.current = true; setOtherOpen(v => !v); }}
-          icon="📋" label="Other Tasks" count={otherTasks.length}
+          icon="🕘" label="History" count={historyTasks.length}
         />
-        {otherOpen && (otherTasks.length === 0 ? (
-          <EmptyState icon="📭" text="No other inbox tasks" />
+        {otherOpen && (historyTasks.length === 0 ? (
+          <EmptyState icon="📭" text="No recent history" />
         ) : (
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden divide-y divide-gray-100 dark:divide-gray-700">
-            {otherTasks.map(task => (
+            {historyTasks.map(task => (
               <div key={task.id} className="px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">

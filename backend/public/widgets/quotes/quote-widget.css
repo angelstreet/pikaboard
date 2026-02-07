@@ -75,7 +75,7 @@
 .qw-theme-dark .qw-card {
   background: #1a1a2e;
   color: #e0e0e0;
-  border: 1px solid rgba(255,255,255,0.08);
+  border: 1px solid #ffffff;
 }
 .qw-theme-dark .qw-close { color: #e0e0e0; }
 .qw-theme-dark .qw-author { color: #a78bfa; }
@@ -84,7 +84,7 @@
 .qw-theme-light .qw-card {
   background: #ffffff;
   color: #1a1a2e;
-  border: 1px solid rgba(0,0,0,0.08);
+  border: 1px solid #ffffff;
 }
 .qw-theme-light .qw-close { color: #1a1a2e; }
 .qw-theme-light .qw-author { color: #6d28d9; }
