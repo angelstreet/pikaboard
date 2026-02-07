@@ -248,18 +248,12 @@ function filterActivitiesByPeriod(data: InsightsData, period: Period): InsightsD
 }
 
 export default function Insights() {
-  const cachedInsights = api.getCached<InsightsData>('/insights');
-  const cachedBoards = api.getCached<{ boards: Board[] }>('/boards');
-  const cachedTasks = api.getCached<{ tasks: Task[] }>('/tasks');
-  const cachedUsage = api.getCached<UsageData>('/usage?period=week');
-  const cachedAgents = api.getCached<{ agents: Agent[] }>('/agents');
-
-  const [data, setData] = useState<InsightsData | null>(cachedInsights);
-  const [boards, setBoards] = useState<Board[]>(cachedBoards?.boards ?? []);
-  const [tasks, setTasks] = useState<Task[]>(cachedTasks?.tasks ?? []);
-  const [usageData, setUsageData] = useState<UsageData | null>(cachedUsage);
-  const [agents, setAgents] = useState<Agent[]>(cachedAgents?.agents ?? []);
-  const [loading, setLoading] = useState(!cachedInsights);
+  const [data, setData] = useState<InsightsData | null>(null);
+  const [boards, setBoards] = useState<Board[]>([]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [usageData, setUsageData] = useState<UsageData | null>(null);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [period, setPeriod] = useState<Period>('week');
   const [selectedAgent, setSelectedAgent] = useState<string>('all');

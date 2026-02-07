@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { api, Task, UsageSummary, InsightsData, SessionContextInfo } from '../api/client';
+import { api, Task, UsageSummary, InsightsData } from '../api/client';
 import ThemeToggle from './ThemeToggle';
 
 type ConnectionStatus = 'connected' | 'disconnected' | 'loading';
@@ -37,7 +37,7 @@ export default function HeaderStatsBar() {
   const [status, setStatus] = useState<ConnectionStatus>('loading');
   const [usage, setUsage] = useState<UsageSummary | null>(null);
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('today');
-  const [sessionContext, setSessionContext] = useState<SessionContextInfo | null>(null);
+  const [contextTokens, setContextTokens] = useState({ current: 45000, total: 200000 });
 
   // Update time every minute
   useEffect(() => {
@@ -97,22 +97,6 @@ export default function HeaderStatsBar() {
     fetchUsage();
     const usagePoller = setInterval(fetchUsage, 60000);
     return () => clearInterval(usagePoller);
-  }, []);
-
-  // Poll session context every 30 seconds
-  useEffect(() => {
-    const fetchSessionContext = async () => {
-      try {
-        const data = await api.getSessionContext();
-        setSessionContext(data);
-      } catch (e) {
-        console.error('Failed to fetch session context:', e);
-      }
-    };
-
-    fetchSessionContext();
-    const contextPoller = setInterval(fetchSessionContext, 30000);
-    return () => clearInterval(contextPoller);
   }, []);
 
   const formatDate = (date: Date) => {
@@ -207,7 +191,14 @@ export default function HeaderStatsBar() {
               </span>
               <span className="md:hidden font-semibold text-yellow-400 text-xs">{taskCounts.inbox}</span>
             </div>
+            <div className="flex items-center gap-1" title="Context Tokens">
+              <span className="text-gray-400 text-xs">🧮</span>
+              <span className="hidden md:inline text-xs">
+                Context: <span className="font-semibold text-blue-400">{formatTokensK(contextTokens.current)}/{formatTokensK(contextTokens.total)}</span>
+              </span>
+              <span className="md:hidden font-semibold text-blue-400 text-xs">{formatTokensK(contextTokens.current)}/{formatTokensK(contextTokens.total)}</span>
             </div>
+          </div>
           
           <span className="text-gray-600 hidden lg:inline">|</span>
 
@@ -219,23 +210,7 @@ export default function HeaderStatsBar() {
             </span>
           </div>
 
-          <span className="text-gray-600 hidden xl:inline">|</span>
-
-          {/* Session Context Tokens - Hidden on smaller screens */}
-          <div 
-            className="hidden xl:flex items-center gap-1" 
-            title={sessionContext ? `Context: ${formatTokensK(sessionContext.currentTokens)} / ${formatTokensK(sessionContext.contextTokens)} (${sessionContext.percentUsed}%)` : 'Session context'}
-          >
-            <span className="text-gray-400">🧮</span>
-            {sessionContext ? (
-              <span className={`font-semibold ${sessionContext.percentUsed > 90 ? 'text-red-400' : sessionContext.percentUsed > 75 ? 'text-yellow-400' : 'text-blue-400'}`}>
-                {formatTokensK(sessionContext.currentTokens)}/{formatTokensK(sessionContext.contextTokens)}
-              </span>
-            ) : (
-              <span className="text-gray-500 text-xs">--</span>
-            )}
           </div>
-        </div>
 
         {/* Status Indicator & Theme Toggle */}
         <div className="flex items-center gap-2 sm:gap-4">

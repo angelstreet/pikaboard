@@ -15,8 +15,6 @@ export default function Inbox() {
   const [replyingTo, setReplyingTo] = useState<number | null>(null);
   const [replyText, setReplyText] = useState('');
   const [comment, setComment] = useState<Record<string, string>>({});
-  const [approvalsOpen, setApprovalsOpen] = useState(true);
-  const [questionsOpen, setQuestionsOpen] = useState(true);
 
   const loadData = async () => {
     try {
@@ -190,20 +188,16 @@ export default function Inbox() {
 
       {/* Approvals Section */}
       <section>
-        <button
-          onClick={() => setApprovalsOpen(!approvalsOpen)}
-          className="w-full text-left text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
-        >
-          <span className={`text-gray-400 transition-transform ${approvalsOpen ? 'rotate-90' : ''}`}>▶</span>
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
           ✅ Pending Approvals
           {approvals.length > 0 && (
             <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
               ({approvals.length} items)
             </span>
           )}
-        </button>
+        </h2>
 
-        {!approvalsOpen ? null : approvals.length === 0 ? (
+        {approvals.length === 0 ? (
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 sm:p-8 text-center">
             <span className="text-3xl sm:text-4xl mb-3 sm:mb-4 block">✨</span>
             <p className="text-gray-600 dark:text-gray-400">No pending approvals</p>
@@ -293,20 +287,16 @@ export default function Inbox() {
 
       {/* Questions Section */}
       <section>
-        <button
-          onClick={() => setQuestionsOpen(!questionsOpen)}
-          className="w-full text-left text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
-        >
-          <span className={`text-gray-400 transition-transform ${questionsOpen ? 'rotate-90' : ''}`}>▶</span>
+        <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
           ❓ Questions
           {questions.length > 0 && (
             <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
               ({questions.length})
             </span>
           )}
-        </button>
+        </h2>
 
-        {!questionsOpen ? null : questions.length === 0 ? (
+        {questions.length === 0 ? (
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 sm:p-8 text-center">
             <span className="text-3xl sm:text-4xl mb-3 sm:mb-4 block">💬</span>
             <p className="text-gray-600 dark:text-gray-400">No pending questions</p>

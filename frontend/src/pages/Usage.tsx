@@ -265,9 +265,8 @@ function SavingsCard({ amount, percentage }: { amount: number; percentage: numbe
 }
 
 export default function Usage() {
-  const cachedUsage = api.getCached<UsageData>('/usage?period=week');
-  const [data, setData] = useState<UsageData | null>(cachedUsage);
-  const [loading, setLoading] = useState(!cachedUsage);
+  const [data, setData] = useState<UsageData | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [period, setPeriod] = useState('week');
 
