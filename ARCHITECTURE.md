@@ -4,6 +4,55 @@
 
 PikaBoard is not just a task management UI — it's the **Mission Control** for a team of AI agents. Each agent is specialized for a domain and works autonomously while coordinating through the shared task board.
 
+## Codebase Architecture
+
+This repo is a small monorepo with a React frontend and a Node/TypeScript API backend.
+
+### Repo Layout
+
+- `frontend/`: Vite + React UI
+- `backend/`: Hono (Node server) + SQLite
+- `tests/`: API and E2E scripts (plus backend unit tests)
+- Root `package.json`: convenience scripts that orchestrate `backend/` and `frontend/`
+
+### Backend (API)
+
+- Entrypoint: `backend/src/index.ts`
+  - Hono app with CORS, optional request logger, and a public `/health`.
+  - All `/api/*` routes are protected by `backend/src/middleware/auth.ts` when `PIKABOARD_TOKEN` is set (Bearer token). If it is unset, the middleware allows all requests.
+- Routers: `backend/src/routes/*.ts` mounted under `/api/...`
+  - Core resources include tasks/boards/activity/goals/system/agents/files, plus OpenClaw integration endpoints.
+- Persistence: SQLite via `better-sqlite3` in `backend/src/db/index.ts`
+  - DB path is `DATABASE_PATH` (default `./data/pikaboard.db`).
+  - Creates tables (`boards`, `tasks`, `activity`, `goals`, `goal_tasks`) and runs lightweight migrations at startup.
+- Host/OpenClaw integration:
+  - File browsing is implemented in `backend/src/routes/files.ts` and is gated by an allowlist of `~/.openclaw/...` paths.
+  - Agent status and proposals are derived from OpenClaw filesystem state and correlated with the PikaBoard DB (see `backend/src/routes/agents.ts` and `backend/src/routes/proposals.ts`).
+  - OpenClaw session info is surfaced via `backend/src/routes/openclaw.ts` (calls `openclaw sessions --json`).
+
+### Frontend (UI)
+
+- Entrypoints: `frontend/index.html`, `frontend/src/main.tsx`, `frontend/src/App.tsx`
+  - React Router routes render inside a shared shell: `frontend/src/components/Layout.tsx`.
+- API client: `frontend/src/api/client.ts`
+  - Base URL defaults to `/api` (override with `VITE_API_BASE_URL`).
+  - Sends `Authorization: Bearer <token>` if `localStorage.pikaboard_token` is set.
+  - Uses a small in-memory cache (3 minute TTL) for GETs with invalidation after mutations.
+- Deployment under a sub-path:
+  - Vite `base` is set in `frontend/vite.config.ts` (default `/pikaboard/`, override with `VITE_BASE_PATH`).
+  - In dev, Vite proxies `/api` to `http://localhost:3001`.
+
+### Data Flow (Typical)
+
+1. UI calls `frontend/src/api/client.ts` (e.g. tasks/boards).
+2. Requests hit the backend under `/api/...` and read/write SQLite (`backend/src/db/index.ts`).
+3. Some endpoints also read OpenClaw workspace/agent state from disk (files/agents/proposals/openclaw).
+
+### Testing
+
+- Backend unit tests: `backend` uses `vitest`.
+- API/E2E: driven by scripts in `tests/` (see root `package.json`).
+
 ## The Pokemon Team
 
 ```
