@@ -175,6 +175,45 @@ const getToken = (): string => {
   return localStorage.getItem('pikaboard_token') || '';
 };
 
+// Cache with TTL (3 minutes default)
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+}
+
+class ApiCache {
+  private cache = new Map<string, CacheEntry<unknown>>();
+  private ttl = 3 * 60 * 1000; // 3 minutes in ms
+
+  get<T>(key: string): T | null {
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+    if (Date.now() - entry.timestamp > this.ttl) {
+      this.cache.delete(key);
+      return null;
+    }
+    return entry.data as T;
+  }
+
+  set<T>(key: string, data: T): void {
+    this.cache.set(key, { data, timestamp: Date.now() });
+  }
+
+  invalidate(pattern?: string): void {
+    if (!pattern) {
+      this.cache.clear();
+    } else {
+      for (const key of this.cache.keys()) {
+        if (key.includes(pattern)) {
+          this.cache.delete(key);
+        }
+      }
+    }
+  }
+}
+
+const apiCache = new ApiCache();
+
 // API Client
 class ApiClient {
   private baseUrl = '/api';
@@ -199,9 +238,24 @@ class ApiClient {
     return res.json();
   }
 
+  // Cached fetch for GET requests (3-min TTL)
+  private async cachedFetch<T>(path: string): Promise<T> {
+    const cached = apiCache.get<T>(path);
+    if (cached) return cached;
+    
+    const data = await this.fetch<T>(path);
+    apiCache.set(path, data);
+    return data;
+  }
+
+  // Invalidate cache after mutations
+  private invalidateCache(pattern?: string): void {
+    apiCache.invalidate(pattern);
+  }
+
   // Boards
   async getBoards(): Promise<Board[]> {
-    const res = await this.fetch<{ boards: Board[] }>('/boards');
+    const res = await this.cachedFetch<{ boards: Board[] }>('/boards');
     return res.boards;
   }
 
@@ -210,21 +264,27 @@ class ApiClient {
   }
 
   async createBoard(board: Partial<Board>): Promise<Board> {
-    return this.fetch<Board>('/boards', {
+    const result = await this.fetch<Board>('/boards', {
       method: 'POST',
       body: JSON.stringify(board),
     });
+    this.invalidateCache('boards');
+    return result;
   }
 
   async updateBoard(id: number, updates: Partial<Board>): Promise<Board> {
-    return this.fetch<Board>(`/boards/${id}`, {
+    const result = await this.fetch<Board>(`/boards/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(updates),
     });
+    this.invalidateCache('boards');
+    return result;
   }
 
   async deleteBoard(id: number, deleteTasks = false): Promise<void> {
     await this.fetch(`/boards/${id}${deleteTasks ? '?deleteTasks=true' : ''}`, { method: 'DELETE' });
+    this.invalidateCache('boards');
+    this.invalidateCache('tasks');
   }
 
   async getBoardTasks(boardId: number, status?: string): Promise<{ tasks: Task[]; board: Board }> {
@@ -250,21 +310,29 @@ class ApiClient {
   }
 
   async createTask(task: Partial<Task>): Promise<Task> {
-    return this.fetch<Task>('/tasks', {
+    const result = await this.fetch<Task>('/tasks', {
       method: 'POST',
       body: JSON.stringify(task),
     });
+    this.invalidateCache('tasks');
+    this.invalidateCache('stats');
+    return result;
   }
 
   async updateTask(id: number, updates: Partial<Task>): Promise<Task> {
-    return this.fetch<Task>(`/tasks/${id}`, {
+    const result = await this.fetch<Task>(`/tasks/${id}`, {
       method: 'PATCH',
       body: JSON.stringify(updates),
     });
+    this.invalidateCache('tasks');
+    this.invalidateCache('stats');
+    return result;
   }
 
   async deleteTask(id: number): Promise<void> {
     await this.fetch(`/tasks/${id}`, { method: 'DELETE' });
+    this.invalidateCache('tasks');
+    this.invalidateCache('stats');
   }
 
   // Activity
@@ -279,18 +347,18 @@ class ApiClient {
 
   // Stats
   async getStats(): Promise<DashboardStats> {
-    return this.fetch<DashboardStats>('/stats');
+    return this.cachedFetch<DashboardStats>('/stats');
   }
 
   // Crons
   async getCrons(): Promise<Cron[]> {
-    const res = await this.fetch<{ crons: Cron[] }>('/crons');
+    const res = await this.cachedFetch<{ crons: Cron[] }>('/crons');
     return res.crons;
   }
 
   // Skills
   async getSkills(): Promise<Skill[]> {
-    const res = await this.fetch<{ skills: Skill[] }>('/skills');
+    const res = await this.cachedFetch<{ skills: Skill[] }>('/skills');
     return res.skills;
   }
 
