@@ -1,4 +1,6 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useSyncExternalStore } from 'react';
+
+// ── Types ──────────────────────────────────────────────────────────
 
 interface Message {
   id: string;
@@ -17,245 +19,221 @@ interface WebSocketMessage {
   error?: string;
 }
 
-export default function Chat() {
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [inputMessage, setInputMessage] = useState('');
-  const [isConnected, setIsConnected] = useState(false);
-  const [isConnecting, setIsConnecting] = useState(true);
-  const [connectionError, setConnectionError] = useState<string | null>(null);
-  const wsRef = useRef<WebSocket | null>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const retriesRef = useRef(0);
-  const mountedRef = useRef(true);
+// ── Module-level WebSocket manager (persists across navigations) ──
 
-  const MAX_RETRIES = 5;
-  const BASE_DELAY = 3000;
-  const MAX_DELAY = 30000;
+type ConnectionState = 'connecting' | 'connected' | 'disconnected';
 
-  // Get WebSocket URL based on environment
-  const getWebSocketUrl = () => {
-    // Always use relative path through nginx proxy
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    return `${protocol}//${window.location.host}/openclaw/ws`;
-  };
+const MAX_RETRIES = 5;
+const BASE_DELAY = 3000;
+const MAX_DELAY = 30000;
 
-  // Scroll to bottom of messages
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+let ws: WebSocket | null = null;
+let connectionState: ConnectionState = 'disconnected';
+let connectionError: string | null = null;
+let messages: Message[] = [];
+let retries = 0;
+let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let listeners = new Set<() => void>();
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+function getWebSocketUrl() {
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  return `${protocol}//${window.location.host}/openclaw/ws`;
+}
 
-  const scheduleReconnect = useCallback(() => {
-    if (!mountedRef.current) return;
-    if (retriesRef.current >= MAX_RETRIES) {
-      setConnectionError(`Failed to connect after ${MAX_RETRIES} attempts.`);
-      setIsConnecting(false);
-      return;
-    }
-    const delay = Math.min(BASE_DELAY * Math.pow(2, retriesRef.current), MAX_DELAY);
-    retriesRef.current++;
-    reconnectTimeoutRef.current = setTimeout(() => {
-      if (mountedRef.current) connect();
-    }, delay);
-  }, []);
+function notify() {
+  listeners.forEach((l) => l());
+}
 
-  // Connect to WebSocket
-  const connect = useCallback(() => {
-    if (!mountedRef.current) return;
-    try {
-      setIsConnecting(true);
-      setConnectionError(null);
+function setState(s: ConnectionState, err?: string | null) {
+  connectionState = s;
+  if (err !== undefined) connectionError = err;
+  notify();
+}
 
-      const wsUrl = getWebSocketUrl();
-      const ws = new WebSocket(wsUrl);
+function addMessage(msg: Message) {
+  messages = [...messages, msg];
+  notify();
+}
 
-      ws.onopen = () => {
-        if (!mountedRef.current) { ws.close(); return; }
-        console.log('WebSocket connected');
-        retriesRef.current = 0;
-        setIsConnected(true);
-        setIsConnecting(false);
-        setConnectionError(null);
-      };
+function setMessages(msgs: Message[]) {
+  messages = msgs;
+  notify();
+}
 
-      ws.onmessage = (event) => {
-        try {
-          const data: WebSocketMessage = JSON.parse(event.data);
-          handleWebSocketMessage(data);
-        } catch (err) {
-          console.error('Failed to parse WebSocket message:', err);
-        }
-      };
+function handleWsMessage(data: WebSocketMessage) {
+  switch (data.type) {
+    case 'connect.challenge':
+      console.log('Received connect challenge:', data.challenge);
+      break;
 
-      ws.onerror = (error) => {
-        console.error('WebSocket error:', error);
-      };
+    case 'message':
+    case 'response':
+      if (data.content) {
+        const assistantMsg: Message = {
+          id: data.id || `msg-${Date.now()}`,
+          role: 'assistant',
+          content: data.content,
+          timestamp: new Date(),
+        };
+        messages = [...messages.filter((m) => !m.pending), assistantMsg];
+        notify();
+      }
+      break;
 
-      ws.onclose = () => {
-        if (!mountedRef.current) return;
-        console.log('WebSocket disconnected');
-        setIsConnected(false);
-        setIsConnecting(false);
-        scheduleReconnect();
-      };
+    case 'error':
+      console.error('WebSocket error message:', data.error);
+      connectionError = data.error || 'An error occurred';
+      notify();
+      break;
 
-      wsRef.current = ws;
-    } catch (err) {
-      console.error('Failed to create WebSocket connection:', err);
-      setIsConnecting(false);
+    case 'history':
+      if (Array.isArray(data.data)) {
+        const historyMessages: Message[] = (data.data as Array<{ role: string; content: string; id?: string; timestamp?: string }>).map((item) => ({
+          id: item.id || `hist-${Date.now()}-${Math.random()}`,
+          role: item.role as 'user' | 'assistant' | 'system',
+          content: item.content,
+          timestamp: item.timestamp ? new Date(item.timestamp) : new Date(),
+        }));
+        setMessages(historyMessages);
+      }
+      break;
+
+    default:
+      console.log('Unknown message type:', data.type, data);
+  }
+}
+
+function scheduleReconnect() {
+  if (retries >= MAX_RETRIES) {
+    setState('disconnected', `Failed to connect after ${MAX_RETRIES} attempts.`);
+    return;
+  }
+  const delay = Math.min(BASE_DELAY * Math.pow(2, retries), MAX_DELAY);
+  retries++;
+  reconnectTimer = setTimeout(connect, delay);
+}
+
+function connect() {
+  // Don't reconnect if already open or connecting
+  if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+    return;
+  }
+
+  try {
+    setState('connecting', null);
+    const socket = new WebSocket(getWebSocketUrl());
+
+    socket.onopen = () => {
+      console.log('WebSocket connected');
+      retries = 0;
+      setState('connected', null);
+    };
+
+    socket.onmessage = (event) => {
+      try {
+        handleWsMessage(JSON.parse(event.data));
+      } catch (err) {
+        console.error('Failed to parse WebSocket message:', err);
+      }
+    };
+
+    socket.onerror = (error) => {
+      console.error('WebSocket error:', error);
+    };
+
+    socket.onclose = () => {
+      console.log('WebSocket disconnected');
+      ws = null;
+      setState('disconnected');
       scheduleReconnect();
-    }
-  }, [scheduleReconnect]);
+    };
 
-  // Handle incoming WebSocket messages
-  const handleWebSocketMessage = (data: WebSocketMessage) => {
-    switch (data.type) {
-      case 'connect.challenge':
-        // Respond to challenge (if needed by the protocol)
-        console.log('Received connect challenge:', data.challenge);
-        // The OpenClaw protocol may require a response here
-        break;
+    ws = socket;
+  } catch (err) {
+    console.error('Failed to create WebSocket connection:', err);
+    setState('disconnected');
+    scheduleReconnect();
+  }
+}
 
-      case 'message':
-      case 'response':
-        // Handle assistant response
-        if (data.content) {
-          const assistantMessage: Message = {
-            id: data.id || `msg-${Date.now()}`,
-            role: 'assistant',
-            content: data.content,
-            timestamp: new Date(),
-          };
-          setMessages((prev) => {
-            // Remove any pending message and add the response
-            const filtered = prev.filter((m) => !m.pending);
-            return [...filtered, assistantMessage];
-          });
-        }
-        break;
+function manualReconnect() {
+  retries = 0;
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+  if (ws) {
+    ws.close();
+    ws = null;
+  }
+  connect();
+}
 
-      case 'error':
-        console.error('WebSocket error message:', data.error);
-        setConnectionError(data.error || 'An error occurred');
-        break;
+function sendWsMessage(content: string) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) return;
 
-      case 'history':
-        // Handle conversation history if provided
-        if (Array.isArray(data.data)) {
-          const historyMessages: Message[] = data.data.map((item: unknown) => {
-            const msg = item as { role: string; content: string; id?: string; timestamp?: string };
-            return {
-              id: msg.id || `hist-${Date.now()}-${Math.random()}`,
-              role: msg.role as 'user' | 'assistant' | 'system',
-              content: msg.content,
-              timestamp: msg.timestamp ? new Date(msg.timestamp) : new Date(),
-            };
-          });
-          setMessages(historyMessages);
-        }
-        break;
-
-      default:
-        console.log('Unknown message type:', data.type, data);
-    }
+  const userMessage: Message = {
+    id: `user-${Date.now()}`,
+    role: 'user',
+    content,
+    timestamp: new Date(),
   };
+  addMessage(userMessage);
 
-  // Send message to WebSocket
-  const sendMessage = () => {
-    if (!inputMessage.trim() || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
-      return;
-    }
+  ws.send(JSON.stringify({ type: 'message', id: userMessage.id, content }));
 
-    const userMessage: Message = {
-      id: `user-${Date.now()}`,
-      role: 'user',
-      content: inputMessage.trim(),
-      timestamp: new Date(),
-    };
+  addMessage({
+    id: `pending-${Date.now()}`,
+    role: 'assistant',
+    content: 'Thinking...',
+    timestamp: new Date(),
+    pending: true,
+  });
+}
 
-    // Add user message to chat
-    setMessages((prev) => [...prev, userMessage]);
+// Connect once at module load
+connect();
 
-    // Send to WebSocket
-    const wsMessage: WebSocketMessage = {
-      type: 'message',
-      id: userMessage.id,
-      content: userMessage.content,
-    };
+// Snapshot helpers for useSyncExternalStore
+function subscribe(cb: () => void) {
+  listeners.add(cb);
+  return () => { listeners.delete(cb); };
+}
+function getSnapshot() {
+  return { connectionState, connectionError, messages };
+}
 
-    wsRef.current.send(JSON.stringify(wsMessage));
+// ── Component ──────────────────────────────────────────────────────
 
-    // Add pending indicator
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: `pending-${Date.now()}`,
-        role: 'assistant',
-        content: 'Thinking...',
-        timestamp: new Date(),
-        pending: true,
-      },
-    ]);
+export default function Chat() {
+  const store = useSyncExternalStore(subscribe, getSnapshot);
+  const [inputMessage, setInputMessage] = useState('');
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const isConnected = store.connectionState === 'connected';
+  const isConnecting = store.connectionState === 'connecting';
+
+  // Scroll to bottom
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [store.messages]);
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputMessage.trim() || !isConnected) return;
+    sendWsMessage(inputMessage.trim());
     setInputMessage('');
   };
 
-  // Handle form submission
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    sendMessage();
-  };
-
-  // Handle key press (Enter to send)
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
-      sendMessage();
+      handleSubmit(e);
     }
   };
 
-  // Connect on mount
-  useEffect(() => {
-    mountedRef.current = true;
-    connect();
-
-    return () => {
-      mountedRef.current = false;
-      if (reconnectTimeoutRef.current) {
-        clearTimeout(reconnectTimeoutRef.current);
-      }
-      if (wsRef.current) {
-        wsRef.current.close();
-      }
-    };
-  }, [connect]);
-
-  const handleManualReconnect = () => {
-    retriesRef.current = 0;
-    if (reconnectTimeoutRef.current) {
-      clearTimeout(reconnectTimeoutRef.current);
-    }
-    if (wsRef.current) {
-      wsRef.current.close();
-    }
-    connect();
-  };
-
-  const getConnectionStatusColor = () => {
-    if (isConnecting) return 'bg-yellow-500';
-    if (isConnected) return 'bg-green-500';
-    return 'bg-red-500';
-  };
-
-  const getConnectionStatusText = () => {
-    if (isConnecting) return 'Connecting...';
-    if (isConnected) return 'Connected';
-    return 'Disconnected';
-  };
+  const statusColor = isConnecting ? 'bg-yellow-500' : isConnected ? 'bg-green-500' : 'bg-red-500';
+  const statusText = isConnecting ? 'Connecting...' : isConnected ? 'Connected' : 'Disconnected';
 
   return (
     <div className="h-full flex flex-col">
@@ -270,25 +248,22 @@ export default function Chat() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {/* Connection Status */}
           <button
-            onClick={!isConnected && !isConnecting ? handleManualReconnect : undefined}
+            onClick={!isConnected && !isConnecting ? manualReconnect : undefined}
             className={`flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 ${!isConnected && !isConnecting ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700' : 'cursor-default'}`}
           >
-            <div className={`w-2 h-2 rounded-full ${getConnectionStatusColor()} ${isConnecting ? 'animate-pulse' : ''}`} />
-            <span className="text-sm text-gray-600 dark:text-gray-400">
-              {getConnectionStatusText()}
-            </span>
+            <div className={`w-2 h-2 rounded-full ${statusColor} ${isConnecting ? 'animate-pulse' : ''}`} />
+            <span className="text-sm text-gray-600 dark:text-gray-400">{statusText}</span>
           </button>
         </div>
       </div>
 
       {/* Connection Error */}
-      {connectionError && (
+      {store.connectionError && (
         <div className="mb-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 text-red-700 dark:text-red-400 text-sm flex items-center justify-between">
-          <span>{connectionError}</span>
+          <span>{store.connectionError}</span>
           <button
-            onClick={handleManualReconnect}
+            onClick={manualReconnect}
             className="ml-3 px-3 py-1 bg-red-100 dark:bg-red-800 hover:bg-red-200 dark:hover:bg-red-700 rounded text-xs font-medium transition-colors"
           >
             Retry
@@ -300,7 +275,7 @@ export default function Chat() {
       <div className="flex-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col">
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          {messages.length === 0 ? (
+          {store.messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <span className="text-6xl mb-4">⚡</span>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
@@ -311,12 +286,10 @@ export default function Chat() {
               </p>
             </div>
           ) : (
-            messages.map((message) => (
+            store.messages.map((message) => (
               <div
                 key={message.id}
-                className={`flex ${
-                  message.role === 'user' ? 'justify-end' : 'justify-start'
-                }`}
+                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
                 <div
                   className={`max-w-[80%] rounded-lg px-4 py-3 ${
@@ -327,7 +300,6 @@ export default function Chat() {
                       : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
                   }`}
                 >
-                  {/* Avatar and Role Label */}
                   <div className="flex items-center gap-2 mb-1">
                     <span className="text-sm">
                       {message.role === 'user' ? '👤' : message.pending ? '⏳' : '⚡'}
@@ -336,13 +308,9 @@ export default function Chat() {
                       {message.role === 'user' ? 'You' : message.pending ? 'Pika is thinking...' : 'Pika'}
                     </span>
                     <span className="text-xs opacity-50">
-                      {message.timestamp.toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
+                      {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
-                  {/* Message Content */}
                   <div className="text-sm whitespace-pre-wrap">{message.content}</div>
                 </div>
               </div>
@@ -359,7 +327,7 @@ export default function Chat() {
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               onKeyDown={handleKeyPress}
-              placeholder={isConnected ? "Type your message..." : "Connecting..."}
+              placeholder={isConnected ? 'Type your message...' : 'Connecting...'}
               disabled={!isConnected}
               className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-pika-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
             />
@@ -369,12 +337,7 @@ export default function Chat() {
               className="px-6 py-2.5 bg-pika-500 hover:bg-pika-600 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               <span>Send</span>
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                className="h-4 w-4"
-                viewBox="0 0 20 20"
-                fill="currentColor"
-              >
+              <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
                 <path
                   fillRule="evenodd"
                   d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 0l-3 3a1 1 0 001.414 1.414L9 9.414V13a1 1 0 102 0V9.414l1.293 1.293a1 1 0 001.414-1.414z"
@@ -385,14 +348,14 @@ export default function Chat() {
             </button>
           </form>
           <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">
-            Press Enter to send • Shift+Enter for new line
+            Press Enter to send
           </p>
         </div>
       </div>
 
       {/* Footer */}
       <div className="mt-2 text-center text-xs text-gray-500 dark:text-gray-400">
-        Powered by OpenClaw Gateway • Native WebSocket Connection
+        Powered by OpenClaw Gateway
       </div>
     </div>
   );
