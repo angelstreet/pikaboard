@@ -134,10 +134,10 @@ questionsRouter.post('/', async (c) => {
 questionsRouter.patch('/:id', async (c) => {
   const id = parseInt(c.req.param('id'), 10);
   const body = await c.req.json();
-  const { answer, type } = body as { answer?: string; type?: 'question' | 'approval' };
+  const { answer, type, question } = body as { answer?: string; type?: 'question' | 'approval'; question?: string };
   
-  if (!answer && !type) {
-    return c.json({ error: 'Answer or type is required' }, 400);
+  if (!answer && !type && !question) {
+    return c.json({ error: 'Answer, type, or question text is required' }, 400);
   }
   
   const existing = db.prepare('SELECT * FROM questions WHERE id = ?').get(id) as QuestionRow | undefined;
@@ -157,6 +157,10 @@ questionsRouter.patch('/:id', async (c) => {
   if (type && ['question', 'approval'].includes(type)) {
     updates.push("type = ?");
     params.push(type);
+  }
+  if (question) {
+    updates.push("question = ?");
+    params.push(question);
   }
   
   params.push(id);
