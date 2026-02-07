@@ -129,13 +129,33 @@ questionsRouter.post('/', async (c) => {
   const result = stmt.run(agent, questionType, question, context || null, task_id || null);
   const id = result.lastInsertRowid;
   
+  // Auto-create inbox task for visibility on the board
+  const prefix = questionType === 'approval' ? '[APPROVAL]' : '[QUESTION]';
+  const taskName = `${prefix} ${question.length > 80 ? question.slice(0, 80) + '...' : question}`;
+  const taskDescription = `**From:** ${agent}\n**Type:** ${questionType}\n**Question:** ${question}${context ? `\n**Context:** ${context}` : ''}${task_id ? `\n**Linked task:** #${task_id}` : ''}\n\n*Auto-created from question #${id}*`;
+  
+  // Get default board (first board)
+  const defaultBoard = db.prepare('SELECT id FROM boards ORDER BY position, id LIMIT 1').get() as { id: number } | undefined;
+  
+  const taskStmt = db.prepare(`
+    INSERT INTO tasks (name, description, status, priority, board_id, created_at, updated_at)
+    VALUES (?, ?, 'inbox', 'medium', ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+  `);
+  const taskResult = taskStmt.run(taskName, taskDescription, defaultBoard?.id || null);
+  
+  // Link question to the auto-created task if it wasn't already linked
+  if (!task_id) {
+    db.prepare('UPDATE questions SET task_id = ? WHERE id = ?').run(taskResult.lastInsertRowid, id);
+  }
+  
   const created = db.prepare('SELECT * FROM questions WHERE id = ?').get(id);
   
   const itemType = questionType === 'approval' ? 'Approval' : 'Question';
   return c.json({ 
     success: true, 
     question: created,
-    message: `${itemType} from ${agent} submitted`,
+    inbox_task_id: Number(taskResult.lastInsertRowid),
+    message: `${itemType} from ${agent} submitted (inbox task #${taskResult.lastInsertRowid} created)`,
   }, 201);
 });
 
