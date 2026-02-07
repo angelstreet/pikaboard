@@ -1,64 +1,128 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 
-declare global {
-  interface Window {
-    QuoteWidget: new (opts: any) => any;
-  }
+interface Quote {
+  text: string;
+  author: string;
+  category: string;
 }
 
-// Load script/css once
-let loaded = false;
-function loadWidget(): Promise<void> {
-  if (loaded) return Promise.resolve();
-  return new Promise((resolve) => {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = '/widgets/quotes/quote-widget.css';
-    document.head.appendChild(link);
+const QUOTES: Quote[] = [
+  // Motivation
+  { text: "The only way to do great work is to love what you do.", author: "Steve Jobs", category: "motivation" },
+  { text: "Done is better than perfect.", author: "Sheryl Sandberg", category: "motivation" },
+  { text: "Ship it.", author: "Seth Godin", category: "motivation" },
+  { text: "Move fast and break things.", author: "Mark Zuckerberg", category: "motivation" },
+  { text: "Stay hungry, stay foolish.", author: "Steve Jobs", category: "motivation" },
+  { text: "The best time to plant a tree was 20 years ago. The second best time is now.", author: "Chinese Proverb", category: "motivation" },
+  { text: "It always seems impossible until it's done.", author: "Nelson Mandela", category: "motivation" },
+  // Engineering
+  { text: "Simplicity is the ultimate sophistication.", author: "Leonardo da Vinci", category: "engineering" },
+  { text: "First, solve the problem. Then, write the code.", author: "John Johnson", category: "engineering" },
+  { text: "Code is like humor. When you have to explain it, it's bad.", author: "Cory House", category: "engineering" },
+  { text: "Any fool can write code that a computer can understand. Good programmers write code that humans can understand.", author: "Martin Fowler", category: "engineering" },
+  { text: "The best error message is the one that never shows up.", author: "Thomas Fuchs", category: "engineering" },
+  { text: "Talk is cheap. Show me the code.", author: "Linus Torvalds", category: "engineering" },
+  { text: "Programs must be written for people to read, and only incidentally for machines to execute.", author: "Hal Abelson", category: "engineering" },
+  // Wisdom
+  { text: "The impediment to action advances action. What stands in the way becomes the way.", author: "Marcus Aurelius", category: "wisdom" },
+  { text: "We are what we repeatedly do. Excellence, then, is not an act, but a habit.", author: "Aristotle", category: "wisdom" },
+  { text: "Perfection is achieved not when there is nothing more to add, but when there is nothing left to take away.", author: "Antoine de Saint-Exupéry", category: "wisdom" },
+  { text: "The only true wisdom is in knowing you know nothing.", author: "Socrates", category: "wisdom" },
+  { text: "In the middle of difficulty lies opportunity.", author: "Albert Einstein", category: "wisdom" },
+  // Teamwork
+  { text: "Alone we can do so little; together we can do so much.", author: "Helen Keller", category: "teamwork" },
+  { text: "If you want to go fast, go alone. If you want to go far, go together.", author: "African Proverb", category: "teamwork" },
+  { text: "Great things in business are never done by one person. They're done by a team of people.", author: "Steve Jobs", category: "teamwork" },
+  // Humor
+  { text: "There are only two hard things in computer science: cache invalidation and naming things.", author: "Phil Karlton", category: "humor" },
+  { text: "It works on my machine.", author: "Every Developer", category: "humor" },
+  { text: "99 little bugs in the code, 99 little bugs. Take one down, patch it around, 127 little bugs in the code.", author: "Unknown", category: "humor" },
+  // French
+  { text: "La simplicité est la sophistication suprême.", author: "Léonard de Vinci", category: "french" },
+  { text: "Ce qui se conçoit bien s'énonce clairement.", author: "Nicolas Boileau", category: "french" },
+  { text: "Le génie est fait d'un pour cent d'inspiration et de quatre-vingt-dix-neuf pour cent de transpiration.", author: "Thomas Edison", category: "french" },
+  { text: "L'imagination est plus importante que le savoir.", author: "Albert Einstein", category: "french" },
+];
 
-    const script = document.createElement('script');
-    script.src = '/widgets/quotes/quote-widget.js';
-    script.onload = () => { loaded = true; resolve(); };
-    document.head.appendChild(script);
-  });
+function getRandomQuote(): Quote {
+  return QUOTES[Math.floor(Math.random() * QUOTES.length)];
 }
 
-export default function QuoteWidgetLoader() {
-  const widgetRef = useRef<any>(null);
+/** Check if quotes are enabled via localStorage (default: true) */
+function isQuotesEnabled(): boolean {
+  try {
+    const val = localStorage.getItem('pikaboard_quotes_enabled');
+    return val !== 'false';
+  } catch { return true; }
+}
 
-  useEffect(() => {
-    loadWidget().then(() => {
-      if (widgetRef.current) return; // already init
-      const isDark = document.documentElement.classList.contains('dark');
-      widgetRef.current = new window.QuoteWidget({
-        quotesUrl: '/widgets/quotes/quotes.json',
-        position: 'bottom-right',
-        interval: 60000,   // 1 min between quotes
-        duration: 10000,   // 10s visible
-        theme: isDark ? 'dark' : 'light',
-        animation: 'slide-up',
-        maxWidth: 360,
-        language: 'en',
-      });
-    });
+export function QuoteWidget({ interval = 45000 }: { interval?: number }) {
+  const [quote, setQuote] = useState<Quote>(getRandomQuote);
+  const [visible, setVisible] = useState(false);
+  const [exiting, setExiting] = useState(false);
+  const [enabled] = useState(isQuotesEnabled);
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Listen for dark mode changes
-    const observer = new MutationObserver(() => {
-      if (widgetRef.current) {
-        const isDark = document.documentElement.classList.contains('dark');
-        widgetRef.current.updateConfig({ theme: isDark ? 'dark' : 'light' });
-      }
-    });
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
-
-    return () => {
-      observer.disconnect();
-      if (widgetRef.current) {
-        widgetRef.current.destroy();
-        widgetRef.current = null;
-      }
-    };
+  const hide = useCallback(() => {
+    setExiting(true);
+    if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
+    exitTimerRef.current = setTimeout(() => {
+      setVisible(false);
+      setExiting(false);
+    }, 400);
   }, []);
 
-  return null; // No visual output — widget injects its own DOM
+  const showNewQuote = useCallback(() => {
+    if (!isQuotesEnabled()) return;
+    // Always hide previous quote first (fix overlap)
+    if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+    if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
+    setExiting(false);
+    setQuote(getRandomQuote());
+    setVisible(true);
+    // Auto-hide after 8 seconds
+    hideTimerRef.current = setTimeout(hide, 8000);
+  }, [hide]);
+
+  useEffect(() => {
+    if (!enabled) return;
+    const initialTimer = setTimeout(showNewQuote, 10000);
+    const recurring = setInterval(showNewQuote, interval);
+    return () => {
+      clearTimeout(initialTimer);
+      clearInterval(recurring);
+      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
+      if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
+    };
+  }, [interval, showNewQuote, enabled]);
+
+  if (!enabled || !visible) return null;
+
+  return (
+    <div
+      className={`
+        fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-40 max-w-[280px] sm:max-w-xs
+        bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm
+        border border-gray-200 dark:border-gray-600
+        rounded-lg shadow-md px-3 py-2
+        transition-all duration-400 ease-out
+        ${exiting ? 'opacity-0 translate-y-3' : 'opacity-100 translate-y-0'}
+      `}
+    >
+      <button
+        onClick={hide}
+        className="absolute top-0.5 right-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xs leading-none"
+        aria-label="Dismiss"
+      >
+        ×
+      </button>
+      <p className="text-xs text-gray-700 dark:text-gray-300 italic leading-snug pr-3 line-clamp-2">
+        "{quote.text}"
+      </p>
+      <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1 text-right">
+        — {quote.author}
+      </p>
+    </div>
+  );
 }
