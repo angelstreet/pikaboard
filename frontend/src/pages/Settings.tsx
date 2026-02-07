@@ -1,30 +1,6 @@
 import { useState, useEffect } from 'react';
 import SystemStats from '../components/SystemStats';
-import { API_BASE_URL } from '../api/client';
-
-interface WorkspaceConfig {
-  workspace: {
-    path: string;
-    exists: boolean;
-  };
-  api: {
-    baseUrl: string;
-    tokenMasked: string;
-  };
-  gateway: {
-    url: string;
-  };
-  environment: {
-    nodeEnv: string;
-    platform: string;
-    hostname: string;
-    user: string;
-  };
-  pikaboard: {
-    version: string;
-    port: number;
-  };
-}
+import { api, WorkspaceConfig } from '../api/client';
 
 const getToken = (): string => {
   return localStorage.getItem('pikaboard_token') || '';
@@ -72,23 +48,16 @@ function TokenDisplay({ masked }: { masked: string }) {
 }
 
 export default function Settings() {
-  const [config, setConfig] = useState<WorkspaceConfig | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cachedConfig = api.getCached<WorkspaceConfig>('/config');
+  const [config, setConfig] = useState<WorkspaceConfig | null>(cachedConfig);
+  const [loading, setLoading] = useState(!cachedConfig);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchConfig = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/config`, {
-          headers: {
-            Authorization: `Bearer ${getToken()}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-
-        const data = await res.json();
+        if (!config) setLoading(true);
+        const data = await api.getConfig();
         setConfig(data);
         setError(null);
       } catch (err) {

@@ -1,30 +1,7 @@
 import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { API_BASE_URL } from '../api/client';
-
-interface FileEntry {
-  name: string;
-  path: string;
-  type: 'file' | 'directory';
-  size?: number;
-  modified?: string;
-}
-
-interface RootDir {
-  path: string;
-  label: string;
-  exists: boolean;
-}
-
-const getToken = (): string => {
-  return localStorage.getItem('pikaboard_token') || '';
-};
-
-const headers = {
-  Authorization: `Bearer ${getToken()}`,
-  'Content-Type': 'application/json',
-};
+import { api, FileRoot, FileEntry } from '../api/client';
 
 function formatSize(bytes?: number): string {
   if (!bytes) return '';
@@ -40,12 +17,14 @@ function formatDate(iso?: string): string {
 }
 
 export default function Files() {
-  const [roots, setRoots] = useState<RootDir[]>([]);
+  const cachedRoots = api.getCached<{ roots: FileRoot[] }>('/files/roots');
+
+  const [roots, setRoots] = useState<FileRoot[]>(cachedRoots?.roots ?? []);
   const [currentPath, setCurrentPath] = useState<string>('');
   const [entries, setEntries] = useState<FileEntry[]>([]);
   const [parentPath, setParentPath] = useState<string>('');
   const [selectedFile, setSelectedFile] = useState<{ path: string; name: string; content: string } | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cachedRoots);
   const [error, setError] = useState<string | null>(null);
 
   // Fetch roots on mount
@@ -55,14 +34,11 @@ export default function Files() {
 
   const fetchRoots = async () => {
     try {
-      const res = await fetch(`${API_BASE_URL}/files/roots`, { headers });
-      if (res.ok) {
-        const data = await res.json();
-        setRoots(data.roots || []);
-        // Auto-select first root
-        if (data.roots?.length > 0) {
-          navigateTo(data.roots[0].path);
-        }
+      const data = await api.getFileRoots();
+      setRoots(data.roots || []);
+      // Auto-select first root if no path selected yet
+      if (!currentPath && data.roots?.length > 0) {
+        navigateTo(data.roots[0].path);
       }
     } catch (e) {
       console.error('Failed to fetch roots:', e);
@@ -70,39 +46,47 @@ export default function Files() {
   };
 
   const navigateTo = async (path: string) => {
-    setLoading(true);
-    setError(null);
-    setSelectedFile(null);
-    
+    // Check cache first for instant display
+    const cacheKey = `/files?path=${encodeURIComponent(path)}`;
+    const cached = api.getCached<{ path: string; parent: string; entries: FileEntry[] }>(cacheKey);
+    if (cached) {
+      setCurrentPath(cached.path);
+      setParentPath(cached.parent);
+      setEntries(cached.entries || []);
+      setSelectedFile(null);
+      setError(null);
+    } else {
+      setLoading(true);
+      setSelectedFile(null);
+      setError(null);
+    }
+
     try {
-      const res = await fetch(`${API_BASE_URL}/files?path=${encodeURIComponent(path)}`, { headers });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to load directory');
-      }
-      const data = await res.json();
+      const data = await api.getFileList(path);
       setCurrentPath(data.path);
       setParentPath(data.parent);
       setEntries(data.entries || []);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to load directory');
-      setEntries([]);
+      if (!cached) setEntries([]);
     } finally {
       setLoading(false);
     }
   };
 
   const openFile = async (path: string) => {
-    setLoading(true);
-    setError(null);
-    
+    const cacheKey = `/files/content?path=${encodeURIComponent(path)}`;
+    const cached = api.getCached<{ path: string; name: string; content: string }>(cacheKey);
+    if (cached) {
+      setSelectedFile(cached);
+      setError(null);
+    } else {
+      setLoading(true);
+      setError(null);
+    }
+
     try {
-      const res = await fetch(`${API_BASE_URL}/files/content?path=${encodeURIComponent(path)}`, { headers });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to read file');
-      }
-      const data = await res.json();
+      const data = await api.getFileContent(path);
       setSelectedFile({ path: data.path, name: data.name, content: data.content });
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to read file');

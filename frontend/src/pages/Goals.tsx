@@ -331,9 +331,12 @@ function isOverdue(dateStr: string): boolean {
 
 // Main Goals page component
 export default function Goals() {
-  const [goals, setGoals] = useState<Goal[]>([]);
-  const [agents, setAgents] = useState<Agent[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedGoals = api.getCached<{ goals: Goal[] }>('/goals');
+  const cachedAgents = api.getCached<{ agents: Agent[] }>('/agents');
+
+  const [goals, setGoals] = useState<Goal[]>(cachedGoals?.goals ?? []);
+  const [agents, setAgents] = useState<Agent[]>(cachedAgents?.agents ?? []);
+  const [loading, setLoading] = useState(!cachedGoals);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'all' | 'global' | 'agent'>('all');
   const [selectedGoal, setSelectedGoal] = useState<Goal | null>(null);
@@ -344,7 +347,7 @@ export default function Goals() {
 
   const loadGoals = async () => {
     try {
-      setLoading(true);
+      if (!goals.length) setLoading(true);
       const [goalsData, agentsData] = await Promise.all([
         api.getGoals(),
         api.getAgents(),

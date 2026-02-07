@@ -69,8 +69,9 @@ function ProgressBar({ value, label, subLabel }: ProgressBarProps) {
 }
 
 export default function SystemStats() {
-  const [data, setData] = useState<SystemHealth | null>(null);
-  const [loading, setLoading] = useState(true);
+  const cachedHealth = api.getCached<SystemHealth>('/system/health');
+  const [data, setData] = useState<SystemHealth | null>(cachedHealth);
+  const [loading, setLoading] = useState(!cachedHealth);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(false);
 

@@ -349,7 +349,7 @@ class ApiClient {
     if (params?.limit) search.set('limit', String(params.limit));
     if (params?.type) search.set('type', params.type);
     const query = search.toString();
-    const res = await this.fetch<{ activity: Activity[] }>(`/activity${query ? `?${query}` : ''}`);
+    const res = await this.cachedFetch<{ activity: Activity[] }>(`/activity${query ? `?${query}` : ''}`);
     return res.activity;
   }
 
@@ -394,15 +394,20 @@ class ApiClient {
 
   // System
   async getSystemStats(): Promise<SystemStats> {
-    return this.fetch<SystemStats>('/system');
+    return this.cachedFetch<SystemStats>('/system');
   }
 
   async getSystemHealth(): Promise<SystemHealth> {
-    return this.fetch<SystemHealth>('/system/health');
+    return this.cachedFetch<SystemHealth>('/system/health');
   }
 
   async getSessionContext(): Promise<SessionContextInfo> {
-    return this.fetch<SessionContextInfo>('/system/session-context');
+    return this.cachedFetch<SessionContextInfo>('/system/session-context');
+  }
+
+  // Config
+  async getConfig(): Promise<WorkspaceConfig> {
+    return this.cachedFetch<WorkspaceConfig>('/config');
   }
 
   // Insights
@@ -422,7 +427,7 @@ class ApiClient {
 
   // Proposals
   async getProposals(): Promise<ProposalsResponse> {
-    return this.fetch<ProposalsResponse>('/proposals');
+    return this.cachedFetch<ProposalsResponse>('/proposals');
   }
 
   async approveProposal(agentId: string, index: number, options?: { boardId?: number; comment?: string }): Promise<{ success: boolean; task: Task; message: string }> {
@@ -452,7 +457,7 @@ class ApiClient {
     if (status) params.set('status', status);
     if (type) params.set('type', type);
     const query = params.toString();
-    const res = await this.fetch<QuestionsResponse>(`/questions${query ? `?${query}` : ''}`);
+    const res = await this.cachedFetch<QuestionsResponse>(`/questions${query ? `?${query}` : ''}`);
     return res.questions;
   }
 
@@ -484,9 +489,22 @@ class ApiClient {
     });
   }
 
+  // Files
+  async getFileRoots(): Promise<{ roots: FileRoot[] }> {
+    return this.cachedFetch('/files/roots');
+  }
+
+  async getFileList(path: string): Promise<{ path: string; parent: string; entries: FileEntry[] }> {
+    return this.cachedFetch(`/files?path=${encodeURIComponent(path)}`);
+  }
+
+  async getFileContent(path: string): Promise<{ path: string; name: string; content: string }> {
+    return this.cachedFetch(`/files/content?path=${encodeURIComponent(path)}`);
+  }
+
   // Goals
   async getGoals(): Promise<{ goals: Goal[] }> {
-    return this.fetch<{ goals: Goal[] }>('/goals');
+    return this.cachedFetch<{ goals: Goal[] }>('/goals');
   }
 
   async getGoal(id: number): Promise<Goal> {
@@ -596,6 +614,30 @@ export interface InsightsData {
   agents: Record<string, { actions: number; lastActive: string | null; avgRating: number | null; ratedTasks: number }>;
   activityByType: Record<string, number>;
   activityTrend: { date: string; count: number }[];
+}
+
+// File Browser
+export interface FileRoot {
+  path: string;
+  label: string;
+  exists: boolean;
+}
+
+export interface FileEntry {
+  name: string;
+  path: string;
+  type: 'file' | 'directory';
+  size?: number;
+  modified?: string;
+}
+
+// Workspace Config
+export interface WorkspaceConfig {
+  workspace: { path: string; exists: boolean };
+  api: { baseUrl: string; tokenMasked: string };
+  gateway: { url: string };
+  environment: { nodeEnv: string; platform: string; hostname: string; user: string };
+  pikaboard: { version: string; port: number };
 }
 
 // System Stats

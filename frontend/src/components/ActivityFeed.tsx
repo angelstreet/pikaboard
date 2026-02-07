@@ -242,9 +242,10 @@ function ActivityItem({
 }
 
 export default function ActivityFeed() {
-  const [allActivity, setAllActivity] = useState<Activity[]>([]); // Full dataset for counts
+  const cachedActivity = api.getCached<{ activity: Activity[] }>('/activity?limit=100');
+  const [allActivity, setAllActivity] = useState<Activity[]>(cachedActivity?.activity ?? []);
   const [filter, setFilter] = useState<FilterType>('all');
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cachedActivity);
   const [error, setError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
@@ -265,7 +266,7 @@ export default function ActivityFeed() {
 
   // Initial load
   useEffect(() => {
-    setLoading(true);
+    if (!allActivity.length) setLoading(true);
     loadActivity();
   }, [loadActivity]);
 

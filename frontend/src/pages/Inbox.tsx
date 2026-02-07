@@ -7,9 +7,12 @@ interface GroupedQuestions {
 }
 
 export default function Inbox() {
-  const [approvals, setApprovals] = useState<Question[]>([]);
-  const [questions, setQuestions] = useState<Question[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedApprovals = api.getCached<{ questions: Question[] }>('/questions?status=pending&type=approval');
+  const cachedQuestions = api.getCached<{ questions: Question[] }>('/questions?status=pending&type=question');
+
+  const [approvals, setApprovals] = useState<Question[]>(cachedApprovals?.questions ?? []);
+  const [questions, setQuestions] = useState<Question[]>(cachedQuestions?.questions ?? []);
+  const [loading, setLoading] = useState(!cachedApprovals);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<number | null>(null);
@@ -18,7 +21,7 @@ export default function Inbox() {
 
   const loadData = async () => {
     try {
-      setLoading(true);
+      if (!approvals.length && !questions.length) setLoading(true);
       const [approvalsData, questionsData] = await Promise.all([
         api.getQuestions('pending', 'approval'),
         api.getQuestions('pending', 'question'),

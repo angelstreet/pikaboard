@@ -100,7 +100,7 @@ export default function HeaderStatsBar() {
     return () => clearInterval(usagePoller);
   }, []);
 
-  // Poll context tokens every 30 seconds
+  // Fetch context tokens once on mount (refresh to update)
   useEffect(() => {
     const fetchContext = async () => {
       try {
@@ -117,8 +117,6 @@ export default function HeaderStatsBar() {
     };
 
     fetchContext();
-    const contextPoller = setInterval(fetchContext, 30000);
-    return () => clearInterval(contextPoller);
   }, []);
 
   // Reset session (like /new)
