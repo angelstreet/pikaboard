@@ -1,52 +1,28 @@
 #!/bin/bash
-# Run E2E tests using Playwright
-
+# E2E Test Runner for PikaBoard
 set -e
 
-echo "🌐 PikaBoard E2E Tests"
-echo "========================"
+cd "$(dirname "$0")"
+
+echo "🧪 PikaBoard E2E Tests"
+echo "======================"
+
+# Check frontend is running
+if ! curl -sf http://127.0.0.1:5173/pikaboard-dev/ > /dev/null 2>&1; then
+  echo "❌ Frontend not running on port 5173"
+  exit 1
+fi
+
+# Check API is running
+if ! curl -sf -H "Authorization: Bearer 41e4b640e51f9f5efa2529c5f609b141ff20515e864bd6e404efefd50840692d" http://127.0.0.1:3001/api/tasks > /dev/null 2>&1; then
+  echo "❌ API not running on port 3001"
+  exit 1
+fi
+
+echo "✅ Frontend and API are running"
 echo ""
-
-# Check if running from CI or locally
-if [ -z "$CI" ]; then
-  echo "Running in local mode..."
-  echo ""
-fi
-
-# Navigate to e2e directory
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR"
-
-# Check if node_modules exists
-if [ ! -d "node_modules" ]; then
-  echo "📦 Installing dependencies..."
-  npm install
-  echo ""
-fi
-
-# Check if Playwright browsers are installed
-if [ ! -d "node_modules/.cache/ms-playwright" ] && [ ! -d "$HOME/.cache/ms-playwright" ]; then
-  echo "🎭 Installing Playwright browsers..."
-  npx playwright install chromium
-  echo ""
-fi
 
 # Run tests
-echo "🧪 Running E2E tests..."
+npx playwright test --reporter=list "$@"
 echo ""
-npx playwright test --config=playwright.config.js "$@"
-
-RESULT=$?
-
-echo ""
-echo "========================"
-if [ $RESULT -eq 0 ]; then
-  echo "✅ All E2E tests passed!"
-else
-  echo "❌ E2E tests failed!"
-  echo ""
-  echo "To view the report:"
-  echo "  npx playwright show-report"
-fi
-
-exit $RESULT
+echo "✅ E2E tests complete"

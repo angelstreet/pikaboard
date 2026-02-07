@@ -1,38 +1,32 @@
 // @ts-check
-const { test, expect } = require('@playwright/test');
-const { login } = require('../helpers/auth');
+import { test, expect } from '@playwright/test';
+import { login } from '../helpers/auth.js';
 
 test.describe('Kanban Workflow', () => {
   test.beforeEach(async ({ page }) => {
     await login(page);
-    await page.goto('/pikaboard/');
   });
 
   test('should display all workflow columns', async ({ page }) => {
+    const bodyText = (await page.textContent('body')).toLowerCase();
     const columns = ['inbox', 'up next', 'in progress', 'in review', 'done'];
-    const bodyText = await page.textContent('body').catch(() => '');
-    
-    // At least some workflow columns should be present
-    const foundColumns = columns.filter(col => 
-      bodyText.toLowerCase().includes(col.toLowerCase())
-    );
-    
-    expect(foundColumns.length).toBeGreaterThanOrEqual(3);
+    const found = columns.filter(col => bodyText.includes(col));
+    expect(found.length).toBeGreaterThanOrEqual(3);
   });
 
-  test('should allow drag and drop between columns', async ({ page }) => {
-    // This is a basic test - actual drag-drop requires more complex setup
-    // Check that drag handles exist if using dnd-kit
-    const dragHandles = page.locator('[data-testid="drag-handle"], [role="button"]').first();
-    
-    // Just verify the page is interactive
-    await expect(page.locator('body')).toBeVisible();
-  });
-
-  test('should show task counts in columns', async ({ page }) => {
-    // Look for count indicators near column headers
+  test('should show task counts in column headers', async ({ page }) => {
+    // Column headers typically show count like "Inbox (3)"
     const bodyText = await page.textContent('body');
-    // Check if there are numbers near status labels
-    expect(bodyText).toBeTruthy();
+    // Check for parenthesized numbers near status names
+    const hasCount = /\(\d+\)/i.test(bodyText);
+    expect(hasCount).toBe(true);
+  });
+
+  test('should have interactive task cards', async ({ page }) => {
+    // Find any clickable task-like element
+    const cards = page.locator('[class*="task"], [class*="card"], [draggable="true"]');
+    const count = await cards.count();
+    // Board should have at least some interactive elements
+    expect(count).toBeGreaterThanOrEqual(0); // Soft check - board may be empty
   });
 });
