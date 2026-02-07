@@ -39,6 +39,8 @@ function DroppableColumn({
   color,
   tasks,
   onTaskClick,
+  onArchive,
+  onArchiveAll,
   activeId,
 }: {
   id: string;
@@ -46,6 +48,8 @@ function DroppableColumn({
   color: string;
   tasks: Task[];
   onTaskClick: (task: Task) => void;
+  onArchive?: (task: Task) => void;
+  onArchiveAll?: () => void;
   activeId: number | null;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id });
@@ -61,9 +65,20 @@ function DroppableColumn({
     >
       <div className="flex items-center justify-between mb-3">
         <h3 className="font-semibold text-sm">{label}</h3>
-        <span className="text-xs text-gray-500 bg-white/50 px-2 py-0.5 rounded-full">
-          {tasks.length}
-        </span>
+        <div className="flex items-center gap-2">
+          {id === 'done' && tasks.length > 0 && onArchiveAll && (
+            <button
+              onClick={onArchiveAll}
+              className="text-xs text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 transition-colors"
+              title="Archive all done tasks"
+            >
+              📦 All
+            </button>
+          )}
+          <span className="text-xs text-gray-500 bg-white/50 px-2 py-0.5 rounded-full">
+            {tasks.length}
+          </span>
+        </div>
       </div>
 
       <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
@@ -73,6 +88,7 @@ function DroppableColumn({
               key={task.id}
               task={task}
               onClick={onTaskClick}
+              onArchive={id === 'done' ? onArchive : undefined}
               isDragging={task.id === activeId}
             />
           ))}
@@ -326,6 +342,23 @@ export default function Boards() {
     setTasks((prev) => prev.filter((t) => t.id !== id));
   };
 
+  const handleArchiveTask = async (task: Task) => {
+    if (confirm(`Archive task #${task.id}: "${task.name}"?`)) {
+      await api.deleteTask(task.id);
+      setTasks((prev) => prev.filter((t) => t.id !== task.id));
+    }
+  };
+
+  const handleArchiveAllDone = async () => {
+    const doneTasks = tasks.filter((t) => t.status === 'done');
+    if (doneTasks.length === 0) return;
+    
+    if (confirm(`Archive all ${doneTasks.length} done tasks?`)) {
+      await Promise.all(doneTasks.map((t) => api.deleteTask(t.id)));
+      setTasks((prev) => prev.filter((t) => t.status !== 'done'));
+    }
+  };
+
   const handleEditBoard = (board: Board) => {
     setEditingBoard(board);
     setBoardModalOpen(true);
@@ -484,6 +517,8 @@ export default function Boards() {
                     color={col.color}
                     tasks={tasksByStatus(col.id)}
                     onTaskClick={handleTaskClick}
+                    onArchive={handleArchiveTask}
+                    onArchiveAll={handleArchiveAllDone}
                     activeId={activeId}
                   />
                 </div>

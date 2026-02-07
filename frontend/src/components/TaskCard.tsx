@@ -5,6 +5,7 @@ import { Task } from '../api/client';
 interface TaskCardProps {
   task: Task;
   onClick: (task: Task) => void;
+  onArchive?: (task: Task) => void;
   isDragging?: boolean;
 }
 
@@ -29,7 +30,7 @@ function getTagColor(tag: string): string {
   return tagColors[index % tagColors.length];
 }
 
-export function TaskCard({ task, onClick, isDragging }: TaskCardProps) {
+export function TaskCard({ task, onClick, onArchive, isDragging }: TaskCardProps) {
   const {
     attributes,
     listeners,
@@ -110,20 +111,34 @@ export function TaskCard({ task, onClick, isDragging }: TaskCardProps) {
 
       {/* Rating display for done tasks */}
       {task.status === 'done' && (
-        <div className="flex items-center gap-1 mt-2">
-          {task.rating ? (
-            <div className="flex items-center gap-0.5" title={`Rated ${task.rating}/5`}>
-              {[1, 2, 3, 4, 5].map((star) => (
-                <span
-                  key={star}
-                  className={`text-xs ${star <= task.rating! ? 'text-yellow-400' : 'text-gray-300 dark:text-gray-600'}`}
-                >
-                  ★
-                </span>
-              ))}
-            </div>
-          ) : (
-            <span className="text-xs text-gray-400 dark:text-gray-500 italic">Not rated</span>
+        <div className="flex items-center justify-between gap-1 mt-2">
+          <div className="flex items-center gap-1">
+            {task.rating ? (
+              <div className="flex items-center gap-0.5" title={`Rated ${task.rating}/5`}>
+                {[1, 2, 3, 4, 5].map((star) => (
+                  <span
+                    key={star}
+                    className={`text-xs ${star <= task.rating! ? 'text-yellow-400' : 'text-gray-300 dark:text-gray-600'}`}
+                  >
+                    ★
+                  </span>
+                ))}
+              </div>
+            ) : (
+              <span className="text-xs text-gray-400 dark:text-gray-500 italic">Not rated</span>
+            )}
+          </div>
+          {onArchive && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onArchive(task);
+              }}
+              className="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              title="Archive task"
+            >
+              📦 Archive
+            </button>
           )}
         </div>
       )}
