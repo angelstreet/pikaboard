@@ -1,4 +1,5 @@
 import { serve } from '@hono/node-server';
+import { serveStatic } from '@hono/node-server/serve-static';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 import { logger } from 'hono/logger';
@@ -34,6 +35,9 @@ if (process.env.NODE_ENV !== 'test') {
   app.use('*', logger());
 }
 app.use('*', cors());
+
+// Static files (no auth) - serves /public directory
+app.use('/widgets/*', serveStatic({ root: './public' }));
 
 // Health check (no auth)
 app.get('/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
