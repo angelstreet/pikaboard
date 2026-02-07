@@ -72,6 +72,34 @@ function formatTokens(tokens: number): string {
   return String(tokens);
 }
 
+// Build a human-readable message for agent_activity entries instead of showing raw UUIDs
+function formatAgentMessage(message: string, metadata?: ActivityMetadata): string {
+  if (!metadata) return message;
+
+  const agent = getAgentDisplayName(metadata.agent_label);
+
+  if (metadata.status === 'completed') {
+    const parts = [`${agent.name} completed`];
+    if (metadata.task_summary) parts[0] = `${agent.name} completed: ${metadata.task_summary}`;
+    if (metadata.duration_sec !== undefined) parts.push(`in ${formatDuration(metadata.duration_sec)}`);
+    if (metadata.tokens_total && metadata.tokens_total > 0) parts.push(`(${formatTokens(metadata.tokens_total)} tokens)`);
+    return parts.join(' ');
+  }
+
+  if (metadata.status === 'running') {
+    if (metadata.task_summary) return `${agent.name} working on: ${metadata.task_summary}`;
+    return `${agent.name} is running`;
+  }
+
+  if (metadata.status === 'failed') {
+    if (metadata.task_summary) return `${agent.name} failed: ${metadata.task_summary}`;
+    return `${agent.name} failed`;
+  }
+
+  // Fallback: replace UUID patterns in the original message with agent name
+  return message.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, agent.name);
+}
+
 function getActivityIcon(type: string, metadata?: ActivityMetadata): string {
   if (type === 'agent_activity') {
     switch (metadata?.status) {
@@ -146,7 +174,7 @@ function ActivityItem({
                 </span>
               )}
               <p className="text-sm text-gray-700 dark:text-gray-300 break-words">
-                {activity.message}
+                {isAgent ? formatAgentMessage(activity.message, metadata ?? undefined) : activity.message}
               </p>
             </div>
             <div className="flex flex-col items-end gap-1 flex-shrink-0">

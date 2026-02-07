@@ -91,6 +91,17 @@ export const TEAM_ROSTER: TeamMember[] = [
     boardId: 7, // Ideas Lab
     boards: ['ideas'],
   },
+  {
+    id: 'porygon',
+    name: 'Porygon',
+    role: 'specialist',
+    roleLabel: 'SPC',
+    function: 'Ops & Infra',
+    avatar: '🔷',
+    color: '#06B6D4', // cyan
+    boardId: 12, // Ops
+    boards: ['ops'],
+  },
 ];
 
 export function getTeamMember(id: string): TeamMember | undefined {
