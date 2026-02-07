@@ -1,4 +1,6 @@
 import { Link, useLocation } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { api } from '../api/client';
 
 interface MobileNavProps {
   onMenuClick: () => void;
@@ -6,12 +8,29 @@ interface MobileNavProps {
 
 export default function MobileNav({ onMenuClick }: MobileNavProps) {
   const location = useLocation();
+  const [inboxCount, setInboxCount] = useState(0);
+  
+  // Fetch inbox count
+  useEffect(() => {
+    const loadInboxCount = async () => {
+      try {
+        const tasks = await api.getTasks({ status: 'inbox' });
+        setInboxCount(tasks.length);
+      } catch {
+        // Ignore errors
+      }
+    };
+    loadInboxCount();
+    // Poll every 30 seconds
+    const interval = setInterval(loadInboxCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
   
   const navItems = [
     { path: '/', icon: '🏠', label: 'Home' },
     { path: '/boards', icon: '📋', label: 'Boards' },
     { path: '/agents', icon: '🤖', label: 'Agents' },
-    { path: '/inbox', icon: '📥', label: 'Inbox' },
+    { path: '/inbox', icon: '📥', label: 'Inbox', badge: inboxCount },
   ];
 
   return (
@@ -25,13 +44,20 @@ export default function MobileNav({ onMenuClick }: MobileNavProps) {
             <Link
               key={item.path}
               to={item.path}
-              className={`flex flex-col items-center justify-center flex-1 h-full ${
+              className={`flex flex-col items-center justify-center flex-1 h-full relative ${
                 isActive 
                   ? 'text-orange-500' 
                   : 'text-gray-500 dark:text-gray-400'
               }`}
             >
-              <span className="text-xl">{item.icon}</span>
+              <span className="text-xl relative">
+                {item.icon}
+                {item.badge && item.badge > 0 && (
+                  <span className="absolute -top-1 -right-3 bg-red-500 text-white text-[10px] font-bold min-w-[16px] h-4 flex items-center justify-center rounded-full px-1">
+                    {item.badge > 99 ? '99+' : item.badge}
+                  </span>
+                )}
+              </span>
               <span className="text-xs mt-1">{item.label}</span>
             </Link>
           );
