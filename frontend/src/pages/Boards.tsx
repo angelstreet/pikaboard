@@ -24,11 +24,11 @@ import TaskSearch from '../components/TaskSearch';
 import { useConfirmModal } from '../components/ConfirmModal';
 
 const COLUMNS: { id: Task['status']; label: string; color: string }[] = [
-  { id: 'inbox', label: '📥 Inbox', color: 'bg-gray-100' },
-  { id: 'up_next', label: '⏳ Up Next', color: 'bg-blue-50' },
-  { id: 'in_progress', label: '🚧 In Progress', color: 'bg-yellow-50' },
-  { id: 'in_review', label: '👀 In Review', color: 'bg-purple-50' },
-  { id: 'done', label: '✅ Done', color: 'bg-green-50' },
+  { id: 'inbox', label: '📥 Inbox', color: 'bg-gray-100 dark:bg-gray-800' },
+  { id: 'up_next', label: '⏳ Up Next', color: 'bg-blue-50 dark:bg-blue-950/40' },
+  { id: 'in_progress', label: '🚧 In Progress', color: 'bg-yellow-50 dark:bg-yellow-950/40' },
+  { id: 'in_review', label: '👀 In Review', color: 'bg-purple-50 dark:bg-purple-950/40' },
+  { id: 'done', label: '✅ Done', color: 'bg-green-50 dark:bg-green-950/40' },
 ];
 
 function DroppableColumn({
@@ -62,7 +62,7 @@ function DroppableColumn({
       `}
     >
       <div className="flex items-center justify-between mb-3">
-        <h3 className="font-semibold text-sm">{label}</h3>
+        <h3 className="font-semibold text-sm text-gray-900 dark:text-gray-100">{label}</h3>
         <div className="flex items-center gap-2">
           {id === 'done' && tasks.length > 0 && onArchiveAll && (
             <button
@@ -73,7 +73,7 @@ function DroppableColumn({
               📦 All
             </button>
           )}
-          <span className="text-xs text-gray-500 bg-white/50 px-2 py-0.5 rounded-full">
+          <span className="text-xs text-gray-500 dark:text-gray-400 bg-white/50 dark:bg-gray-700/50 px-2 py-0.5 rounded-full">
             {tasks.length}
           </span>
         </div>
@@ -91,7 +91,7 @@ function DroppableColumn({
             />
           ))}
           {tasks.length === 0 && (
-            <div className="text-gray-400 text-sm text-center py-8 border-2 border-dashed border-gray-200 rounded-lg">
+            <div className="text-gray-400 dark:text-gray-500 text-sm text-center py-8 border-2 border-dashed border-gray-200 dark:border-gray-600 rounded-lg">
               Drop tasks here
             </div>
           )}
@@ -120,10 +120,10 @@ export default function Boards() {
   // Drag state
   const [activeId, setActiveId] = useState<number | null>(null);
 
-  // Filter state — mobile defaults to 'up_next' (single column), desktop defaults to 'all'
-  const [statusFilter, setStatusFilter] = useState<Task['status'] | 'all'>(() => {
-    return window.innerWidth < 640 ? 'up_next' : 'all';
-  });
+  // Filter state - default to 'inbox' on mobile, 'all' on desktop
+  const [statusFilter, setStatusFilter] = useState<Task['status'] | 'all'>(
+    () => window.innerWidth < 640 ? 'inbox' : 'all'
+  );
 
   // Rejection reason modal state
   const [rejectionModalOpen, setRejectionModalOpen] = useState(false);
