@@ -256,6 +256,11 @@ class ApiClient {
     return data;
   }
 
+  // Synchronous cache read for initializing component state without loading flash
+  getCached<T>(path: string): T | null {
+    return apiCache.get<T>(path);
+  }
+
   // Invalidate cache after mutations
   private invalidateCache(pattern?: string): void {
     apiCache.invalidate(pattern);
