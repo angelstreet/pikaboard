@@ -45,6 +45,7 @@ interface Agent {
   configPath: string;
   activeSubAgents: number;
   pendingApproval: boolean;
+  inProgressTasks: number;
 }
 
 // Get active sub-agent count for an agent
@@ -67,6 +68,20 @@ async function getActiveSubAgentCount(agentId: string): Promise<number> {
       const labelAgent = run.label.split('-')[0].toLowerCase();
       return labelAgent === agentId.toLowerCase();
     }).length;
+  } catch {
+    return 0;
+  }
+}
+
+// Count in_progress tasks for an agent's board
+async function getInProgressTaskCount(boardId: number | null): Promise<number> {
+  if (!boardId) return 0;
+  try {
+    const result = db.prepare(`
+      SELECT COUNT(*) as count FROM tasks 
+      WHERE board_id = ? AND status = 'in_progress'
+    `).get(boardId) as { count: number } | undefined;
+    return result?.count || 0;
   } catch {
     return 0;
   }
@@ -243,6 +258,9 @@ agentsRouter.get('/', async (c) => {
       // Get active sub-agent count
       const activeSubAgents = await getActiveSubAgentCount(dir.name);
       
+      // Get in_progress task count for this agent's board
+      const inProgressTasks = await getInProgressTaskCount(boardId);
+      
       // Check for pending proposals
       const pendingApproval = await hasPendingProposals(dir.name);
       
@@ -284,6 +302,7 @@ agentsRouter.get('/', async (c) => {
         configPath: agentPath,
         activeSubAgents,
         pendingApproval,
+        inProgressTasks,
       };
 
       agents.push(agent);
@@ -679,6 +698,9 @@ agentsRouter.get('/:id', async (c) => {
     // Get active sub-agent count
     const activeSubAgents = await getActiveSubAgentCount(id);
     
+    // Get in_progress task count for this agent's board
+    const inProgressTasks = await getInProgressTaskCount(boardId);
+    
     // Check for pending proposals
     const pendingApproval = await hasPendingProposals(id);
     
@@ -719,6 +741,7 @@ agentsRouter.get('/:id', async (c) => {
       configPath: agentPath,
       activeSubAgents,
       pendingApproval,
+      inProgressTasks,
     };
 
     return c.json({ agent, soulMd: soulContent });

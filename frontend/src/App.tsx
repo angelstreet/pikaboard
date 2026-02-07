@@ -11,6 +11,7 @@ import Library from './pages/Library';
 import Files from './pages/Files';
 import Chat from './pages/Chat';
 import Usage from './pages/Usage';
+import Goals from './pages/Goals';
 
 // Auth disabled - handled at nginx level
 function App() {
@@ -35,6 +36,7 @@ function App() {
         <Route index element={<DashboardHome />} />
         <Route path="inbox" element={<Inbox />} />
         <Route path="boards" element={<Boards />} />
+        <Route path="goals" element={<Goals />} />
         <Route path="agents" element={<Agents />} />
         <Route path="chat" element={<Chat />} />
         <Route path="files" element={<Files />} />

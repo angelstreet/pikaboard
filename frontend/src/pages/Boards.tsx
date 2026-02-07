@@ -31,7 +31,6 @@ const COLUMNS: { id: Task['status']; label: string; color: string }[] = [
   { id: 'in_progress', label: '🚧 In Progress', color: 'bg-yellow-50' },
   { id: 'in_review', label: '👀 In Review', color: 'bg-purple-50' },
   { id: 'done', label: '✅ Done', color: 'bg-green-50' },
-  { id: 'rejected', label: '❌ Rejected', color: 'bg-red-50' },
 ];
 
 function DroppableColumn({
@@ -471,7 +470,7 @@ export default function Boards() {
             <div className={`
               ${isSingleColumn
                 ? 'max-w-md mx-auto'
-                : 'flex gap-3 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 sm:gap-4 sm:overflow-visible sm:pb-0'
+                : 'flex gap-3 overflow-x-auto pb-4 snap-x snap-mandatory scrollbar-hide sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 sm:gap-4 sm:overflow-visible sm:pb-0'
               }
             `}>
               {visibleColumns.map((col) => (

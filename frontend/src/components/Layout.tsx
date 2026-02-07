@@ -12,6 +12,7 @@ const navItems = [
   { path: '/', label: '🏠 Dashboard', title: 'Dashboard' },
   { path: '/inbox', label: '📥 Inbox', title: 'Inbox', hasBadge: true },
   { path: '/boards', label: '📋 Boards', title: 'Boards' },
+  { path: '/goals', label: '🎯 Goals', title: 'Goals' },
   { path: '/agents', label: '🤖 Agents', title: 'Agents' },
   { path: '/chat', label: '💬 Chat', title: 'Chat' },
   { path: '/files', label: '📁 Files', title: 'Files' },
@@ -124,8 +125,8 @@ export default function Layout() {
         </main>
       </div>
 
-      {/* Footer */}
-      <footer className="hidden lg:block bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
+      {/* Footer - Hidden on mobile and tablet */}
+      <footer className="hidden xl:block bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-3 text-center text-sm text-gray-500 dark:text-gray-400">
         PikaBoard v{VERSION} ({BRANCH}) • {COMMIT}
       </footer>
       <MobileNav onMenuClick={() => setDrawerOpen(true)} />

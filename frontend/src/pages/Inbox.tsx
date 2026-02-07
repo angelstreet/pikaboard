@@ -164,26 +164,26 @@ export default function Inbox() {
   return (
     <div className="space-y-8">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             📥 Inbox
             {totalItems > 0 && (
-              <span className="bg-red-500 text-white text-sm font-medium px-2.5 py-0.5 rounded-full">
+              <span className="bg-red-500 text-white text-xs sm:text-sm font-medium px-2 py-0.5 rounded-full">
                 {totalItems}
               </span>
             )}
           </h1>
-          <p className="text-gray-600 dark:text-gray-400 mt-1">
+          <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm hidden sm:block">
             Review agent approvals and answer questions
           </p>
         </div>
         <button
           onClick={loadData}
           disabled={loading}
-          className="px-4 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50"
+          className="px-3 py-2 text-sm bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors disabled:opacity-50 self-start sm:self-auto"
         >
-          {loading ? 'Refreshing...' : '🔄 Refresh'}
+          {loading ? '...' : '🔄 Refresh'}
         </button>
       </div>
 

@@ -599,7 +599,7 @@ export const demoApi = {
         '1': { cost: pikaCost * 0.6, tokens: Math.round(totalTokens * 0.25), boardId: 1, name: 'Main Board' },
         '2': { cost: bulbiCost * 0.8, tokens: Math.round(totalTokens * 0.20), boardId: 2, name: 'Development' },
         '3': { cost: mewCost, tokens: Math.round(totalTokens * 0.15), boardId: 3, name: 'Research' },
-        'null': { cost: totalCost * 0.15, tokens: Math.round(totalTokens * 0.15), boardId: null, name: 'Unassigned' },
+        'null': { cost: totalCost * 0.15, tokens: Math.round(totalTokens * 0.15), boardId: null, name: 'Main' },
       },
       total: {
         cost: totalCost,

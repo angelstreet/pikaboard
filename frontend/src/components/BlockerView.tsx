@@ -248,13 +248,13 @@ export function BlockerView({ onTaskCreated }: BlockerViewProps) {
                   </div>
                   {/* Comment field */}
                   <div className="mt-2">
-                    <input
-                      type="text"
-                      placeholder="Add note (optional)..."
+                    <textarea
+                      placeholder="Add comment (optional)..."
+                      rows={2}
                       value={comment}
                       onChange={(e) => handleCommentChange(agentProposal.agentId, index, e.target.value)}
                       disabled={isLoading}
-                      className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:bg-gray-50"
+                      className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-md focus:outline-none focus:ring-1 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:bg-gray-50 resize-none"
                     />
                   </div>
                 </div>

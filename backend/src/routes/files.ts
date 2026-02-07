@@ -9,9 +9,8 @@ export const filesRouter = new Hono();
 const ALLOWED_PATHS = [
   join(homedir(), '.openclaw/workspace/shared'),      // Shared resources
   join(homedir(), '.openclaw/workspace/memory'),      // Daily logs
-  join(homedir(), '.openclaw/workspace/docs'),        // Legacy docs
-  join(homedir(), '.openclaw/workspace/research'),    // Legacy research
-  join(homedir(), '.openclaw/agents'),                // Agent configs (SOUL.md, memory/, research/)
+  join(homedir(), '.openclaw/workspace/agents'),      // Agent workspaces (logs, docs)
+  join(homedir(), '.openclaw/agents'),                // Agent configs (SOUL.md, memory/)
 ];
 // Check if a path is within allowed directories
 function isPathAllowed(targetPath: string): boolean {
@@ -27,8 +26,8 @@ function isPathAllowed(targetPath: string): boolean {
         if (parts.length >= 2 && parts[1] === 'memory') {
           return true;
         }
-        // Allow: agentName/research/...
-        if (parts.length >= 2 && parts[1] === 'research') {
+        // Allow: agentName/logs/...
+        if (parts.length >= 2 && parts[1] === 'logs') {
           return true;
         }
         // Allow: agentName/SOUL.md
@@ -131,6 +130,26 @@ filesRouter.get('/', (c) => {
       }
     }
     
+    // For individual agent dirs, also check workspace/agents for logs
+    const agentsBase = join(homedir(), '.openclaw/agents');
+    if (expanded.startsWith(agentsBase) && expanded !== agentsBase) {
+      const agentName = relative(agentsBase, expanded).split('/')[0];
+      if (agentName && !agentName.includes('/')) {
+        const workspaceLogsPath = join(homedir(), '.openclaw/workspace/agents', agentName, 'logs');
+        if (existsSync(workspaceLogsPath) && !files.some(f => f.name === 'logs')) {
+          try {
+            const logsStat = statSync(workspaceLogsPath);
+            files.push({
+              name: 'logs',
+              path: workspaceLogsPath.replace(homedir(), '~'),
+              type: 'directory',
+              modified: logsStat.mtime.toISOString(),
+            });
+          } catch {}
+        }
+      }
+    }
+    
     // Sort: directories first, then alphabetically
     files.sort((a, b) => {
       if (a.type !== b.type) {
@@ -199,8 +218,6 @@ filesRouter.get('/roots', (c) => {
   const roots = [
     { path: '~/.openclaw/agents', label: '🤖 Agents', exists: existsSync(join(homedir(), '.openclaw/agents')) },
     { path: '~/.openclaw/workspace/memory', label: '📝 Memory', exists: existsSync(join(homedir(), '.openclaw/workspace/memory')) },
-    { path: '~/.openclaw/workspace/research', label: '🔬 Research', exists: existsSync(join(homedir(), '.openclaw/workspace/research')) },
-    { path: '~/.openclaw/workspace/docs', label: '📚 Docs', exists: existsSync(join(homedir(), '.openclaw/workspace/docs')) },
     { path: '~/.openclaw/workspace/shared', label: '📁 Shared', exists: existsSync(join(homedir(), '.openclaw/workspace/shared')) },
   ];
   
