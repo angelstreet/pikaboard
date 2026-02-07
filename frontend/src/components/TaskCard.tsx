@@ -64,6 +64,15 @@ export function TaskCard({ task, onClick, onArchive, isDragging }: TaskCardProps
       <div className="flex items-start justify-between gap-2">
         <h4 className="font-medium text-sm text-gray-900 dark:text-gray-100 flex-1">
           <span className="text-gray-400 dark:text-gray-500">#{task.id}</span> {task.name}
+          {(() => {
+            const parsedTags = Array.isArray(task.tags) ? task.tags : (task.tags ? String(task.tags).split(',').map((t: string) => t.trim()) : []);
+            return (
+              <>
+                {parsedTags.includes('recurring') && <span className="ml-1" title="Recurring task">🔁</span>}
+                {parsedTags.includes('notify') && <span className="ml-0.5" title="Notifies on completion">📢</span>}
+              </>
+            );
+          })()}
         </h4>
         {task.priority !== 'medium' && (
           <span className={`px-1.5 py-0.5 text-xs rounded font-medium ${priority.badge}`}>
