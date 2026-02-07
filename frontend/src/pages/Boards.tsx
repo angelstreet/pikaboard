@@ -120,8 +120,10 @@ export default function Boards() {
   // Drag state
   const [activeId, setActiveId] = useState<number | null>(null);
 
-  // Filter state
-  const [statusFilter, setStatusFilter] = useState<Task['status'] | 'all'>('all');
+  // Filter state - default to 'inbox' on mobile, 'all' on desktop
+  const [statusFilter, setStatusFilter] = useState<Task['status'] | 'all'>(
+    () => window.innerWidth < 640 ? 'inbox' : 'all'
+  );
 
   // Rejection reason modal state
   const [rejectionModalOpen, setRejectionModalOpen] = useState(false);

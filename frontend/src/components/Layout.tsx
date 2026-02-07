@@ -5,6 +5,7 @@ import EnvToggle from './EnvToggle';
 import TeamRoster from './TeamRoster';
 import MobileNav from './MobileNav';
 import MobileDrawer from './MobileDrawer';
+import { QuoteWidget } from './QuoteWidget';
 import { api } from '../api/client';
 import { useTaskNotifications } from '../hooks/useTaskNotifications';
 
@@ -191,6 +192,7 @@ export default function Layout() {
       </footer>
       <MobileNav onMenuClick={() => setDrawerOpen(true)} />
       <MobileDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      <QuoteWidget interval={60000} />
     </div>
   );
 }
