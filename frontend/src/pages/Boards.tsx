@@ -24,6 +24,7 @@ import { ViewToggle } from '../components/ViewToggle';
 import { FocusList } from '../components/FocusList';
 import { BlockerView } from '../components/BlockerView';
 import TaskSearch from '../components/TaskSearch';
+import { useConfirmModal } from '../components/ConfirmModal';
 
 const COLUMNS: { id: Task['status']; label: string; color: string }[] = [
   { id: 'inbox', label: '📥 Inbox', color: 'bg-gray-100' },
@@ -115,6 +116,9 @@ export default function Boards() {
   const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [boardModalOpen, setBoardModalOpen] = useState(false);
   const [editingBoard, setEditingBoard] = useState<Board | null>(null);
+  
+  // Confirm modal
+  const { confirm, ConfirmModalComponent } = useConfirmModal();
 
   // Drag state
   const [activeId, setActiveId] = useState<number | null>(null);
@@ -343,19 +347,37 @@ export default function Boards() {
   };
 
   const handleArchiveTask = async (task: Task) => {
-    if (confirm(`Archive task #${task.id}: "${task.name}"?`)) {
+    const confirmed = await confirm({
+      title: 'Archive Task',
+      message: `Archive task #${task.id}: "${task.name}"?`,
+      confirmText: 'Archive',
+      variant: 'warning',
+    });
+    if (confirmed) {
       await api.deleteTask(task.id);
       setTasks((prev) => prev.filter((t) => t.id !== task.id));
     }
   };
 
   const handleArchiveAllDone = async () => {
-    const doneTasks = tasks.filter((t) => t.status === 'done');
+    if (!currentBoard) return;
+    
+    // Only archive done tasks from the CURRENT board
+    const doneTasks = tasks.filter(
+      (t) => t.status === 'done' && t.board_id === currentBoard.id
+    );
     if (doneTasks.length === 0) return;
     
-    if (confirm(`Archive all ${doneTasks.length} done tasks?`)) {
+    const confirmed = await confirm({
+      title: 'Archive All Done Tasks',
+      message: `Archive all ${doneTasks.length} done tasks from "${currentBoard.name}"?`,
+      confirmText: 'Archive All',
+      variant: 'danger',
+    });
+    
+    if (confirmed) {
       await Promise.all(doneTasks.map((t) => api.deleteTask(t.id)));
-      setTasks((prev) => prev.filter((t) => t.status !== 'done'));
+      setTasks((prev) => prev.filter((t) => !(t.status === 'done' && t.board_id === currentBoard.id)));
     }
   };
 
@@ -606,6 +628,9 @@ export default function Boards() {
           </div>
         </div>
       )}
+
+      {/* Custom Confirm Modal */}
+      <ConfirmModalComponent />
     </div>
   );
 }
