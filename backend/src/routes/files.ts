@@ -7,9 +7,15 @@ export const filesRouter = new Hono();
 
 // Whitelist of allowed directories (with ~ expanded)
 const ALLOWED_PATHS = [
-  join(homedir(), '.openclaw/workspace/shared'),      // Shared resources
-  join(homedir(), '.openclaw/workspace/memory'),      // Daily logs
-  join(homedir(), '.openclaw/workspace/agents'),      // Agent workspaces (logs, docs)
+  join(homedir(), '.openclaw/workspace'),             // Main workspace (docs, memory, shared)
+  join(homedir(), '.openclaw/workspace-bulbi'),       // Bulbi workspace
+  join(homedir(), '.openclaw/workspace-evoli'),       // Evoli workspace
+  join(homedir(), '.openclaw/workspace-mew'),         // Mew workspace
+  join(homedir(), '.openclaw/workspace-porygon'),     // Porygon workspace
+  join(homedir(), '.openclaw/workspace-psykokwak'),   // Psykokwak workspace
+  join(homedir(), '.openclaw/workspace-sala'),        // Sala workspace
+  join(homedir(), '.openclaw/workspace-tortoise'),    // Tortoise workspace
+  join(homedir(), '.openclaw/workspace-pika-ops'),    // Pika-Ops workspace
   join(homedir(), '.openclaw/agents'),                // Agent configs (SOUL.md, memory/)
 ];
 // Check if a path is within allowed directories
@@ -218,8 +224,32 @@ filesRouter.get('/roots', (c) => {
   const roots = [
     { path: '~/.openclaw/agents', label: '🤖 Agents', exists: existsSync(join(homedir(), '.openclaw/agents')) },
     { path: '~/.openclaw/workspace/memory', label: '📝 Memory', exists: existsSync(join(homedir(), '.openclaw/workspace/memory')) },
+    { path: '~/.openclaw/workspace/docs', label: '📚 Docs', exists: existsSync(join(homedir(), '.openclaw/workspace/docs')) },
     { path: '~/.openclaw/workspace/shared', label: '📁 Shared', exists: existsSync(join(homedir(), '.openclaw/workspace/shared')) },
   ];
+  
+  // Add agent workspaces dynamically
+  const agentWorkspaces = [
+    { id: 'bulbi', label: '🌱 Bulbi' },
+    { id: 'evoli', label: '🦊 Evoli' },
+    { id: 'mew', label: '🐱 Mew' },
+    { id: 'porygon', label: '💠 Porygon' },
+    { id: 'psykokwak', label: '🦆 Psykokwak' },
+    { id: 'sala', label: '🦎 Sala' },
+    { id: 'tortoise', label: '🐢 Tortoise' },
+    { id: 'pika-ops', label: '⚙️ Pika-Ops' },
+  ];
+  
+  for (const agent of agentWorkspaces) {
+    const wsPath = join(homedir(), `.openclaw/workspace-${agent.id}`);
+    if (existsSync(wsPath)) {
+      roots.push({
+        path: `~/.openclaw/workspace-${agent.id}`,
+        label: agent.label,
+        exists: true,
+      });
+    }
+  }
   
   return c.json({ roots: roots.filter(r => r.exists) });
 });
