@@ -120,8 +120,10 @@ export default function Boards() {
   // Drag state
   const [activeId, setActiveId] = useState<number | null>(null);
 
-  // Filter state
-  const [statusFilter, setStatusFilter] = useState<Task['status'] | 'all'>('all');
+  // Filter state — mobile defaults to 'up_next' (single column), desktop defaults to 'all'
+  const [statusFilter, setStatusFilter] = useState<Task['status'] | 'all'>(() => {
+    return window.innerWidth < 640 ? 'up_next' : 'all';
+  });
 
   // Rejection reason modal state
   const [rejectionModalOpen, setRejectionModalOpen] = useState(false);
@@ -427,10 +429,10 @@ export default function Boards() {
 
   return (
     <div>
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-3">
-        <div className="flex items-center gap-3">
-          <h2 className="text-xl sm:text-2xl font-bold">📋 Boards</h2>
+      {/* Header — compact single line on mobile */}
+      <div className="flex items-center justify-between mb-3 sm:mb-6 gap-2">
+        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+          <h2 className="text-lg sm:text-2xl font-bold hidden sm:block">📋 Boards</h2>
           <BoardSelector
             boards={boards}
             currentBoard={currentBoard}
@@ -440,17 +442,16 @@ export default function Boards() {
           />
         </div>
 
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center gap-2 flex-shrink-0">
           <TaskSearch onTaskClick={handleTaskClick} />
           <button
             onClick={handleCreateTask}
-            className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
+            className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
           >
-            <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
             <span className="hidden sm:inline">New Task</span>
-            <span className="sm:hidden">New</span>
           </button>
         </div>
       </div>
