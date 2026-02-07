@@ -8,7 +8,8 @@ import MobileDrawer from './MobileDrawer';
 import { api } from '../api/client';
 import { useTaskNotifications } from '../hooks/useTaskNotifications';
 
-const navItems = [
+// Primary nav items (always visible)
+const primaryNavItems = [
   { path: '/', label: '🏠 Dashboard', title: 'Dashboard' },
   { path: '/inbox', label: '📥 Inbox', title: 'Inbox', hasBadge: true },
   { path: '/boards', label: '📋 Boards', title: 'Boards' },
@@ -16,12 +17,19 @@ const navItems = [
   { path: '/reminders', label: '🔔 Reminders', title: 'Reminders' },
   { path: '/agents', label: '🤖 Agents', title: 'Agents' },
   { path: '/chat', label: '💬 Chat', title: 'Chat' },
+];
+
+// Secondary nav items (in "More" dropdown)
+const moreNavItems = [
   { path: '/files', label: '📁 Files', title: 'Files' },
   { path: '/library', label: '📚 Library', title: 'Library' },
   { path: '/insights', label: '📊 Insights', title: 'Insights' },
   { path: '/usage', label: '💳 Usage', title: 'Usage' },
   { path: '/settings', label: '⚙️ Settings', title: 'Settings' },
 ];
+
+// Combined for mobile nav and other uses
+const navItems = [...primaryNavItems, ...moreNavItems];
 
 // Build info from env vars (set at build time)
 const VERSION = import.meta.env.VITE_VERSION || '0.1.0';
@@ -88,8 +96,9 @@ export default function Layout() {
             <h1 className="text-xl font-bold text-gray-900 dark:text-white">PikaBoard</h1>
             <EnvToggle />
           </div>
-          <nav className="flex gap-1">
-            {navItems.map((item) => (
+          <nav className="flex gap-1 items-center">
+            {/* Primary nav items */}
+            {primaryNavItems.map((item) => (
               <Link
                 key={item.path}
                 to={item.path}
@@ -107,6 +116,37 @@ export default function Layout() {
                 )}
               </Link>
             ))}
+            
+            {/* More dropdown */}
+            <div className="relative group">
+              <button
+                className={`px-3 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-1 ${
+                  moreNavItems.some(item => location.pathname === item.path)
+                    ? 'bg-pika-100 text-pika-700 dark:bg-pika-900 dark:text-pika-300'
+                    : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:text-white'
+                }`}
+              >
+                More
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
+                {moreNavItems.map((item) => (
+                  <Link
+                    key={item.path}
+                    to={item.path}
+                    className={`block px-4 py-2 text-sm transition-colors first:rounded-t-lg last:rounded-b-lg ${
+                      location.pathname === item.path
+                        ? 'bg-pika-50 text-pika-700 dark:bg-pika-900/50 dark:text-pika-300'
+                        : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'
+                    }`}
+                  >
+                    {item.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
           </nav>
         </div>
       </header>
