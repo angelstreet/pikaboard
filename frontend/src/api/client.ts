@@ -393,6 +393,10 @@ class ApiClient {
     return this.fetch<SystemHealth>('/system/health');
   }
 
+  async getSessionContext(): Promise<SessionContextInfo> {
+    return this.fetch<SessionContextInfo>('/system/session-context');
+  }
+
   // Insights
   async getInsights(): Promise<InsightsData> {
     return this.fetch<InsightsData>('/insights');
@@ -617,6 +621,16 @@ export interface SystemStats {
   hostname: string;
   platform: string;
   timestamp: string;
+}
+
+// Session Context Info
+export interface SessionContextInfo {
+  currentTokens: number;
+  contextTokens: number;
+  percentUsed: number;
+  model: string | null;
+  updatedAt: number | null;
+  error?: string;
 }
 
 // System Health (from /proc/stat and /proc/meminfo)

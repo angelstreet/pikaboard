@@ -324,3 +324,139 @@ systemRouter.get('/', async (c) => {
 
   return c.json(stats);
 });
+
+// Session context info from OpenClaw gateway
+export interface SessionContextInfo {
+  currentTokens: number;
+  contextTokens: number;
+  percentUsed: number;
+  model: string | null;
+  updatedAt: number | null;
+}
+
+// GET /api/system/session-context - Get main session context tokens
+systemRouter.get('/session-context', async (c) => {
+  try {
+    // Try to get from OpenClaw gateway
+    const gatewayPort = process.env.OPENCLAW_GATEWAY_PORT || '18790';
+    const gatewayToken = process.env.OPENCLAW_GATEWAY_TOKEN || '';
+    
+    // Call the gateway's status endpoint via RPC
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 3000);
+
+    const res = await fetch(`http://127.0.0.1:${gatewayPort}/api/rpc`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(gatewayToken ? { 'Authorization': `Bearer ${gatewayToken}` } : {}),
+      },
+      body: JSON.stringify({
+        method: 'sessions.status',
+        params: {},
+      }),
+      signal: controller.signal,
+    });
+    clearTimeout(timeout);
+
+    if (res.ok) {
+      const data = await res.json();
+      
+      // Find the main session (most recent active session)
+      const sessions = data?.result?.sessions?.recent || [];
+      const mainSession = sessions.find((s: { kind?: string; agentId?: string }) => 
+        s.kind === 'main' || s.agentId === 'main'
+      ) || sessions[0];
+
+      if (mainSession) {
+        const contextInfo: SessionContextInfo = {
+          currentTokens: mainSession.totalTokens || 0,
+          contextTokens: mainSession.contextTokens || 200000,
+          percentUsed: mainSession.percentUsed || 0,
+          model: mainSession.model || null,
+          updatedAt: mainSession.updatedAt || null,
+        };
+        return c.json(contextInfo);
+      }
+    }
+
+    // Fallback: try reading from session store directly
+    const sessionData = await getSessionContextFromStore();
+    if (sessionData) {
+      return c.json(sessionData);
+    }
+
+    // Return default/empty values
+    return c.json({
+      currentTokens: 0,
+      contextTokens: 200000,
+      percentUsed: 0,
+      model: null,
+      updatedAt: null,
+    });
+  } catch (err) {
+    console.error('Failed to get session context:', err);
+    return c.json({
+      currentTokens: 0,
+      contextTokens: 200000,
+      percentUsed: 0,
+      model: null,
+      updatedAt: null,
+      error: 'Failed to fetch session data',
+    }, 500);
+  }
+});
+
+// Fallback: Read session context from OpenClaw session store
+async function getSessionContextFromStore(): Promise<SessionContextInfo | null> {
+  try {
+    const fs = await import('node:fs/promises');
+    const path = await import('node:path');
+    const os = await import('node:os');
+    
+    const homeDir = os.homedir();
+    const sessionStorePath = path.join(homeDir, '.openclaw-bulbi', 'sessions', 'store.json');
+    
+    const data = await fs.readFile(sessionStorePath, 'utf-8');
+    const store = JSON.parse(data);
+    
+    // Find the most recent session
+    const sessions = Object.entries(store)
+      .filter(([key]) => key !== 'global' && key !== 'unknown')
+      .map(([key, entry]: [string, unknown]) => {
+        const e = entry as { 
+          updatedAt?: number; 
+          totalTokens?: number; 
+          inputTokens?: number; 
+          outputTokens?: number;
+          contextTokens?: number;
+          model?: string;
+        };
+        const total = e.totalTokens ?? ((e.inputTokens || 0) + (e.outputTokens || 0));
+        const ctx = e.contextTokens || 200000;
+        return {
+          key,
+          updatedAt: e.updatedAt || 0,
+          totalTokens: total,
+          contextTokens: ctx,
+          percentUsed: ctx > 0 ? Math.min(999, Math.round((total / ctx) * 100)) : 0,
+          model: e.model || null,
+        };
+      })
+      .sort((a, b) => b.updatedAt - a.updatedAt);
+
+    const mainSession = sessions[0];
+    if (mainSession) {
+      return {
+        currentTokens: mainSession.totalTokens,
+        contextTokens: mainSession.contextTokens,
+        percentUsed: mainSession.percentUsed,
+        model: mainSession.model,
+        updatedAt: mainSession.updatedAt,
+      };
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
