@@ -228,28 +228,5 @@ filesRouter.get('/roots', (c) => {
     { path: '~/.openclaw/workspace/shared', label: '📁 Shared', exists: existsSync(join(homedir(), '.openclaw/workspace/shared')) },
   ];
   
-  // Add agent workspaces dynamically
-  const agentWorkspaces = [
-    { id: 'bulbi', label: '🌱 Bulbi' },
-    { id: 'evoli', label: '🦊 Evoli' },
-    { id: 'mew', label: '🐱 Mew' },
-    { id: 'porygon', label: '💠 Porygon' },
-    { id: 'psykokwak', label: '🦆 Psykokwak' },
-    { id: 'sala', label: '🦎 Sala' },
-    { id: 'tortoise', label: '🐢 Tortoise' },
-    { id: 'pika-ops', label: '⚙️ Pika-Ops' },
-  ];
-  
-  for (const agent of agentWorkspaces) {
-    const wsPath = join(homedir(), `.openclaw/workspace-${agent.id}`);
-    if (existsSync(wsPath)) {
-      roots.push({
-        path: `~/.openclaw/workspace-${agent.id}`,
-        label: agent.label,
-        exists: true,
-      });
-    }
-  }
-  
   return c.json({ roots: roots.filter(r => r.exists) });
 });

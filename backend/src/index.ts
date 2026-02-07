@@ -21,6 +21,7 @@ import { insightsRouter } from './routes/insights.js';
 import { proposalsRouter } from './routes/proposals.js';
 import { usageRouter } from './routes/usage.js';
 import { questionsRouter } from './routes/questions.js';
+import openclawRoutes from './routes/openclaw.js';
 import { initDatabase } from './db/index.js';
 
 config();
@@ -56,6 +57,7 @@ app.route('/api/insights', insightsRouter);
 app.route('/api/proposals', proposalsRouter);
 app.route('/api/usage', usageRouter);
 app.route('/api/questions', questionsRouter);
+app.route('/api/openclaw', openclawRoutes);
 
 // Initialize database and start server only when not testing
 if (process.env.NODE_ENV !== 'test') {

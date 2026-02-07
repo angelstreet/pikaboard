@@ -37,7 +37,8 @@ export default function HeaderStatsBar() {
   const [status, setStatus] = useState<ConnectionStatus>('loading');
   const [usage, setUsage] = useState<UsageSummary | null>(null);
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('today');
-  const [contextTokens, setContextTokens] = useState({ current: 45000, total: 200000 });
+  const [contextTokens, setContextTokens] = useState({ current: 0, total: 200000 });
+  const [isResetting, setIsResetting] = useState(false);
 
   // Update time every minute
   useEffect(() => {
@@ -98,6 +99,51 @@ export default function HeaderStatsBar() {
     const usagePoller = setInterval(fetchUsage, 60000);
     return () => clearInterval(usagePoller);
   }, []);
+
+  // Poll context tokens every 30 seconds
+  useEffect(() => {
+    const fetchContext = async () => {
+      try {
+        const res = await fetch('/api/openclaw/context', {
+          headers: { Authorization: `Bearer ${localStorage.getItem('pikaboard_token') || ''}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setContextTokens({ current: data.current || 0, total: data.total || 200000 });
+        }
+      } catch (e) {
+        console.error('Failed to fetch context:', e);
+      }
+    };
+
+    fetchContext();
+    const contextPoller = setInterval(fetchContext, 30000);
+    return () => clearInterval(contextPoller);
+  }, []);
+
+  // Reset session (like /new)
+  const handleResetSession = async () => {
+    if (!confirm('Clear the current session? This is like running /new.')) return;
+    
+    setIsResetting(true);
+    try {
+      const res = await fetch('/api/openclaw/sessions/reset', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('pikaboard_token') || ''}`,
+        },
+        body: JSON.stringify({}),
+      });
+      if (res.ok) {
+        setContextTokens({ current: 0, total: contextTokens.total });
+      }
+    } catch (e) {
+      console.error('Failed to reset session:', e);
+    } finally {
+      setIsResetting(false);
+    }
+  };
 
   const formatDate = (date: Date) => {
     return date.toLocaleDateString('en-US', {
@@ -197,6 +243,18 @@ export default function HeaderStatsBar() {
                 Context: <span className="font-semibold text-blue-400">{formatTokensK(contextTokens.current)}/{formatTokensK(contextTokens.total)}</span>
               </span>
               <span className="md:hidden font-semibold text-blue-400 text-xs">{formatTokensK(contextTokens.current)}/{formatTokensK(contextTokens.total)}</span>
+              <button
+                onClick={handleResetSession}
+                disabled={isResetting}
+                className="ml-1 p-0.5 text-gray-500 hover:text-red-400 transition-colors disabled:opacity-50"
+                title="Clear session (/new)"
+              >
+                <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 6h18" />
+                  <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+                  <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+                </svg>
+              </button>
             </div>
           </div>
           
