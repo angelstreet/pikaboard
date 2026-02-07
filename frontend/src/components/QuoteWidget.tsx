@@ -123,7 +123,7 @@ export function QuoteWidget({ interval = 45000 }: { interval?: number }) {
       <p className="text-xs text-gray-700 dark:text-gray-300 italic leading-snug pr-3 line-clamp-2">
         "{quote.text}"
       </p>
-      <p className="text-[10px] text-gray-500 dark:text-gray-400 mt-1 text-right">
+      <p className="text-[10px] text-purple-600 dark:text-purple-400 mt-1 text-right">
         — {quote.author}
       </p>
     </div>
