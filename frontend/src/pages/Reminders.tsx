@@ -1,6 +1,23 @@
 import { useEffect, useState } from 'react';
 import { api, Reminder } from '../api/client';
 
+type ReminderCategory = 'all' | 'personal' | 'work' | 'project';
+
+const CATEGORIES: { value: ReminderCategory; label: string; emoji: string }[] = [
+  { value: 'all', label: 'All', emoji: '📋' },
+  { value: 'personal', label: 'Personal', emoji: '🏠' },
+  { value: 'work', label: 'Work', emoji: '💼' },
+  { value: 'project', label: 'Project', emoji: '🚀' },
+];
+
+function getCategoryFromReminder(r: Reminder): ReminderCategory {
+  const text = `${r.name || ''} ${r.text}`.toLowerCase();
+  if (text.includes('[personal]') || text.includes('🏠')) return 'personal';
+  if (text.includes('[work]') || text.includes('💼')) return 'work';
+  if (text.includes('[project]') || text.includes('🚀')) return 'project';
+  return 'personal'; // default
+}
+
 function formatSchedule(schedule: Reminder['schedule']): string {
   if (schedule.kind === 'at' && schedule.atMs) {
     return `Once at ${new Date(schedule.atMs).toLocaleString()}`;
@@ -34,13 +51,20 @@ export default function Reminders() {
   const [loading, setLoading] = useState(!cachedReminders);
   const [error, setError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
+  const [categoryFilter, setCategoryFilter] = useState<ReminderCategory>('all');
 
   // Create form state
   const [newText, setNewText] = useState('');
   const [newName, setNewName] = useState('');
+  const [newCategory, setNewCategory] = useState<ReminderCategory>('personal');
   const [scheduleType, setScheduleType] = useState<'at' | 'every' | 'cron'>('at');
   const [scheduleValue, setScheduleValue] = useState('');
   const [creating, setCreating] = useState(false);
+
+  // Filtered reminders
+  const filteredReminders = categoryFilter === 'all'
+    ? reminders
+    : reminders.filter(r => getCategoryFromReminder(r) === categoryFilter);
 
   useEffect(() => {
     loadReminders();
@@ -63,15 +87,17 @@ export default function Reminders() {
     if (!newText.trim()) return;
 
     setCreating(true);
+    const categoryTag = newCategory !== 'personal' ? `[${newCategory}] ` : '';
     try {
       await api.createReminder({
-        text: newText,
+        text: `${categoryTag}${newText}`,
         name: newName || undefined,
         scheduleType,
         scheduleValue,
       });
       setNewText('');
       setNewName('');
+      setNewCategory('personal');
       setScheduleValue('');
       setShowCreate(false);
       loadReminders();
@@ -140,6 +166,30 @@ export default function Reminders() {
         </button>
       </div>
 
+      {/* Category Filter Tabs */}
+      <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-800 p-1 rounded-lg w-fit">
+        {CATEGORIES.map((cat) => {
+          const count = cat.value === 'all' 
+            ? reminders.length 
+            : reminders.filter(r => getCategoryFromReminder(r) === cat.value).length;
+          return (
+            <button
+              key={cat.value}
+              onClick={() => setCategoryFilter(cat.value)}
+              className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1.5 ${
+                categoryFilter === cat.value
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm'
+                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+              }`}
+            >
+              <span>{cat.emoji}</span>
+              <span>{cat.label}</span>
+              <span className="text-xs text-gray-400 dark:text-gray-500">({count})</span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* Error */}
       {error && (
         <div className="bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-lg p-4 text-red-700 dark:text-red-300">
@@ -177,6 +227,29 @@ export default function Reminders() {
               placeholder="Short name for this reminder"
               className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Category
+            </label>
+            <div className="flex gap-2">
+              {CATEGORIES.filter(c => c.value !== 'all').map((cat) => (
+                <button
+                  key={cat.value}
+                  type="button"
+                  onClick={() => setNewCategory(cat.value)}
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors flex items-center gap-1.5 border ${
+                    newCategory === cat.value
+                      ? 'bg-blue-50 dark:bg-blue-900/30 border-blue-300 dark:border-blue-700 text-blue-700 dark:text-blue-300'
+                      : 'border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  <span>{cat.emoji}</span>
+                  <span>{cat.label}</span>
+                </button>
+              ))}
+            </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
@@ -246,7 +319,7 @@ export default function Reminders() {
       )}
 
       {/* Reminders List */}
-      {reminders.length === 0 ? (
+      {filteredReminders.length === 0 ? (
         <div className="text-center py-16 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-dashed border-gray-300 dark:border-gray-700">
           <span className="text-4xl mb-4 block">🔔</span>
           <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-1">
@@ -258,7 +331,7 @@ export default function Reminders() {
         </div>
       ) : (
         <div className="space-y-3">
-          {reminders.map((reminder) => (
+          {filteredReminders.map((reminder) => (
             <div
               key={reminder.id}
               className={`bg-white dark:bg-gray-800 border rounded-xl p-4 ${
