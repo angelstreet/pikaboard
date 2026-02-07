@@ -372,6 +372,26 @@ class ApiClient {
     this.invalidateCache('stats');
   }
 
+  async archiveTask(id: number): Promise<void> {
+    await this.fetch(`/tasks/${id}/archive`, { method: 'POST' });
+    this.invalidateCache('tasks');
+    this.invalidateCache('stats');
+  }
+
+  async restoreTask(id: number): Promise<void> {
+    await this.fetch(`/tasks/${id}/restore`, { method: 'POST' });
+    this.invalidateCache('tasks');
+    this.invalidateCache('stats');
+  }
+
+  async getArchivedTasks(params?: { board_id?: number }): Promise<Task[]> {
+    const search = new URLSearchParams();
+    if (params?.board_id) search.set('board_id', String(params.board_id));
+    const query = search.toString();
+    const res = await this.fetch<{ tasks: Task[] }>(`/tasks/archived${query ? `?${query}` : ''}`);
+    return res.tasks;
+  }
+
   // Activity
   async getActivity(params?: { limit?: number; type?: string }): Promise<Activity[]> {
     const search = new URLSearchParams();

@@ -349,12 +349,12 @@ export default function Boards() {
   const handleArchiveTask = async (task: Task) => {
     const confirmed = await confirm({
       title: 'Archive Task',
-      message: `Archive task #${task.id}: "${task.name}"?`,
+      message: `Archive task #${task.id}: "${task.name}"? You can restore it later from the archive.`,
       confirmText: 'Archive',
       variant: 'warning',
     });
     if (confirmed) {
-      await api.deleteTask(task.id);
+      await api.archiveTask(task.id);
       setTasks((prev) => prev.filter((t) => t.id !== task.id));
     }
   };
@@ -370,13 +370,13 @@ export default function Boards() {
     
     const confirmed = await confirm({
       title: 'Archive All Done Tasks',
-      message: `Archive all ${doneTasks.length} done tasks from "${currentBoard.name}"?`,
+      message: `Archive all ${doneTasks.length} done tasks from "${currentBoard.name}"? You can restore them later.`,
       confirmText: 'Archive All',
       variant: 'danger',
     });
     
     if (confirmed) {
-      await Promise.all(doneTasks.map((t) => api.deleteTask(t.id)));
+      await Promise.all(doneTasks.map((t) => api.archiveTask(t.id)));
       setTasks((prev) => prev.filter((t) => !(t.status === 'done' && t.board_id === currentBoard.id)));
     }
   };

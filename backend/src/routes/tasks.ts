@@ -53,9 +53,15 @@ tasksRouter.get('/', (c) => {
   const boardId = c.req.query('board_id');
   const search = c.req.query('search');
   const tag = c.req.query('tag');
+  const includeArchived = c.req.query('includeArchived') === 'true';
 
   let query = 'SELECT t.*, b.name as board_name FROM tasks t LEFT JOIN boards b ON t.board_id = b.id WHERE 1=1';
   const params: (string | number)[] = [];
+
+  // By default, exclude archived tasks
+  if (!includeArchived) {
+    query += ' AND (t.archived = 0 OR t.archived IS NULL)';
+  }
 
   if (status) {
     query += ' AND t.status = ?';
@@ -94,6 +100,30 @@ tasksRouter.get('/', (c) => {
   }));
 
   return c.json({ tasks: parsed });
+});
+
+// GET /api/tasks/archived - List archived tasks (MUST be before /:id)
+tasksRouter.get('/archived', (c) => {
+  const boardId = c.req.query('board_id');
+  
+  let query = 'SELECT t.*, b.name as board_name FROM tasks t LEFT JOIN boards b ON t.board_id = b.id WHERE t.archived = 1';
+  const params: (string | number)[] = [];
+
+  if (boardId) {
+    query += ' AND t.board_id = ?';
+    params.push(parseInt(boardId));
+  }
+
+  query += ' ORDER BY t.archived_at DESC';
+
+  const tasks = db.prepare(query).all(...params) as (Task & { board_name: string })[];
+
+  return c.json({
+    tasks: tasks.map((t) => ({
+      ...t,
+      tags: t.tags ? JSON.parse(t.tags) : [],
+    })),
+  });
 });
 
 // GET /api/tasks/:id - Get single task
@@ -306,7 +336,7 @@ tasksRouter.patch('/:id', async (c) => {
   });
 });
 
-// DELETE /api/tasks/:id - Delete task
+// DELETE /api/tasks/:id - Permanently delete task
 tasksRouter.delete('/:id', (c) => {
   const id = c.req.param('id');
 
@@ -321,4 +351,38 @@ tasksRouter.delete('/:id', (c) => {
   logActivity('task_deleted', `Deleted task: ${existing.name}`, { taskId: existing.id });
 
   return c.json({ success: true });
+});
+
+// POST /api/tasks/:id/archive - Archive task (soft delete)
+tasksRouter.post('/:id/archive', (c) => {
+  const id = c.req.param('id');
+
+  const existing = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id) as Task | undefined;
+  if (!existing) {
+    return c.json({ error: 'Task not found' }, 404);
+  }
+
+  db.prepare('UPDATE tasks SET archived = 1, archived_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(id);
+
+  // Log activity
+  logActivity('task_archived', `Archived task: ${existing.name}`, { taskId: existing.id });
+
+  return c.json({ success: true, message: 'Task archived' });
+});
+
+// POST /api/tasks/:id/restore - Restore archived task
+tasksRouter.post('/:id/restore', (c) => {
+  const id = c.req.param('id');
+
+  const existing = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id) as Task | undefined;
+  if (!existing) {
+    return c.json({ error: 'Task not found' }, 404);
+  }
+
+  db.prepare('UPDATE tasks SET archived = 0, archived_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(id);
+
+  // Log activity
+  logActivity('task_restored', `Restored task: ${existing.name}`, { taskId: existing.id });
+
+  return c.json({ success: true, message: 'Task restored' });
 });
