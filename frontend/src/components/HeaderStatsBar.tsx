@@ -194,26 +194,26 @@ export default function HeaderStatsBar() {
     : (insights?.summary.totalCompleted ?? taskCounts.done);
 
   return (
-    <div className="bg-gray-800 text-gray-200 px-4 py-1.5 text-sm">
+    <div className="bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-200 px-4 py-1.5 text-sm">
       <div className="max-w-7xl mx-auto flex items-center justify-between">
         {/* Date & Time - Compact on mobile */}
         <div className="flex items-center gap-2 sm:gap-3">
-          <span className="text-gray-400 hidden sm:inline">📅</span>
+          <span className="hidden sm:inline">📅</span>
           <span className="font-medium text-xs sm:text-sm">{formatDate(currentTime)}</span>
-          <span className="text-gray-500 hidden sm:inline">|</span>
+          <span className="text-gray-300 dark:text-gray-500 hidden sm:inline">|</span>
           <span className="font-mono text-xs sm:text-sm">{formatTime(currentTime)}</span>
         </div>
 
         {/* Time Period Toggle & Stats - Hidden on mobile, compact on tablet */}
         <div className="hidden sm:flex items-center gap-2 md:gap-4">
           {/* Toggle Button */}
-          <div className="flex items-center bg-gray-700 rounded-md p-0.5">
+          <div className="flex items-center bg-gray-200 dark:bg-gray-700 rounded-md p-0.5">
             <button
               onClick={() => setTimePeriod('today')}
               className={`px-2 py-0.5 text-xs rounded transition-colors ${
                 timePeriod === 'today'
                   ? 'bg-blue-600 text-white'
-                  : 'text-gray-400 hover:text-white'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
               Today
@@ -223,43 +223,43 @@ export default function HeaderStatsBar() {
               className={`px-2 py-0.5 text-xs rounded transition-colors ${
                 timePeriod === 'alltime'
                   ? 'bg-blue-600 text-white'
-                  : 'text-gray-400 hover:text-white'
+                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
               }`}
             >
               All-time
             </button>
           </div>
 
-          <span className="text-gray-600 hidden md:inline">|</span>
+          <span className="text-gray-300 dark:text-gray-600 hidden md:inline">|</span>
 
           {/* Stats - Simplified on tablet */}
           <div className="flex items-center gap-2 md:gap-3">
             <div className="flex items-center gap-1" title="Completed">
-              <span className="text-gray-400 text-xs">✅</span>
+              <span className="text-xs">✅</span>
               <span className="hidden md:inline text-xs">
-                Done: <span className="font-semibold text-green-400">{completedCount}</span>
+                Done: <span className="font-semibold text-green-600 dark:text-green-400">{completedCount}</span>
               </span>
-              <span className="md:hidden font-semibold text-green-400 text-xs">{completedCount}</span>
+              <span className="md:hidden font-semibold text-green-600 dark:text-green-400 text-xs">{completedCount}</span>
             </div>
             <div className="flex items-center gap-1" title="Active">
-              <span className="text-gray-400 text-xs">⚡</span>
+              <span className="text-xs">⚡</span>
               <span className="hidden md:inline text-xs">
-                Active: <span className="font-semibold text-blue-400">{taskCounts.active}</span>
+                Active: <span className="font-semibold text-blue-600 dark:text-blue-400">{taskCounts.active}</span>
               </span>
-              <span className="md:hidden font-semibold text-blue-400 text-xs">{taskCounts.active}</span>
+              <span className="md:hidden font-semibold text-blue-600 dark:text-blue-400 text-xs">{taskCounts.active}</span>
             </div>
             <div className="flex items-center gap-1" title="Inbox">
-              <span className="text-gray-400 text-xs">📥</span>
+              <span className="text-xs">📥</span>
               <span className="hidden md:inline text-xs">
-                Inbox: <span className="font-semibold text-yellow-400">{taskCounts.inbox}</span>
+                Inbox: <span className="font-semibold text-yellow-600 dark:text-yellow-400">{taskCounts.inbox}</span>
               </span>
-              <span className="md:hidden font-semibold text-yellow-400 text-xs">{taskCounts.inbox}</span>
+              <span className="md:hidden font-semibold text-yellow-600 dark:text-yellow-400 text-xs">{taskCounts.inbox}</span>
             </div>
             <div className="flex items-center gap-1" title={`Context: ${formatTokensK(contextTokens.current)}/${formatTokensK(contextTokens.total)} (initial: ${formatTokensK(contextTokens.initial)})`}>
-              <span className="text-gray-400 text-xs">🧮</span>
+              <span className="text-xs">🧮</span>
               {(() => {
                 const pct = contextTokens.total > 0 ? (contextTokens.current / contextTokens.total) * 100 : 0;
-                const colorClass = pct > 75 ? 'text-red-400' : 'text-blue-400';
+                const colorClass = pct > 75 ? 'text-red-600 dark:text-red-400' : 'text-blue-600 dark:text-blue-400';
                 return (
                   <>
                     <span className="hidden md:inline text-xs">
@@ -272,7 +272,7 @@ export default function HeaderStatsBar() {
               <button
                 onClick={handleResetSession}
                 disabled={isResetting}
-                className="ml-1 p-0.5 text-gray-500 hover:text-red-400 transition-colors disabled:opacity-50"
+                className="ml-1 p-0.5 text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 transition-colors disabled:opacity-50"
                 title="Clear session (/new)"
               >
                 <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -284,12 +284,12 @@ export default function HeaderStatsBar() {
             </div>
           </div>
           
-          <span className="text-gray-600 hidden lg:inline">|</span>
+          <span className="text-gray-300 dark:text-gray-600 hidden lg:inline">|</span>
 
           {/* Cost - Hidden on tablet */}
           <div className="hidden lg:flex items-center gap-2" title={timePeriod === 'today' ? 'Today\'s cost' : 'Monthly cost'}>
-            <span className="text-gray-400">💰</span>
-            <span className="font-semibold text-green-400">
+            <span>💰</span>
+            <span className="font-semibold text-green-600 dark:text-green-400">
               {formatCurrencyCompact(currentUsage.total)}
             </span>
           </div>
@@ -306,7 +306,7 @@ export default function HeaderStatsBar() {
             title="Open OpenClaw Gateway"
           >
             <div className={`w-2 h-2 rounded-full ${color} ${pulse ? 'animate-pulse' : ''}`} />
-            <span className="text-xs text-gray-400 hidden sm:inline">{text}</span>
+            <span className="text-xs text-gray-500 dark:text-gray-400 hidden sm:inline">{text}</span>
           </a>
           <button
             onClick={async () => {
@@ -316,7 +316,7 @@ export default function HeaderStatsBar() {
                 console.error('Restart failed', e);
               }
             }}
-            className="p-1 text-gray-400 hover:text-orange-500 transition-colors hidden sm:block"
+            className="p-1 text-gray-400 dark:text-gray-400 hover:text-orange-500 transition-colors hidden sm:block"
             title="Restart OpenClaw Gateway"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
