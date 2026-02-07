@@ -165,6 +165,53 @@ goalsRouter.post('/', async (c) => {
   return c.json(newGoal, 201);
 });
 
+// GET /api/goals/agent/:agentId - Get goals for a specific agent (for heartbeat integration)
+// Returns both agent-specific goals AND global goals, with linked tasks
+goalsRouter.get('/agent/:agentId', (c) => {
+  const agentId = c.req.param('agentId');
+  
+  // Get agent-specific goals + global goals (both active)
+  const goals = db.prepare(`
+    SELECT * FROM goals 
+    WHERE status = 'active' 
+    AND (agent_id = ? OR type = 'global')
+    ORDER BY type ASC, created_at DESC
+  `).all(agentId) as Goal[];
+
+  const enriched = goals.map(goal => {
+    const tasks = db.prepare(`
+      SELECT t.id, t.name, t.status, t.priority
+      FROM goal_tasks gt
+      JOIN tasks t ON gt.task_id = t.id
+      WHERE gt.goal_id = ?
+      ORDER BY t.position ASC
+    `).all(goal.id) as { id: number; name: string; status: string; priority: string }[];
+
+    const doneCount = tasks.filter(t => t.status === 'done').length;
+    const pendingTasks = tasks.filter(t => t.status !== 'done' && t.status !== 'rejected');
+
+    return {
+      ...goal,
+      tasks,
+      task_count: tasks.length,
+      done_count: doneCount,
+      pending_tasks: pendingTasks,
+      needs_tasks: pendingTasks.length === 0 && goal.progress < 100,
+    };
+  });
+
+  return c.json({ 
+    goals: enriched,
+    agent_id: agentId,
+    summary: {
+      total: enriched.length,
+      needs_tasks: enriched.filter(g => g.needs_tasks).length,
+      global: enriched.filter(g => g.type === 'global').length,
+      agent_specific: enriched.filter(g => g.type === 'agent').length,
+    }
+  });
+});
+
 // GET /api/goals/:id - Get single goal with tasks
 goalsRouter.get('/:id', (c) => {
   const id = parseInt(c.req.param('id'));
