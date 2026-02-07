@@ -1,29 +1,5 @@
 import { useState, useEffect } from 'react';
-import { API_BASE_URL } from '../api/client';
-
-interface Agent {
-  id: string;
-  name: string;
-  emoji: string;
-  skills: string[];
-  plugins: string[];
-}
-
-interface Skill {
-  name: string;
-  description?: string;
-  version?: string;
-  hasSkillMd: boolean;
-  usedBy: { id: string; name: string; emoji: string }[];
-}
-
-interface Plugin {
-  name: string;
-  enabled: boolean;
-  connected?: boolean;
-  config?: Record<string, string>;
-  usedBy: { id: string; name: string; emoji: string }[];
-}
+import { api, LibraryAgent as Agent, LibrarySkill as Skill, LibraryPlugin as Plugin } from '../api/client';
 
 const PLUGIN_ICONS: Record<string, string> = {
   slack: '💬',
@@ -35,46 +11,34 @@ const PLUGIN_ICONS: Record<string, string> = {
   imessage: '💬',
 };
 
-const getToken = (): string => {
-  return localStorage.getItem('pikaboard_token') || '';
-};
-
 export default function Library() {
+  const cachedSkills = api.getCached<{ skills: Skill[]; agents: Agent[] }>('/library/skills');
+  const cachedPlugins = api.getCached<{ plugins: Plugin[]; agents: Agent[] }>('/library/plugins');
+
   const [tab, setTab] = useState<'skills' | 'plugins'>('skills');
-  const [skills, setSkills] = useState<Skill[]>([]);
-  const [plugins, setPlugins] = useState<Plugin[]>([]);
-  const [agents, setAgents] = useState<Agent[]>([]);
+  const [skills, setSkills] = useState<Skill[]>(cachedSkills?.skills ?? []);
+  const [plugins, setPlugins] = useState<Plugin[]>(cachedPlugins?.plugins ?? []);
+  const [agents, setAgents] = useState<Agent[]>(cachedSkills?.agents ?? cachedPlugins?.agents ?? []);
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(!cachedSkills);
 
   useEffect(() => {
     fetchData();
   }, []);
 
   const fetchData = async () => {
-    setLoading(true);
+    if (!skills.length) setLoading(true);
     try {
-      const headers = {
-        Authorization: `Bearer ${getToken()}`,
-        'Content-Type': 'application/json',
-      };
-
-      const [skillsRes, pluginsRes] = await Promise.all([
-        fetch(`${API_BASE_URL}/library/skills`, { headers }),
-        fetch(`${API_BASE_URL}/library/plugins`, { headers }),
+      const [skillsData, pluginsData] = await Promise.all([
+        api.getLibrarySkills(),
+        api.getLibraryPlugins(),
       ]);
 
-      if (skillsRes.ok) {
-        const data = await skillsRes.json();
-        setSkills(data.skills || []);
-        if (data.agents) setAgents(data.agents);
-      }
+      setSkills(skillsData.skills || []);
+      if (skillsData.agents) setAgents(skillsData.agents);
 
-      if (pluginsRes.ok) {
-        const data = await pluginsRes.json();
-        setPlugins(data.plugins || []);
-        if (data.agents && agents.length === 0) setAgents(data.agents);
-      }
+      setPlugins(pluginsData.plugins || []);
+      if (pluginsData.agents && agents.length === 0) setAgents(pluginsData.agents);
     } catch (error) {
       console.error('Failed to fetch library data:', error);
     } finally {

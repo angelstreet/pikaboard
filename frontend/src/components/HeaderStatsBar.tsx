@@ -37,7 +37,6 @@ export default function HeaderStatsBar() {
   const [status, setStatus] = useState<ConnectionStatus>('loading');
   const [usage, setUsage] = useState<UsageSummary | null>(null);
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('today');
-  const [contextTokens, setContextTokens] = useState({ current: 45000, total: 200000 });
   const [sessionContext, setSessionContext] = useState<SessionContextInfo | null>(null);
 
   // Update time every minute
@@ -208,14 +207,7 @@ export default function HeaderStatsBar() {
               </span>
               <span className="md:hidden font-semibold text-yellow-400 text-xs">{taskCounts.inbox}</span>
             </div>
-            <div className="flex items-center gap-1" title="Context Tokens">
-              <span className="text-gray-400 text-xs">🧮</span>
-              <span className="hidden md:inline text-xs">
-                Context: <span className="font-semibold text-blue-400">{formatTokensK(contextTokens.current)}/{formatTokensK(contextTokens.total)}</span>
-              </span>
-              <span className="md:hidden font-semibold text-blue-400 text-xs">{formatTokensK(contextTokens.current)}/{formatTokensK(contextTokens.total)}</span>
             </div>
-          </div>
           
           <span className="text-gray-600 hidden lg:inline">|</span>
 

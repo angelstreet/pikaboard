@@ -66,6 +66,30 @@ export interface Skill {
   description?: string;
 }
 
+export interface LibraryAgent {
+  id: string;
+  name: string;
+  emoji: string;
+  skills: string[];
+  plugins: string[];
+}
+
+export interface LibrarySkill {
+  name: string;
+  description?: string;
+  version?: string;
+  hasSkillMd: boolean;
+  usedBy: { id: string; name: string; emoji: string }[];
+}
+
+export interface LibraryPlugin {
+  name: string;
+  enabled: boolean;
+  connected?: boolean;
+  config?: Record<string, string>;
+  usedBy: { id: string; name: string; emoji: string }[];
+}
+
 export interface Goal {
   id: number;
   title: string;
@@ -250,10 +274,15 @@ class ApiClient {
   private async cachedFetch<T>(path: string): Promise<T> {
     const cached = apiCache.get<T>(path);
     if (cached) return cached;
-    
+
     const data = await this.fetch<T>(path);
     apiCache.set(path, data);
     return data;
+  }
+
+  // Synchronous cache read for initializing component state without loading flash
+  getCached<T>(path: string): T | null {
+    return apiCache.get<T>(path);
   }
 
   // Invalidate cache after mutations
@@ -372,6 +401,15 @@ class ApiClient {
 
   async getSkill(name: string): Promise<Skill & { skillMd?: string; readme?: string; files?: string[] }> {
     return this.fetch(`/skills/${name}`);
+  }
+
+  // Library
+  async getLibrarySkills(): Promise<{ skills: LibrarySkill[]; agents: LibraryAgent[] }> {
+    return this.cachedFetch('/library/skills');
+  }
+
+  async getLibraryPlugins(): Promise<{ plugins: LibraryPlugin[]; agents: LibraryAgent[] }> {
+    return this.cachedFetch('/library/plugins');
   }
 
   // Agents
