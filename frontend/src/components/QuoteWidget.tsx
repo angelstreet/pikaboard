@@ -48,12 +48,15 @@ function getRandomQuote(): Quote {
   return QUOTES[Math.floor(Math.random() * QUOTES.length)];
 }
 
-/** Check if quotes are enabled via localStorage (default: true) */
+/** Check if quotes are enabled via localStorage (default: false) */
 function isQuotesEnabled(): boolean {
   try {
+    // Disabled on mobile
+    if (window.innerWidth < 768) return false;
     const val = localStorage.getItem('pikaboard_quotes_enabled');
-    return val !== 'false';
-  } catch { return true; }
+    // Default: disabled. Must explicitly set to 'true' to enable.
+    return val === 'true';
+  } catch { return false; }
 }
 
 export function QuoteWidget({ interval = 45000 }: { interval?: number }) {
