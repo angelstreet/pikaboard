@@ -5,62 +5,62 @@ This file is a **bootstrap context** for assistants. It documents where to find 
 ## Environments
 
 ### Local (dev)
-- UI base URL: `<FILL>`
-- API base URL: `<FILL>`
-- API health endpoint: `<FILL>`
-- System health endpoint: `<FILL>`
+- UI base URL: `http://localhost:5173/pikaboard-dev/`
+- API base URL: `http://localhost:3001/api`
+- API health endpoint: `http://localhost:3001/health`
+- System health endpoint: `http://localhost:3001/api/system/health`
 - Auth token location: `backend/.env` (do not commit the value)
-- DB path: `<FILL>` (default is `./data/pikaboard.db`)
+- DB path: `backend/pikaboard.db`
 
 ### Dev (server)
-- UI base URL: `<FILL>`
-- API base URL: `<FILL>`
-- API health endpoint: `<FILL>`
-- System health endpoint: `<FILL>`
-- Auth token location: `<FILL>` (path or secret manager)
+- UI base URL: `https://65.108.14.251:8080/pikaboard-dev/`
+- API base URL: `http://127.0.0.1:3001/api` (internal) or `https://65.108.14.251:8080/api` (external via nginx)
+- API health endpoint: `/health`
+- System health endpoint: `/api/system/health`
+- Auth token location: `~/.openclaw/workspace/shared/projects/pikaboard/backend/.env`
 
 ### Prod (server)
-- UI base URL: `<FILL>`
-- API base URL: `<FILL>`
-- API health endpoint: `<FILL>`
-- System health endpoint: `<FILL>`
-- Auth token location: `<FILL>` (path or secret manager)
+- UI base URL: `https://65.108.14.251:8080/pikaboard/`
+- API base URL: `https://65.108.14.251:8080/api`
+- API health endpoint: `/health`
+- System health endpoint: `/api/system/health`
+- Auth token location: `~/.openclaw/workspace/shared/projects/pikaboard/backend/.env`
 
 ## Nginx / Reverse Proxy
-- Nginx config path(s): `<FILL>`
-- UI path prefix (if any): `<FILL>`
-- API path prefix (if any): `<FILL>`
-- Auth handled at proxy?: `<YES/NO>`
+- Nginx config path(s): `/etc/nginx/sites-enabled/openclaw`
+- UI path prefix (if any): `/pikaboard/` (prod), `/pikaboard-dev/` (dev)
+- API path prefix (if any): `/api/` (proxied to backend:3001)
+- Auth handled at proxy?: NO (handled by backend middleware)
 
 ## OpenClaw
-- OpenClaw workspace: `<FILL>`
-- Agents path: `<FILL>` (default `~/.openclaw/agents`)
-- Skills path: `<FILL>` (default `~/.openclaw/workspace/skills`)
-- PikaBoard token for OpenClaw → API: `<FILL>` (location only)
+- OpenClaw workspace: `~/.openclaw/workspace`
+- Agents path: `~/.openclaw/agents`
+- Skills path: `~/.openclaw/workspace/skills` (symlink to shared/skills)
+- PikaBoard token for OpenClaw → API: `backend/.env` (variable: `PIKABOARD_TOKEN`)
 
 ## Health/Status Checks
 
 ### Backend
 - Check backend health:
-  - `curl -s <API_BASE>/health`
+  - `curl -s http://127.0.0.1:3001/health`
 - Check system health:
-  - `curl -s <API_BASE>/api/system/health`
+  - `curl -s http://127.0.0.1:3001/api/system/health`
 
 ### Frontend
 - Check UI reachable:
-  - `curl -I <UI_BASE>`
+  - `curl -I http://localhost:5173/pikaboard-dev/`
 
 ### PikaBoard data
 - List tasks:
-  - `curl -s -H "Authorization: Bearer <TOKEN>" <API_BASE>/api/tasks`
+  - `curl -s -H "Authorization: Bearer $PIKABOARD_TOKEN" http://127.0.0.1:3001/api/tasks`
 - List boards:
-  - `curl -s -H "Authorization: Bearer <TOKEN>" <API_BASE>/api/boards`
+  - `curl -s -H "Authorization: Bearer $PIKABOARD_TOKEN" http://127.0.0.1:3001/api/boards`
 - Inbox (questions/approvals):
-  - `curl -s -H "Authorization: Bearer <TOKEN>" <API_BASE>/api/questions?status=pending`
+  - `curl -s -H "Authorization: Bearer $PIKABOARD_TOKEN" http://127.0.0.1:3001/api/questions?status=pending`
 
 ### OpenClaw agent status
-- Agent heartbeat/status endpoint (if any): `<FILL>`
-- How to check from filesystem/logs: `<FILL>`
+- Agent heartbeat/status endpoint: `http://127.0.0.1:18789/openclaw/api/status`
+- How to check from filesystem/logs: `pm2 logs openclaw` or `~/.openclaw/logs/`
 
 ## Local Commands (repo)
 
@@ -69,16 +69,23 @@ This file is a **bootstrap context** for assistants. It documents where to find 
   - `cd backend && npm run dev`
 - Run tests:
   - `cd backend && npm test`
+- PM2 management:
+  - `pm2 restart pikaboard-backend`
+  - `pm2 logs pikaboard-backend`
 
 ### Frontend
 - Start dev server:
   - `cd frontend && npm run dev`
-- Build:
-  - `cd frontend && npm run build`
+- Build (prod only, not for dev branch):
+  - `cd frontend && VITE_BASE_PATH=/pikaboard/ npm run build`
 
 ### Full checks (pre-review)
-- `./scripts/pre-review-check.sh`
+- Type check: `cd frontend && npx tsc --noEmit`
+- API smoke test: `curl -s http://127.0.0.1:3001/api/tasks | head`
+- Screenshot: `node /tmp/screenshot-tool/mobile-screenshot.js "http://127.0.0.1:5173/pikaboard-dev/" "/tmp/test.png"`
 
 ## Notes
 - Do **not** put secrets in this file.
-- If you need to share tokens with an assistant, provide them out-of-band or point to the secret location.
+- Token is in `backend/.env` as `PIKABOARD_TOKEN=<value>`
+- Dev branch: `npm run dev` only, never build
+- Main branch: build for production
