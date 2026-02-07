@@ -65,6 +65,22 @@ export interface Skill {
   description?: string;
 }
 
+export interface Goal {
+  id: number;
+  title: string;
+  description: string | null;
+  type: 'global' | 'agent';
+  agent_id: number | null;
+  status: 'active' | 'paused' | 'achieved';
+  progress: number;
+  deadline: string | null;
+  board_id: number | null;
+  created_at: string;
+  updated_at: string;
+  task_count?: number;
+  done_count?: number;
+}
+
 export interface Agent {
   id: string;
   name: string;
@@ -88,6 +104,7 @@ export interface Agent {
   recentActivity: string[];
   lastSeen: string | null;
   configPath: string;
+  inProgressTasks: number;
 }
 
 export interface AgentStats {
@@ -130,9 +147,10 @@ export interface ProposalItem {
 export interface Question {
   id: number;
   agent: string;
+  type: 'question' | 'approval';
   question: string;
   context: string | null;
-  status: 'pending' | 'answered';
+  status: 'pending' | 'answered' | 'approved' | 'rejected';
   answer: string | null;
   created_at: string;
   answered_at: string | null;
@@ -349,9 +367,12 @@ class ApiClient {
   }
 
   // Questions
-  async getQuestions(status?: 'pending' | 'answered'): Promise<Question[]> {
-    const query = status ? `?status=${status}` : '';
-    const res = await this.fetch<QuestionsResponse>(`/questions${query}`);
+  async getQuestions(status?: 'pending' | 'answered' | 'approved' | 'rejected', type?: 'question' | 'approval'): Promise<Question[]> {
+    const params = new URLSearchParams();
+    if (status) params.set('status', status);
+    if (type) params.set('type', type);
+    const query = params.toString();
+    const res = await this.fetch<QuestionsResponse>(`/questions${query ? `?${query}` : ''}`);
     return res.questions;
   }
 
@@ -362,11 +383,52 @@ class ApiClient {
     });
   }
 
-  async submitQuestion(agent: string, question: string, context?: string): Promise<{ success: boolean; question: Question; message: string }> {
+  async approveQuestion(id: number, comment?: string): Promise<{ success: boolean; question: Question; message: string }> {
+    return this.fetch(`/questions/${id}/approve`, {
+      method: 'POST',
+      body: JSON.stringify({ comment }),
+    });
+  }
+
+  async rejectQuestion(id: number, comment?: string): Promise<{ success: boolean; question: Question; message: string }> {
+    return this.fetch(`/questions/${id}/reject`, {
+      method: 'POST',
+      body: JSON.stringify({ comment }),
+    });
+  }
+
+  async submitQuestion(agent: string, question: string, context?: string, type?: 'question' | 'approval'): Promise<{ success: boolean; question: Question; message: string }> {
     return this.fetch('/questions', {
       method: 'POST',
-      body: JSON.stringify({ agent, question, context }),
+      body: JSON.stringify({ agent, question, context, type }),
     });
+  }
+
+  // Goals
+  async getGoals(): Promise<{ goals: Goal[] }> {
+    return this.fetch<{ goals: Goal[] }>('/goals');
+  }
+
+  async getGoal(id: number): Promise<Goal> {
+    return this.fetch<Goal>(`/goals/${id}`);
+  }
+
+  async createGoal(goal: Partial<Goal>): Promise<Goal> {
+    return this.fetch<Goal>('/goals', {
+      method: 'POST',
+      body: JSON.stringify(goal),
+    });
+  }
+
+  async updateGoal(id: number, updates: Partial<Goal>): Promise<Goal> {
+    return this.fetch<Goal>(`/goals/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    });
+  }
+
+  async deleteGoal(id: number): Promise<void> {
+    await this.fetch(`/goals/${id}`, { method: 'DELETE' });
   }
 }
 

@@ -1,13 +1,13 @@
 import { useState, useEffect, useMemo } from 'react';
-import { api, AgentProposals, Question } from '../api/client';
+import { api, Question } from '../api/client';
 
-interface AgentQuestions {
+interface GroupedQuestions {
   agentId: string;
   items: Question[];
 }
 
 export default function Inbox() {
-  const [proposals, setProposals] = useState<AgentProposals[]>([]);
+  const [approvals, setApprovals] = useState<Question[]>([]);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -19,11 +19,11 @@ export default function Inbox() {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [proposalsData, questionsData] = await Promise.all([
-        api.getProposals(),
-        api.getQuestions('pending'),
+      const [approvalsData, questionsData] = await Promise.all([
+        api.getQuestions('pending', 'approval'),
+        api.getQuestions('pending', 'question'),
       ]);
-      setProposals(proposalsData.proposals);
+      setApprovals(approvalsData);
       setQuestions(questionsData);
       setError(null);
     } catch (err) {
@@ -40,24 +40,14 @@ export default function Inbox() {
     return () => clearInterval(interval);
   }, []);
 
-  const handleApprove = async (agentId: string, index: number) => {
-    const key = `${agentId}-${index}`;
+  const handleApprove = async (id: number) => {
+    const key = `approval-${id}`;
+    const itemComment = comment[key] || '';
     setActionLoading(key);
     try {
-      await api.approveProposal(agentId, index);
+      await api.approveQuestion(id, itemComment.trim() || undefined);
       // Update local state
-      setProposals((prev) =>
-        prev
-          .map((p) => {
-            if (p.agentId === agentId) {
-              const newItems = [...p.items];
-              newItems.splice(index, 1);
-              return { ...p, items: newItems };
-            }
-            return p;
-          })
-          .filter((p) => p.items.length > 0)
-      );
+      setApprovals((prev) => prev.filter((a) => a.id !== id));
       // Clear comment for this item
       setComment((prev) => {
         const next = { ...prev };
@@ -71,24 +61,14 @@ export default function Inbox() {
     }
   };
 
-  const handleReject = async (agentId: string, index: number) => {
-    const key = `${agentId}-${index}`;
+  const handleReject = async (id: number) => {
+    const key = `approval-${id}`;
+    const itemComment = comment[key] || '';
     setActionLoading(key);
     try {
-      await api.rejectProposal(agentId, index);
+      await api.rejectQuestion(id, itemComment.trim() || undefined);
       // Update local state
-      setProposals((prev) =>
-        prev
-          .map((p) => {
-            if (p.agentId === agentId) {
-              const newItems = [...p.items];
-              newItems.splice(index, 1);
-              return { ...p, items: newItems };
-            }
-            return p;
-          })
-          .filter((p) => p.items.length > 0)
-      );
+      setApprovals((prev) => prev.filter((a) => a.id !== id));
       // Clear comment
       setComment((prev) => {
         const next = { ...prev };
@@ -97,19 +77,6 @@ export default function Inbox() {
       });
     } catch (err) {
       console.error('Failed to reject:', err);
-    } finally {
-      setActionLoading(null);
-    }
-  };
-
-  const handleRejectAll = async (agentId: string) => {
-    const key = `${agentId}-all`;
-    setActionLoading(key);
-    try {
-      await api.rejectAllProposals(agentId);
-      setProposals((prev) => prev.filter((p) => p.agentId !== agentId));
-    } catch (err) {
-      console.error('Failed to reject all:', err);
     } finally {
       setActionLoading(null);
     }
@@ -150,8 +117,25 @@ export default function Inbox() {
     return agentId.charAt(0).toUpperCase() + agentId.slice(1);
   };
 
+  // Group approvals by agent
+  const approvalsByAgent = useMemo<GroupedQuestions[]>(() => {
+    const grouped = approvals.reduce((acc, a) => {
+      const agentId = a.agent.toLowerCase();
+      if (!acc[agentId]) {
+        acc[agentId] = [];
+      }
+      acc[agentId].push(a);
+      return acc;
+    }, {} as Record<string, Question[]>);
+
+    return Object.entries(grouped).map(([agentId, items]) => ({
+      agentId,
+      items: items.sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()),
+    }));
+  }, [approvals]);
+
   // Group questions by agent
-  const questionsByAgent = useMemo<AgentQuestions[]>(() => {
+  const questionsByAgent = useMemo<GroupedQuestions[]>(() => {
     const grouped = questions.reduce((acc, q) => {
       const agentId = q.agent.toLowerCase();
       if (!acc[agentId]) {
@@ -167,9 +151,9 @@ export default function Inbox() {
     }));
   }, [questions]);
 
-  const totalItems = proposals.reduce((sum, p) => sum + p.items.length, 0) + questions.length;
+  const totalItems = approvals.length + questions.length;
 
-  if (loading && proposals.length === 0 && questions.length === 0) {
+  if (loading && approvals.length === 0 && questions.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-gray-500 dark:text-gray-400">Loading inbox...</div>
@@ -191,7 +175,7 @@ export default function Inbox() {
             )}
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1">
-            Review agent proposals and answer questions
+            Review agent approvals and answer questions
           </p>
         </div>
         <button
@@ -213,14 +197,14 @@ export default function Inbox() {
       <section>
         <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
           ✅ Pending Approvals
-          {proposals.length > 0 && (
+          {approvals.length > 0 && (
             <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
-              ({proposals.reduce((sum, p) => sum + p.items.length, 0)} items)
+              ({approvals.length} items)
             </span>
           )}
         </h2>
 
-        {proposals.length === 0 ? (
+        {approvals.length === 0 ? (
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 sm:p-8 text-center">
             <span className="text-3xl sm:text-4xl mb-3 sm:mb-4 block">✨</span>
             <p className="text-gray-600 dark:text-gray-400">No pending approvals</p>
@@ -228,53 +212,46 @@ export default function Inbox() {
           </div>
         ) : (
           <div className="space-y-4">
-            {proposals.map((agentProposal) => (
+            {approvalsByAgent.map((agentApproval) => (
               <div
-                key={agentProposal.agentId}
+                key={agentApproval.agentId}
                 className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden"
               >
                 {/* Agent Header */}
                 <div className="bg-gradient-to-r from-amber-50 to-yellow-50 dark:from-amber-900/20 dark:to-yellow-900/20 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <span className="text-2xl">{getAgentEmoji(agentProposal.agentId)}</span>
+                      <span className="text-2xl">{getAgentEmoji(agentApproval.agentId)}</span>
                       <div>
                         <h3 className="font-semibold text-gray-900 dark:text-white">
-                          {getAgentName(agentProposal.agentId)}
+                          {getAgentName(agentApproval.agentId)}
                         </h3>
                         <p className="text-xs text-gray-500 dark:text-gray-400">
-                          {agentProposal.items.length} proposal{agentProposal.items.length > 1 ? 's' : ''} pending
+                          {agentApproval.items.length} approval{agentApproval.items.length > 1 ? 's' : ''} pending
                         </p>
                       </div>
                     </div>
-                    <button
-                      onClick={() => handleRejectAll(agentProposal.agentId)}
-                      disabled={actionLoading === `${agentProposal.agentId}-all`}
-                      className="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:underline disabled:opacity-50"
-                    >
-                      Reject all
-                    </button>
                   </div>
                 </div>
 
-                {/* Proposals List */}
+                {/* Approvals List */}
                 <div className="divide-y divide-gray-100 dark:divide-gray-700">
-                  {agentProposal.items.map((item, index) => {
-                    const key = `${agentProposal.agentId}-${index}`;
+                  {agentApproval.items.map((item) => {
+                    const key = `approval-${item.id}`;
                     const isLoading = actionLoading === key;
                     const itemComment = comment[key] || '';
 
                     return (
                       <div
-                        key={index}
+                        key={item.id}
                         className="px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                       >
                         <div className="flex items-start justify-between gap-4">
                           <div className="flex-1 min-w-0">
-                            <p className="font-medium text-gray-900 dark:text-white">{item.name}</p>
-                            {item.description && (
+                            <p className="font-medium text-gray-900 dark:text-white">{item.question}</p>
+                            {item.context && (
                               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
-                                {item.description}
+                                {item.context}
                               </p>
                             )}
                             {/* Comment Field */}
@@ -290,14 +267,14 @@ export default function Inbox() {
                           </div>
                           <div className="flex items-center gap-2 flex-shrink-0">
                             <button
-                              onClick={() => handleApprove(agentProposal.agentId, index)}
+                              onClick={() => handleApprove(item.id)}
                               disabled={isLoading}
                               className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
                               {isLoading ? '...' : '✓ Accept'}
                             </button>
                             <button
-                              onClick={() => handleReject(agentProposal.agentId, index)}
+                              onClick={() => handleReject(item.id)}
                               disabled={isLoading}
                               className="px-4 py-2 bg-gray-100 dark:bg-gray-600 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-lg hover:bg-gray-200 dark:hover:bg-gray-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
