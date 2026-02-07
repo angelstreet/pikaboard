@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { api, AgentProposals, ProposalsResponse, Question } from '../api/client';
+import { api, AgentProposals, ProposalsResponse, Question, Task } from '../api/client';
 
 interface GroupedQuestions {
   agentId: string;
@@ -14,6 +14,7 @@ export default function Inbox() {
   const [approvals, setApprovals] = useState<Question[]>(cachedApprovals?.questions ?? []);
   const [questions, setQuestions] = useState<Question[]>(cachedQuestions?.questions ?? []);
   const [proposals, setProposals] = useState<AgentProposals[]>(cachedProposals?.proposals ?? []);
+  const [inboxTasks, setInboxTasks] = useState<(Task & { board_name?: string })[]>([]);
 
   const hasAnyCached = Boolean(cachedApprovals || cachedQuestions || cachedProposals);
   const [loading, setLoading] = useState(!hasAnyCached);
@@ -27,12 +28,14 @@ export default function Inbox() {
   const [proposalsOpen, setProposalsOpen] = useState(true);
   const [approvalsOpen, setApprovalsOpen] = useState(true);
   const [questionsOpen, setQuestionsOpen] = useState(true);
+  const [inboxTasksOpen, setInboxTasksOpen] = useState(true);
 
   // If a section is empty, keep it collapsed by default. If it has items, open it by default.
   // Once the user toggles a section, stop auto-managing that section's open state.
   const proposalsTouchedRef = useRef(false);
   const approvalsTouchedRef = useRef(false);
   const questionsTouchedRef = useRef(false);
+  const inboxTasksTouchedRef = useRef(false);
 
   const loadData = async () => {
     try {
@@ -42,11 +45,13 @@ export default function Inbox() {
         api.getProposals(),
         api.getQuestions('pending', 'approval'),
         api.getQuestions('pending', 'question'),
+        api.getTasks({ status: 'inbox' }),
       ]);
 
       const proposalsRes = results[0];
       const approvalsRes = results[1];
       const questionsRes = results[2];
+      const inboxTasksRes = results[3];
 
       if (proposalsRes.status === 'fulfilled') {
         setProposals(proposalsRes.value.proposals);
@@ -57,11 +62,15 @@ export default function Inbox() {
       if (questionsRes.status === 'fulfilled') {
         setQuestions(questionsRes.value);
       }
+      if (inboxTasksRes.status === 'fulfilled') {
+        setInboxTasks(inboxTasksRes.value);
+      }
 
       const errors: string[] = [];
       if (proposalsRes.status === 'rejected') errors.push('proposals');
       if (approvalsRes.status === 'rejected') errors.push('approvals');
       if (questionsRes.status === 'rejected') errors.push('questions');
+      if (inboxTasksRes.status === 'rejected') errors.push('inbox tasks');
       setError(errors.length ? `Failed to load: ${errors.join(', ')}` : null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load inbox');
@@ -169,6 +178,10 @@ export default function Inbox() {
   useEffect(() => {
     if (!questionsTouchedRef.current) setQuestionsOpen(questions.length > 0);
   }, [questions.length]);
+
+  useEffect(() => {
+    if (!inboxTasksTouchedRef.current) setInboxTasksOpen(inboxTasks.length > 0);
+  }, [inboxTasks.length]);
 
   const handleProposalCommentChange = (agentId: string, index: number, value: string) => {
     const key = `proposal-${agentId}-${index}`;
@@ -289,9 +302,9 @@ export default function Inbox() {
     }));
   }, [questions]);
 
-  const totalItems = proposalItemCount + approvals.length + questions.length;
+  const totalItems = proposalItemCount + approvals.length + questions.length + inboxTasks.length;
 
-  if (loading && proposals.length === 0 && approvals.length === 0 && questions.length === 0) {
+  if (loading && proposals.length === 0 && approvals.length === 0 && questions.length === 0 && inboxTasks.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-gray-500 dark:text-gray-400">Loading inbox...</div>
@@ -323,6 +336,69 @@ export default function Inbox() {
           <strong>Error:</strong> {error}
         </div>
       )}
+
+      {/* Inbox Tasks Section */}
+      <section>
+        <button
+          onClick={() => {
+            inboxTasksTouchedRef.current = true;
+            setInboxTasksOpen((v) => !v);
+          }}
+          className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+        >
+          <span className={`inline-block transition-transform ${inboxTasksOpen ? 'rotate-90' : ''}`}>▶</span>
+          📋 Tasks
+          {inboxTasks.length > 0 && (
+            <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+              ({inboxTasks.length})
+            </span>
+          )}
+        </button>
+
+        {!inboxTasksOpen ? null : inboxTasks.length === 0 ? (
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 sm:p-8 text-center">
+            <span className="text-3xl sm:text-4xl mb-3 sm:mb-4 block">📭</span>
+            <p className="text-gray-600 dark:text-gray-400">No tasks in inbox</p>
+          </div>
+        ) : (
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden divide-y divide-gray-100 dark:divide-gray-700">
+            {inboxTasks.map((task) => (
+              <div
+                key={task.id}
+                className="px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+              >
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className={`inline-block w-2 h-2 rounded-full flex-shrink-0 ${
+                        task.priority === 'urgent' ? 'bg-red-500' :
+                        task.priority === 'high' ? 'bg-orange-500' :
+                        task.priority === 'medium' ? 'bg-yellow-500' : 'bg-gray-400'
+                      }`} />
+                      <p className="font-medium text-gray-900 dark:text-white">
+                        #{task.id} {task.name}
+                      </p>
+                    </div>
+                    {task.board_name && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 ml-4">
+                        Board: {task.board_name}
+                      </p>
+                    )}
+                    {task.description && (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 ml-4 line-clamp-2">
+                        {task.description.slice(0, 150)}
+                      </p>
+                    )}
+                  </div>
+                  <span className="text-xs text-gray-400 dark:text-gray-500 flex-shrink-0">
+                    {new Date(task.created_at).toLocaleDateString()}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       {/* Blockers Section */}
       <section>
