@@ -52,6 +52,10 @@ export default function Settings() {
   const [config, setConfig] = useState<WorkspaceConfig | null>(cachedConfig);
   const [loading, setLoading] = useState(!cachedConfig);
   const [error, setError] = useState<string | null>(null);
+  const [quotesEnabled, setQuotesEnabled] = useState(() => {
+    try { return localStorage.getItem('pikaboard_quotes_enabled') !== 'false'; }
+    catch { return true; }
+  });
 
   useEffect(() => {
     const fetchConfig = async () => {
@@ -76,6 +80,33 @@ export default function Settings() {
       <div>
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">⚙️ Settings</h2>
         <p className="text-gray-500 dark:text-gray-400 mt-1">System configuration and monitoring</p>
+      </div>
+
+      {/* Preferences */}
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+        <div className="px-4 py-3 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+            🎨 Preferences
+          </h3>
+        </div>
+        <div className="p-4">
+          <div className="flex items-center justify-between py-2">
+            <div>
+              <span className="text-sm text-gray-900 dark:text-white">Inspirational Quotes</span>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Show floating quotes periodically</p>
+            </div>
+            <button
+              onClick={() => {
+                const next = !quotesEnabled;
+                setQuotesEnabled(next);
+                localStorage.setItem('pikaboard_quotes_enabled', String(next));
+              }}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${quotesEnabled ? 'bg-pika-600' : 'bg-gray-300 dark:bg-gray-600'}`}
+            >
+              <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${quotesEnabled ? 'translate-x-6' : 'translate-x-1'}`} />
+            </button>
+          </div>
+        </div>
       </div>
 
       {/* System Monitoring */}

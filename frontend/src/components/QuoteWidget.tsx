@@ -102,9 +102,9 @@ export function QuoteWidget({ interval = 45000 }: { interval?: number }) {
   return (
     <div
       className={`
-        fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-40 max-w-[280px] sm:max-w-xs
+        fixed bottom-20 sm:bottom-6 right-4 sm:right-6 z-40 max-w-sm sm:max-w-md
         bg-white/95 dark:bg-gray-800/95 backdrop-blur-sm
-        border border-gray-200 dark:border-gray-600
+        border border-white
         rounded-lg shadow-md px-3 py-2
         transition-all duration-400 ease-out
         ${exiting ? 'opacity-0 translate-y-3' : 'opacity-100 translate-y-0'}
