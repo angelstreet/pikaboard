@@ -432,7 +432,7 @@ export default function Boards() {
       {/* Header — compact single line on mobile */}
       <div className="flex items-center justify-between mb-3 sm:mb-6 gap-2">
         <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-          <h2 className="text-lg sm:text-2xl font-bold hidden sm:block">📋 Boards</h2>
+          <h2 className="text-lg sm:text-2xl font-bold hidden sm:block" data-testid="board-header">📋 Boards</h2>
           <BoardSelector
             boards={boards}
             currentBoard={currentBoard}
