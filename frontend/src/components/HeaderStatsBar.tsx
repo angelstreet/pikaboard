@@ -38,6 +38,7 @@ export default function HeaderStatsBar() {
   const [usage, setUsage] = useState<UsageSummary | null>(null);
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('today');
   const [contextTokens, setContextTokens] = useState({ current: 45000, total: 200000 });
+  const [sessionContext, setSessionContext] = useState<SessionContextInfo | null>(null);
 
   // Update time every minute
   useEffect(() => {
