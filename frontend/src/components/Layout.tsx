@@ -41,9 +41,13 @@ export default function Layout() {
   useEffect(() => {
     const fetchInboxCount = async () => {
       try {
-        const data = await api.getProposals();
-        const count = data.proposals.reduce((sum, p) => sum + p.items.length, 0);
-        setInboxCount(count);
+        const [proposals, approvals, questions] = await Promise.all([
+          api.getProposals(),
+          api.getQuestions('pending', 'approval'),
+          api.getQuestions('pending', 'question'),
+        ]);
+        const proposalCount = proposals.proposals.reduce((sum, p) => sum + p.items.length, 0);
+        setInboxCount(proposalCount + approvals.length + questions.length);
       } catch {
         // Silently fail - badge just won't show
       }

@@ -26,6 +26,12 @@ export default function Chat() {
   const wsRef = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const retriesRef = useRef(0);
+  const mountedRef = useRef(true);
+
+  const MAX_RETRIES = 5;
+  const BASE_DELAY = 3000;
+  const MAX_DELAY = 30000;
 
   // Get WebSocket URL based on environment
   const getWebSocketUrl = () => {
@@ -43,8 +49,23 @@ export default function Chat() {
     scrollToBottom();
   }, [messages]);
 
+  const scheduleReconnect = useCallback(() => {
+    if (!mountedRef.current) return;
+    if (retriesRef.current >= MAX_RETRIES) {
+      setConnectionError(`Failed to connect after ${MAX_RETRIES} attempts.`);
+      setIsConnecting(false);
+      return;
+    }
+    const delay = Math.min(BASE_DELAY * Math.pow(2, retriesRef.current), MAX_DELAY);
+    retriesRef.current++;
+    reconnectTimeoutRef.current = setTimeout(() => {
+      if (mountedRef.current) connect();
+    }, delay);
+  }, []);
+
   // Connect to WebSocket
   const connect = useCallback(() => {
+    if (!mountedRef.current) return;
     try {
       setIsConnecting(true);
       setConnectionError(null);
@@ -53,7 +74,9 @@ export default function Chat() {
       const ws = new WebSocket(wsUrl);
 
       ws.onopen = () => {
+        if (!mountedRef.current) { ws.close(); return; }
         console.log('WebSocket connected');
+        retriesRef.current = 0;
         setIsConnected(true);
         setIsConnecting(false);
         setConnectionError(null);
@@ -70,32 +93,23 @@ export default function Chat() {
 
       ws.onerror = (error) => {
         console.error('WebSocket error:', error);
-        setConnectionError('Connection error. Retrying...');
       };
 
       ws.onclose = () => {
+        if (!mountedRef.current) return;
         console.log('WebSocket disconnected');
         setIsConnected(false);
         setIsConnecting(false);
-        
-        // Attempt to reconnect after 3 seconds
-        reconnectTimeoutRef.current = setTimeout(() => {
-          connect();
-        }, 3000);
+        scheduleReconnect();
       };
 
       wsRef.current = ws;
     } catch (err) {
       console.error('Failed to create WebSocket connection:', err);
       setIsConnecting(false);
-      setConnectionError('Failed to connect. Retrying...');
-      
-      // Retry after 3 seconds
-      reconnectTimeoutRef.current = setTimeout(() => {
-        connect();
-      }, 3000);
+      scheduleReconnect();
     }
-  }, []);
+  }, [scheduleReconnect]);
 
   // Handle incoming WebSocket messages
   const handleWebSocketMessage = (data: WebSocketMessage) => {
@@ -206,9 +220,11 @@ export default function Chat() {
 
   // Connect on mount
   useEffect(() => {
+    mountedRef.current = true;
     connect();
 
     return () => {
+      mountedRef.current = false;
       if (reconnectTimeoutRef.current) {
         clearTimeout(reconnectTimeoutRef.current);
       }
@@ -217,6 +233,17 @@ export default function Chat() {
       }
     };
   }, [connect]);
+
+  const handleManualReconnect = () => {
+    retriesRef.current = 0;
+    if (reconnectTimeoutRef.current) {
+      clearTimeout(reconnectTimeoutRef.current);
+    }
+    if (wsRef.current) {
+      wsRef.current.close();
+    }
+    connect();
+  };
 
   const getConnectionStatusColor = () => {
     if (isConnecting) return 'bg-yellow-500';
@@ -244,19 +271,28 @@ export default function Chat() {
         </div>
         <div className="flex items-center gap-3">
           {/* Connection Status */}
-          <div className="flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700">
-            <div className={`w-2 h-2 rounded-full ${getConnectionStatusColor()} animate-pulse`} />
+          <button
+            onClick={!isConnected && !isConnecting ? handleManualReconnect : undefined}
+            className={`flex items-center gap-2 px-3 py-1.5 bg-white dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 ${!isConnected && !isConnecting ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700' : 'cursor-default'}`}
+          >
+            <div className={`w-2 h-2 rounded-full ${getConnectionStatusColor()} ${isConnecting ? 'animate-pulse' : ''}`} />
             <span className="text-sm text-gray-600 dark:text-gray-400">
               {getConnectionStatusText()}
             </span>
-          </div>
+          </button>
         </div>
       </div>
 
       {/* Connection Error */}
       {connectionError && (
-        <div className="mb-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 text-red-700 dark:text-red-400 text-sm">
-          {connectionError}
+        <div className="mb-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-3 text-red-700 dark:text-red-400 text-sm flex items-center justify-between">
+          <span>{connectionError}</span>
+          <button
+            onClick={handleManualReconnect}
+            className="ml-3 px-3 py-1 bg-red-100 dark:bg-red-800 hover:bg-red-200 dark:hover:bg-red-700 rounded text-xs font-medium transition-colors"
+          >
+            Retry
+          </button>
         </div>
       )}
 

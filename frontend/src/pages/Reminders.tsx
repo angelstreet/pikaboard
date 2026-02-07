@@ -1,22 +1,5 @@
 import { useEffect, useState } from 'react';
-
-interface Reminder {
-  id: string;
-  name: string;
-  text: string;
-  schedule: {
-    kind: 'at' | 'every' | 'cron';
-    atMs?: number;
-    everyMs?: number;
-    expr?: string;
-    tz?: string;
-  };
-  channel?: string;
-  enabled: boolean;
-  nextRun?: number;
-  lastRun?: number;
-  createdAt: number;
-}
+import { api, Reminder } from '../api/client';
 
 function formatSchedule(schedule: Reminder['schedule']): string {
   if (schedule.kind === 'at' && schedule.atMs) {
@@ -45,11 +28,13 @@ function formatTimeUntil(ms: number): string {
 }
 
 export default function Reminders() {
-  const [reminders, setReminders] = useState<Reminder[]>([]);
-  const [loading, setLoading] = useState(true);
+  const cachedReminders = api.getCached<{ reminders: Reminder[] }>('/reminders');
+
+  const [reminders, setReminders] = useState<Reminder[]>(cachedReminders?.reminders ?? []);
+  const [loading, setLoading] = useState(!cachedReminders);
   const [error, setError] = useState<string | null>(null);
   const [showCreate, setShowCreate] = useState(false);
-  
+
   // Create form state
   const [newText, setNewText] = useState('');
   const [newName, setNewName] = useState('');
@@ -63,11 +48,8 @@ export default function Reminders() {
 
   const loadReminders = async () => {
     try {
-      setLoading(true);
-      const res = await fetch('/api/reminders', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('pikaboard_token') || ''}` },
-      });
-      const data = await res.json();
+      if (!reminders.length) setLoading(true);
+      const data = await api.getReminders();
       setReminders(data.reminders || []);
       setError(null);
     } catch (err) {
@@ -79,28 +61,15 @@ export default function Reminders() {
 
   const createReminder = async () => {
     if (!newText.trim()) return;
-    
+
     setCreating(true);
     try {
-      const res = await fetch('/api/reminders', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('pikaboard_token') || ''}`,
-        },
-        body: JSON.stringify({
-          text: newText,
-          name: newName || undefined,
-          scheduleType,
-          scheduleValue,
-        }),
+      await api.createReminder({
+        text: newText,
+        name: newName || undefined,
+        scheduleType,
+        scheduleValue,
       });
-      
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || 'Failed to create reminder');
-      }
-      
       setNewText('');
       setNewName('');
       setScheduleValue('');
@@ -115,12 +84,9 @@ export default function Reminders() {
 
   const deleteReminder = async (id: string) => {
     if (!confirm('Delete this reminder?')) return;
-    
+
     try {
-      await fetch(`/api/reminders/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${localStorage.getItem('pikaboard_token') || ''}` },
-      });
+      await api.deleteReminder(id);
       loadReminders();
     } catch (err) {
       setError('Failed to delete reminder');
@@ -129,14 +95,7 @@ export default function Reminders() {
 
   const toggleReminder = async (id: string, enabled: boolean) => {
     try {
-      await fetch(`/api/reminders/${id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${localStorage.getItem('pikaboard_token') || ''}`,
-        },
-        body: JSON.stringify({ enabled }),
-      });
+      await api.updateReminder(id, { enabled });
       loadReminders();
     } catch (err) {
       setError('Failed to update reminder');
@@ -145,10 +104,7 @@ export default function Reminders() {
 
   const triggerReminder = async (id: string) => {
     try {
-      await fetch(`/api/reminders/${id}/trigger`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${localStorage.getItem('pikaboard_token') || ''}` },
-      });
+      await api.triggerReminder(id);
       loadReminders();
     } catch (err) {
       setError('Failed to trigger reminder');

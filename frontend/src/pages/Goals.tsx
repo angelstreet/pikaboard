@@ -1,6 +1,13 @@
 import { useEffect, useState } from 'react';
 import { api, type Agent, type Goal, type Board } from '../api/client';
 import { Modal } from '../components/Modal';
+import { getTeamMember } from '../config/team';
+
+// Get agent emoji from team config
+function getAgentEmoji(agentId: string): string {
+  const member = getTeamMember(agentId);
+  return member?.avatar || '🤖';
+}
 
 // Status badge component
 function StatusBadge({ status }: { status: Goal['status'] }) {
@@ -426,64 +433,65 @@ export default function Goals() {
         </div>
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap items-center gap-3">
-        {/* Filter Type Tabs */}
-        <div className="flex gap-1 bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-          {(['all', 'agent', 'board'] as const).map((type) => (
+      {/* Agent Filter - Horizontal chips */}
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => {
+              setFilterType('all');
+              setSelectedAgentId('');
+              setSelectedBoardId('');
+            }}
+            className={`px-3 py-1.5 text-sm font-medium rounded-full transition-all ${
+              filterType === 'all'
+                ? 'bg-blue-500 text-white shadow-sm'
+                : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+            }`}
+          >
+            All
+          </button>
+          {agents.filter(a => a.id !== 'main' && a.id !== 'pika-ops').map((agent) => (
             <button
-              key={type}
+              key={agent.id}
               onClick={() => {
-                setFilterType(type);
-                if (type === 'all') {
-                  setSelectedAgentId('');
-                  setSelectedBoardId('');
-                }
+                setFilterType('agent');
+                setSelectedAgentId(agent.id);
+                setSelectedBoardId('');
               }}
-              className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
-                filterType === type
-                  ? 'bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm'
-                  : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+              className={`px-3 py-1.5 text-sm font-medium rounded-full transition-all flex items-center gap-1.5 ${
+                filterType === 'agent' && selectedAgentId === agent.id
+                  ? 'bg-blue-500 text-white shadow-sm'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
               }`}
             >
-              {type === 'all' && 'All'}
-              {type === 'agent' && '🤖 By Agent'}
-              {type === 'board' && '📋 By Board'}
+              <span className="text-base">{getAgentEmoji(agent.id)}</span>
+              <span>{agent.name}</span>
             </button>
           ))}
         </div>
 
-        {/* Agent Dropdown */}
-        {filterType === 'agent' && (
-          <select
-            value={selectedAgentId}
-            onChange={(e) => setSelectedAgentId(e.target.value)}
-            className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white"
-          >
-            <option value="">Select agent...</option>
-            {agents.filter(a => a.id !== 'main' && a.id !== 'pika-ops').map((agent) => (
-              <option key={agent.id} value={agent.id}>
-                {agent.name}
-              </option>
-            ))}
-          </select>
-        )}
-
-        {/* Board Dropdown */}
-        {filterType === 'board' && (
-          <select
-            value={selectedBoardId}
-            onChange={(e) => setSelectedBoardId(e.target.value)}
-            className="px-3 py-2 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-900 dark:text-white"
-          >
-            <option value="">Select board...</option>
-            {boards.map((board) => (
-              <option key={board.id} value={board.id}>
-                {board.icon} {board.name}
-              </option>
-            ))}
-          </select>
-        )}
+        {/* Board Filter - Horizontal chips */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-xs text-gray-500 dark:text-gray-500 mr-1">Boards:</span>
+          {boards.map((board) => (
+            <button
+              key={board.id}
+              onClick={() => {
+                setFilterType('board');
+                setSelectedBoardId(String(board.id));
+                setSelectedAgentId('');
+              }}
+              className={`px-3 py-1.5 text-sm font-medium rounded-full transition-all flex items-center gap-1.5 ${
+                filterType === 'board' && selectedBoardId === String(board.id)
+                  ? 'bg-purple-500 text-white shadow-sm'
+                  : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-600'
+              }`}
+            >
+              <span>{board.icon}</span>
+              <span>{board.name}</span>
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Goals Grid */}

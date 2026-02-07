@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { api, Question } from '../api/client';
+import { api, AgentProposals, ProposalsResponse, Question } from '../api/client';
 
 interface GroupedQuestions {
   agentId: string;
@@ -9,28 +9,54 @@ interface GroupedQuestions {
 export default function Inbox() {
   const cachedApprovals = api.getCached<{ questions: Question[] }>('/questions?status=pending&type=approval');
   const cachedQuestions = api.getCached<{ questions: Question[] }>('/questions?status=pending&type=question');
+  const cachedProposals = api.getCached<ProposalsResponse>('/proposals');
 
   const [approvals, setApprovals] = useState<Question[]>(cachedApprovals?.questions ?? []);
   const [questions, setQuestions] = useState<Question[]>(cachedQuestions?.questions ?? []);
-  const [loading, setLoading] = useState(!cachedApprovals);
+  const [proposals, setProposals] = useState<AgentProposals[]>(cachedProposals?.proposals ?? []);
+
+  const hasAnyCached = Boolean(cachedApprovals || cachedQuestions || cachedProposals);
+  const [loading, setLoading] = useState(!hasAnyCached);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [replyingTo, setReplyingTo] = useState<number | null>(null);
   const [replyText, setReplyText] = useState('');
   const [comment, setComment] = useState<Record<string, string>>({});
+  const [proposalActionLoading, setProposalActionLoading] = useState<string | null>(null);
+  const [proposalComments, setProposalComments] = useState<Record<string, string>>({});
+  const [proposalsOpen, setProposalsOpen] = useState(true);
   const [approvalsOpen, setApprovalsOpen] = useState(true);
   const [questionsOpen, setQuestionsOpen] = useState(true);
 
   const loadData = async () => {
     try {
-      if (!approvals.length && !questions.length) setLoading(true);
-      const [approvalsData, questionsData] = await Promise.all([
+      if (!approvals.length && !questions.length && !proposals.length) setLoading(true);
+
+      const results = await Promise.allSettled([
+        api.getProposals(),
         api.getQuestions('pending', 'approval'),
         api.getQuestions('pending', 'question'),
       ]);
-      setApprovals(approvalsData);
-      setQuestions(questionsData);
-      setError(null);
+
+      const proposalsRes = results[0];
+      const approvalsRes = results[1];
+      const questionsRes = results[2];
+
+      if (proposalsRes.status === 'fulfilled') {
+        setProposals(proposalsRes.value.proposals);
+      }
+      if (approvalsRes.status === 'fulfilled') {
+        setApprovals(approvalsRes.value);
+      }
+      if (questionsRes.status === 'fulfilled') {
+        setQuestions(questionsRes.value);
+      }
+
+      const errors: string[] = [];
+      if (proposalsRes.status === 'rejected') errors.push('proposals');
+      if (approvalsRes.status === 'rejected') errors.push('approvals');
+      if (questionsRes.status === 'rejected') errors.push('questions');
+      setError(errors.length ? `Failed to load: ${errors.join(', ')}` : null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load inbox');
     } finally {
@@ -122,6 +148,95 @@ export default function Inbox() {
     return agentId.charAt(0).toUpperCase() + agentId.slice(1);
   };
 
+  const proposalItemCount = useMemo(() => {
+    return proposals.reduce((sum, p) => sum + p.items.length, 0);
+  }, [proposals]);
+
+  const handleProposalCommentChange = (agentId: string, index: number, value: string) => {
+    const key = `proposal-${agentId}-${index}`;
+    setProposalComments((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleProposalApprove = async (agentId: string, index: number) => {
+    const key = `proposal-${agentId}-${index}`;
+    const proposalComment = proposalComments[key];
+    setProposalActionLoading(key);
+    try {
+      await api.approveProposal(agentId, index, { comment: proposalComment?.trim() || undefined });
+      setProposals((prev) =>
+        prev
+          .map((p) => {
+            if (p.agentId === agentId) {
+              const newItems = [...p.items];
+              newItems.splice(index, 1);
+              return { ...p, items: newItems };
+            }
+            return p;
+          })
+          .filter((p) => p.items.length > 0)
+      );
+      setProposalComments((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    } catch (err) {
+      console.error('Failed to approve proposal:', err);
+    } finally {
+      setProposalActionLoading(null);
+    }
+  };
+
+  const handleProposalReject = async (agentId: string, index: number) => {
+    const key = `proposal-${agentId}-${index}`;
+    const proposalComment = proposalComments[key];
+    setProposalActionLoading(key);
+    try {
+      await api.rejectProposal(agentId, index, proposalComment?.trim() || undefined);
+      setProposals((prev) =>
+        prev
+          .map((p) => {
+            if (p.agentId === agentId) {
+              const newItems = [...p.items];
+              newItems.splice(index, 1);
+              return { ...p, items: newItems };
+            }
+            return p;
+          })
+          .filter((p) => p.items.length > 0)
+      );
+      setProposalComments((prev) => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+      });
+    } catch (err) {
+      console.error('Failed to reject proposal:', err);
+    } finally {
+      setProposalActionLoading(null);
+    }
+  };
+
+  const handleProposalRejectAll = async (agentId: string) => {
+    const key = `proposal-${agentId}-all`;
+    setProposalActionLoading(key);
+    try {
+      await api.rejectAllProposals(agentId);
+      setProposals((prev) => prev.filter((p) => p.agentId !== agentId));
+      setProposalComments((prev) => {
+        const next = { ...prev };
+        Object.keys(next).forEach((k) => {
+          if (k.startsWith(`proposal-${agentId}-`)) delete next[k];
+        });
+        return next;
+      });
+    } catch (err) {
+      console.error('Failed to reject all proposals:', err);
+    } finally {
+      setProposalActionLoading(null);
+    }
+  };
+
   // Group approvals by agent
   const approvalsByAgent = useMemo<GroupedQuestions[]>(() => {
     const grouped = approvals.reduce((acc, a) => {
@@ -156,9 +271,9 @@ export default function Inbox() {
     }));
   }, [questions]);
 
-  const totalItems = approvals.length + questions.length;
+  const totalItems = proposalItemCount + approvals.length + questions.length;
 
-  if (loading && approvals.length === 0 && questions.length === 0) {
+  if (loading && proposals.length === 0 && approvals.length === 0 && questions.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-gray-500 dark:text-gray-400">Loading inbox...</div>
@@ -190,6 +305,117 @@ export default function Inbox() {
           <strong>Error:</strong> {error}
         </div>
       )}
+
+      {/* Blockers Section */}
+      <section>
+        <button
+          onClick={() => setProposalsOpen(!proposalsOpen)}
+          className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2 hover:text-gray-700 dark:hover:text-gray-200 transition-colors"
+        >
+          <span className={`inline-block transition-transform ${proposalsOpen ? 'rotate-90' : ''}`}>▶</span>
+          🚧 Blockers
+          {proposalItemCount > 0 && (
+            <span className="text-sm font-normal text-gray-500 dark:text-gray-400">
+              ({proposalItemCount} items)
+            </span>
+          )}
+        </button>
+
+        {!proposalsOpen ? null : proposalItemCount === 0 ? (
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 sm:p-8 text-center">
+            <span className="text-3xl sm:text-4xl mb-3 sm:mb-4 block">✅</span>
+            <p className="text-gray-600 dark:text-gray-400">No pending blockers</p>
+            <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">All agents are unblocked</p>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {proposals.map((agentProposal) => (
+              <div
+                key={agentProposal.agentId}
+                className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden"
+              >
+                {/* Agent Header */}
+                <div className="bg-gradient-to-r from-orange-50 to-yellow-50 dark:from-orange-900/20 dark:to-yellow-900/20 px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{getAgentEmoji(agentProposal.agentId)}</span>
+                      <div>
+                        <h3 className="font-semibold text-gray-900 dark:text-white">
+                          {getAgentName(agentProposal.agentId)}
+                        </h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {agentProposal.items.length} proposal{agentProposal.items.length > 1 ? 's' : ''} pending
+                        </p>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleProposalRejectAll(agentProposal.agentId)}
+                      disabled={proposalActionLoading === `proposal-${agentProposal.agentId}-all`}
+                      className="text-sm text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:underline disabled:opacity-50"
+                    >
+                      Reject all
+                    </button>
+                  </div>
+                </div>
+
+                {/* Proposals List */}
+                <div className="divide-y divide-gray-100 dark:divide-gray-700">
+                  {agentProposal.items.map((item, index) => {
+                    const key = `proposal-${agentProposal.agentId}-${index}`;
+                    const isLoading = proposalActionLoading === key;
+                    const proposalComment = proposalComments[key] || '';
+
+                    return (
+                      <div
+                        key={index}
+                        className="px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <p className="font-medium text-gray-900 dark:text-white">{item.name}</p>
+                            {item.description && (
+                              <p className="text-sm text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
+                                {item.description}
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <button
+                              onClick={() => handleProposalApprove(agentProposal.agentId, index)}
+                              disabled={isLoading}
+                              className="px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                              {isLoading ? '...' : '✓ Approve'}
+                            </button>
+                            <button
+                              onClick={() => handleProposalReject(agentProposal.agentId, index)}
+                              disabled={isLoading}
+                              className="px-3 py-1.5 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 text-sm font-medium rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            >
+                              ✗ Reject
+                            </button>
+                          </div>
+                        </div>
+                        {/* Comment field */}
+                        <div className="mt-3">
+                          <textarea
+                            placeholder="Add comment (optional)..."
+                            rows={2}
+                            value={proposalComment}
+                            onChange={(e) => handleProposalCommentChange(agentProposal.agentId, index, e.target.value)}
+                            disabled={isLoading}
+                            className="w-full px-3 py-2 text-sm border border-gray-200 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:bg-gray-50 dark:bg-gray-900 dark:text-white resize-none"
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
 
       {/* Approvals Section */}
       <section>

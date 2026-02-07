@@ -90,6 +90,24 @@ export interface LibraryPlugin {
   usedBy: { id: string; name: string; emoji: string }[];
 }
 
+export interface Reminder {
+  id: string;
+  name: string;
+  text: string;
+  schedule: {
+    kind: 'at' | 'every' | 'cron';
+    atMs?: number;
+    everyMs?: number;
+    expr?: string;
+    tz?: string;
+  };
+  channel?: string;
+  enabled: boolean;
+  nextRun?: number;
+  lastRun?: number;
+  createdAt: number;
+}
+
 export interface Goal {
   id: number;
   title: string;
@@ -558,6 +576,38 @@ class ApiClient {
 
   async getFileContent(path: string): Promise<{ path: string; name: string; content: string }> {
     return this.cachedFetch(`/files/content?path=${encodeURIComponent(path)}`);
+  }
+
+  // Reminders
+  async getReminders(): Promise<{ reminders: Reminder[] }> {
+    return this.cachedFetch('/reminders');
+  }
+
+  async createReminder(data: { text: string; name?: string; scheduleType: string; scheduleValue: string }): Promise<Reminder> {
+    const result = await this.fetch<Reminder>('/reminders', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+    this.invalidateCache('reminders');
+    return result;
+  }
+
+  async deleteReminder(id: string): Promise<void> {
+    await this.fetch(`/reminders/${id}`, { method: 'DELETE' });
+    this.invalidateCache('reminders');
+  }
+
+  async updateReminder(id: string, updates: { enabled?: boolean }): Promise<void> {
+    await this.fetch(`/reminders/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updates),
+    });
+    this.invalidateCache('reminders');
+  }
+
+  async triggerReminder(id: string): Promise<void> {
+    await this.fetch(`/reminders/${id}/trigger`, { method: 'POST' });
+    this.invalidateCache('reminders');
   }
 
   // Goals

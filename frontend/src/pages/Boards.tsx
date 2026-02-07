@@ -20,9 +20,6 @@ import { TaskModal } from '../components/TaskModal';
 import { BoardModal } from '../components/BoardModal';
 import { BoardSelector } from '../components/BoardSelector';
 import { TaskFilterTabs } from '../components/TaskFilterTabs';
-import { ViewToggle } from '../components/ViewToggle';
-import { FocusList } from '../components/FocusList';
-import { BlockerView } from '../components/BlockerView';
 import TaskSearch from '../components/TaskSearch';
 import { useConfirmModal } from '../components/ConfirmModal';
 
@@ -126,12 +123,6 @@ export default function Boards() {
   // Filter state
   const [statusFilter, setStatusFilter] = useState<Task['status'] | 'all'>('all');
 
-  // View state
-  const [activeView, setActiveView] = useState<'kanban' | 'focus' | 'blocker'>('kanban');
-
-  // Blocker count for badge
-  const [blockerCount, setBlockerCount] = useState(0);
-
   // Rejection reason modal state
   const [rejectionModalOpen, setRejectionModalOpen] = useState(false);
   const [pendingRejectionTask, setPendingRejectionTask] = useState<Task | null>(null);
@@ -148,23 +139,6 @@ export default function Boards() {
   // Load boards on mount
   useEffect(() => {
     loadBoards();
-  }, []);
-
-  // Load blocker count
-  useEffect(() => {
-    const loadBlockerCount = async () => {
-      try {
-        const data = await api.getProposals();
-        const count = data.proposals.reduce((sum, p) => sum + p.items.length, 0);
-        setBlockerCount(count);
-      } catch {
-        // Ignore errors
-      }
-    };
-    loadBlockerCount();
-    // Refresh every 30 seconds
-    const interval = setInterval(loadBlockerCount, 30000);
-    return () => clearInterval(interval);
   }, []);
 
   // Load tasks when board changes
@@ -448,9 +422,7 @@ export default function Boards() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6 gap-3">
         <div className="flex items-center gap-3">
-          <h2 className="text-xl sm:text-2xl font-bold">
-            {activeView === 'kanban' ? '📋 Kanban' : activeView === 'focus' ? '🎯 Focus' : '🚧 Blockers'}
-          </h2>
+          <h2 className="text-xl sm:text-2xl font-bold">📋 Boards</h2>
           <BoardSelector
             boards={boards}
             currentBoard={currentBoard}
@@ -462,7 +434,6 @@ export default function Boards() {
 
         <div className="flex items-center gap-2 sm:gap-3">
           <TaskSearch onTaskClick={handleTaskClick} />
-          <ViewToggle activeView={activeView} onViewChange={setActiveView} blockerCount={blockerCount} />
           <button
             onClick={handleCreateTask}
             className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base"
@@ -476,38 +447,14 @@ export default function Boards() {
         </div>
       </div>
 
-      {/* Focus List View */}
-      {activeView === 'focus' && (
-        <FocusList tasks={tasks} onTaskClick={handleTaskClick} />
-      )}
+      {/* Filter Tabs */}
+      <TaskFilterTabs
+        tasks={tasks}
+        activeFilter={statusFilter}
+        onFilterChange={setStatusFilter}
+      />
 
-      {/* Blocker View */}
-      {activeView === 'blocker' && (
-        <BlockerView
-          onTaskCreated={(task) => {
-            // If task is created on current board, add to tasks
-            if (task.board_id === currentBoard?.id) {
-              setTasks((prev) => [task, ...prev]);
-            }
-            // Refresh blocker count
-            api.getProposals().then((data) => {
-              setBlockerCount(data.proposals.reduce((sum, p) => sum + p.items.length, 0));
-            });
-          }}
-        />
-      )}
-
-      {/* Kanban View */}
-      {activeView === 'kanban' && (
-        <>
-          {/* Filter Tabs */}
-          <TaskFilterTabs
-            tasks={tasks}
-            activeFilter={statusFilter}
-            onFilterChange={setStatusFilter}
-          />
-
-          {/* Kanban Board */}
+      {/* Kanban Board */}
       <DndContext
         sensors={sensors}
         collisionDetection={closestCorners}
@@ -553,8 +500,6 @@ export default function Boards() {
           {activeTask && <TaskCardOverlay task={activeTask} />}
         </DragOverlay>
       </DndContext>
-        </>
-      )}
 
       {/* Modals */}
       <TaskModal
