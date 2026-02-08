@@ -1,5 +1,7 @@
+import { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
+import { useAuth, useUser, SignIn } from '@clerk/clerk-react';
 import Layout from './components/Layout';
 import DashboardHome from './pages/DashboardHome';
 import Boards from './pages/Boards';
@@ -14,6 +16,9 @@ import Usage from './pages/Usage';
 import Goals from './pages/Goals';
 import Reminders from './pages/Reminders';
 import { QuoteWidget } from './components/QuoteWidget';
+import { setClerkTokenProvider } from './api/client';
+
+const clerkEnabled = !!import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
 // Read ?token= from URL and store in localStorage
 (() => {
@@ -27,7 +32,49 @@ import { QuoteWidget } from './components/QuoteWidget';
   }
 })();
 
-function App() {
+/** Hook Clerk token into API client */
+function ClerkTokenSync() {
+  const { getToken } = useAuth();
+  useEffect(() => {
+    setClerkTokenProvider(getToken);
+    return () => setClerkTokenProvider(() => Promise.resolve(null));
+  }, [getToken]);
+  return null;
+}
+
+/** Clerk auth gate */
+function ClerkGate({ children }: { children: React.ReactNode }) {
+  const { isLoaded, isSignedIn } = useUser();
+
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+        <div className="text-gray-400">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!isSignedIn) {
+    return (
+      <div className="min-h-screen bg-gray-950 flex items-center justify-center px-4">
+        <div className="text-center">
+          <h1 className="text-3xl font-bold mb-2 text-yellow-400">⚡ PikaBoard</h1>
+          <p className="text-gray-400 text-sm mb-8">AI Agent Management</p>
+          <SignIn routing="hash" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      <ClerkTokenSync />
+      {children}
+    </>
+  );
+}
+
+function AppContent() {
   return (
     <>
       <Toaster position="top-right" toastOptions={{
@@ -63,6 +110,17 @@ function App() {
     </Routes>
     </>
   );
+}
+
+function App() {
+  if (clerkEnabled) {
+    return (
+      <ClerkGate>
+        <AppContent />
+      </ClerkGate>
+    );
+  }
+  return <AppContent />;
 }
 
 export default App;

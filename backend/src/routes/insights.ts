@@ -46,21 +46,16 @@ function getDateRange(period: 'day' | 'week' | 'month' | 'year'): { start: Date;
 }
 
 // GET /api/insights - Get analytics data
-insightsRouter.get('/', (c) => {
+insightsRouter.get('/', async (c) => {
   const now = new Date();
   
   // Get all tasks
-  const tasks = db.prepare(`
-    SELECT id, status, priority, deadline, completed_at, created_at, board_id 
-    FROM tasks
-  `).all() as TaskRow[];
+  const tasksResult = await db.execute('SELECT id, status, priority, deadline, completed_at, created_at, board_id FROM tasks');
+  const tasks = tasksResult.rows as unknown as TaskRow[];
   
   // Get all activity
-  const activity = db.prepare(`
-    SELECT id, type, message, metadata, created_at 
-    FROM activity 
-    ORDER BY created_at DESC
-  `).all() as ActivityRow[];
+  const activityResult = await db.execute('SELECT id, type, message, metadata, created_at FROM activity ORDER BY created_at DESC');
+  const activity = activityResult.rows as unknown as ActivityRow[];
   
   // --- Completion Stats by Period ---
   const completedTasks = tasks.filter(t => t.status === 'done' && t.completed_at);

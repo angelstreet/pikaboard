@@ -18,7 +18,7 @@ interface CreateActivityBody {
 }
 
 // GET /api/activity - List recent activity
-activityRouter.get('/', (c) => {
+activityRouter.get('/', async (c) => {
   const limit = parseInt(c.req.query('limit') || '50', 10);
   const offset = parseInt(c.req.query('offset') || '0', 10);
   const type = c.req.query('type');
@@ -34,8 +34,8 @@ activityRouter.get('/', (c) => {
   query += ' ORDER BY created_at DESC LIMIT ? OFFSET ?';
   params.push(limit, offset);
 
-  const stmt = db.prepare(query);
-  const activities = stmt.all(...params) as Activity[];
+  const result = await db.execute({ sql: query, args: params });
+  const activities = result.rows as unknown as Activity[];
 
   // Parse metadata JSON
   const parsed = activities.map((a) => ({
@@ -54,7 +54,7 @@ activityRouter.post('/', async (c) => {
     return c.json({ error: 'Type and message are required' }, 400);
   }
 
-  logActivity(body.type, body.message, body.metadata);
+  await logActivity(body.type, body.message, body.metadata);
 
   return c.json({ success: true }, 201);
 });

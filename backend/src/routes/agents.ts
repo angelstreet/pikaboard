@@ -77,11 +77,8 @@ async function getActiveSubAgentCount(agentId: string): Promise<number> {
 async function getInProgressTaskCount(boardId: number | null): Promise<number> {
   if (!boardId) return 0;
   try {
-    const result = db.prepare(`
-      SELECT COUNT(*) as count FROM tasks 
-      WHERE board_id = ? AND status = 'in_progress'
-    `).get(boardId) as { count: number } | undefined;
-    return result?.count || 0;
+    const result = await db.execute({ sql: `SELECT COUNT(*) as count FROM tasks WHERE board_id = ? AND status = 'in_progress'`, args: [boardId] });
+    return (result.rows[0] as any)?.count || 0;
   } catch {
     return 0;
   }
@@ -167,12 +164,8 @@ async function getAgentStatus(agentDir: string, boardId: number | null): Promise
   try {
     // Check database for in_progress tasks on this agent's board
     if (boardId) {
-      const inProgressTask = db.prepare(`
-        SELECT id, name FROM tasks 
-        WHERE board_id = ? AND status = 'in_progress' 
-        ORDER BY updated_at DESC 
-        LIMIT 1
-      `).get(boardId) as { id: number; name: string } | undefined;
+      const inProgressResult = await db.execute({ sql: `SELECT id, name FROM tasks WHERE board_id = ? AND status = 'in_progress' ORDER BY updated_at DESC LIMIT 1`, args: [boardId] });
+      const inProgressTask = inProgressResult.rows[0] as unknown as { id: number; name: string } | undefined;
 
       if (inProgressTask) {
         // Store current task info but don't set status to busy here

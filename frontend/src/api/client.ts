@@ -216,9 +216,24 @@ export interface ProposalsResponse {
   updatedAt: string;
 }
 
-// Token for API requests (auth handled at nginx level for UI)
+// Token for API requests
+// Clerk JWT is preferred when available, falls back to localStorage token (for agents)
+let clerkGetToken: (() => Promise<string | null>) | null = null;
+
+export function setClerkTokenProvider(fn: () => Promise<string | null>) {
+  clerkGetToken = fn;
+}
+
 const getToken = (): string => {
   return localStorage.getItem('pikaboard_token') || '';
+};
+
+const getAuthToken = async (): Promise<string> => {
+  if (clerkGetToken) {
+    const token = await clerkGetToken();
+    if (token) return token;
+  }
+  return getToken();
 };
 
 // Cache with TTL (3 minutes default)
@@ -272,7 +287,7 @@ class ApiClient {
   private baseUrl = API_BASE_URL;
 
   private async fetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-    const token = getToken();
+    const token = await getAuthToken();
 
     const res = await fetch(`${this.baseUrl}${path}`, {
       ...options,

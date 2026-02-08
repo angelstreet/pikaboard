@@ -442,7 +442,7 @@ function aggregateUsage(usages: TokenUsage[], period: string): {
 }
 
 // GET /api/usage - Get usage data
-usageRouter.get('/', (c) => {
+usageRouter.get('/', async (c) => {
   const period = c.req.query('period') || 'all';
   const { start, end } = getDateRange(period);
 
@@ -464,7 +464,8 @@ usageRouter.get('/', (c) => {
   const aggregated = aggregateUsage(filteredUsages, period);
 
   // Fetch board names for the byBoard breakdown
-  const boards = db.prepare('SELECT id, name FROM boards').all() as { id: number; name: string }[];
+  const boardsResult = await db.execute('SELECT id, name FROM boards');
+  const boards = boardsResult.rows as unknown as { id: number; name: string }[];
   const boardNameMap = new Map(boards.map(b => [String(b.id), b.name]));
 
   // Add board names to byBoard response
