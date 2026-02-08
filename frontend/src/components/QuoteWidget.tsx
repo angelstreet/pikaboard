@@ -73,6 +73,9 @@ function getQuotesFrequency(): number {
   } catch { return 45; }
 }
 
+// Module-level singleton guard: only one QuoteWidget instance can own timers
+let activeInstanceId = 0;
+
 export function QuoteWidget() {
   const [quote, setQuote] = useState<Quote>(getRandomQuote);
   const [visible, setVisible] = useState(false);
@@ -80,6 +83,7 @@ export function QuoteWidget() {
   const [enabled, setEnabled] = useState(isQuotesEnabled);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const instanceIdRef = useRef(0);
 
   // Re-check enabled state when settings change (custom event from Settings page)
   useEffect(() => {
@@ -140,10 +144,20 @@ export function QuoteWidget() {
       setVisible(false);
       return;
     }
+    // Claim singleton ownership — previous instance's timers become no-ops
+    const myId = ++activeInstanceId;
+    instanceIdRef.current = myId;
+
+    const guardedShowNewQuote = () => {
+      // Only the active instance may show quotes
+      if (activeInstanceId !== myId) return;
+      showNewQuote();
+    };
+
     const frequency = getQuotesFrequency() * 1000;
     // Show first quote quickly when enabled
-    const initialTimer = setTimeout(showNewQuote, 2000);
-    const recurring = setInterval(showNewQuote, frequency);
+    const initialTimer = setTimeout(guardedShowNewQuote, 2000);
+    const recurring = setInterval(guardedShowNewQuote, frequency);
     return () => {
       clearTimeout(initialTimer);
       clearInterval(recurring);
