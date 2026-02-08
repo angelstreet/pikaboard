@@ -81,13 +81,11 @@ export function QuoteWidget() {
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Re-check enabled state when localStorage changes (from Settings page)
+  // Re-check enabled state when settings change (custom event from Settings page)
   useEffect(() => {
-    const onStorage = () => setEnabled(isQuotesEnabled());
-    window.addEventListener('storage', onStorage);
-    // Also poll since storage event doesn't fire in same tab
-    const poll = setInterval(() => setEnabled(isQuotesEnabled()), 2000);
-    return () => { window.removeEventListener('storage', onStorage); clearInterval(poll); };
+    const onSettingsChanged = () => setEnabled(isQuotesEnabled());
+    window.addEventListener('quotes-settings-changed', onSettingsChanged);
+    return () => window.removeEventListener('quotes-settings-changed', onSettingsChanged);
   }, []);
 
   const hide = useCallback(() => {

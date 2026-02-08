@@ -214,6 +214,7 @@ export default function Settings() {
                   const next = !quotesEnabled;
                   setQuotesEnabled(next);
                   localStorage.setItem('pikaboard_quotes_enabled', String(next));
+                  window.dispatchEvent(new CustomEvent('quotes-settings-changed'));
                 }}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${quotesEnabled ? 'bg-pika-600' : 'bg-gray-300 dark:bg-gray-600'}`}
               >
@@ -234,7 +235,7 @@ export default function Settings() {
                     onChange={(e) => {
                       const val = parseInt(e.target.value, 10);
                       setQuotesDuration(val);
-                      localStorage.setItem('pikaboard_quotes_duration', String(val));
+                      localStorage.setItem('pikaboard_quotes_duration', String(val)); window.dispatchEvent(new CustomEvent('quotes-settings-changed'));
                     }}
                     className="text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-1.5 focus:ring-2 focus:ring-pika-500 focus:border-pika-500"
                   >
@@ -254,7 +255,7 @@ export default function Settings() {
                     onChange={(e) => {
                       const val = parseInt(e.target.value, 10);
                       setQuotesFrequency(val);
-                      localStorage.setItem('pikaboard_quotes_frequency', String(val));
+                      localStorage.setItem('pikaboard_quotes_frequency', String(val)); window.dispatchEvent(new CustomEvent('quotes-settings-changed'));
                     }}
                     className="text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-1.5 focus:ring-2 focus:ring-pika-500 focus:border-pika-500"
                   >
