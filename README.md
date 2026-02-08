@@ -75,13 +75,14 @@ Talk to your AI captain directly from PikaBoard via OpenClaw gateway integration
 
 ### 📁 Files Explorer  
 Browse agent outputs without SSH:
+- Dynamic agent workspace discovery (auto-detects agent directories)
 - Research reports, agent memory files, generated docs
 - Markdown rendering with syntax highlighting
 
 ### 📚 Skills Library
 See what tools your agents have access to:
-- Installed skills with descriptions
-- Which agents use each skill
+- 67+ built-in skills with filter tabs, source badges, and enabled/disabled state
+- Pagination and search across built-in + workspace skills
 - Channel plugins (Slack, Telegram, Discord...)
 
 ### 🖥️ System Monitoring
@@ -90,6 +91,11 @@ Live stats in the header:
 - Load average, disk usage
 - Gateway connection status
 - OpenClaw restart button
+
+### 🏥 Service Health Dashboard
+Monitor backend services from Settings:
+- Real-time health checks for all connected services
+- Status indicators and response times
 
 ### 🌙 Dark Mode
 Full dark/light/system theme support with persistence.
@@ -139,6 +145,14 @@ cd frontend && npm run build
 # Serve dist/ with nginx or any static host
 ```
 
+### Vercel Deployment
+
+PikaBoard includes a `vercel.json` for one-click deployment:
+```bash
+vercel --prod
+```
+Set `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN` in Vercel environment variables.
+
 ### Demo Mode
 
 Run with mock data — no backend needed:
@@ -156,7 +170,9 @@ VITE_DEMO_MODE=true npm run dev
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `PIKABOARD_TOKEN` | Bearer token for API auth | (required) |
-| `DATABASE_PATH` | SQLite database path | `./data/pikaboard.db` |
+| `DATABASE_PATH` | Local SQLite fallback path | `./data/pikaboard.db` |
+| `TURSO_DATABASE_URL` | Turso (libSQL) database URL | `file:{DATABASE_PATH}` |
+| `TURSO_AUTH_TOKEN` | Turso auth token (cloud only) | — |
 | `PORT` | Backend port | `3001` |
 | `OPENCLAW_AGENTS_PATH` | Path to agents directory | `~/.openclaw/agents` |
 | `OPENCLAW_SKILLS_PATH` | Path to skills directory | `~/.openclaw/workspace/skills` |
@@ -186,7 +202,7 @@ location /pikaboard/api/ {
                       │ REST API
 ┌─────────────────────▼───────────────────────────────┐
 │                  PikaBoard API                      │
-│           (Hono + SQLite + Node.js)                 │
+│        (Hono + Turso/libSQL + Node.js)              │
 └─────────────────────┬───────────────────────────────┘
                       │ File System
 ┌─────────────────────▼───────────────────────────────┐
@@ -252,6 +268,7 @@ PikaBoard is designed to work with [OpenClaw](https://github.com/openclaw/opencl
 - `GET /api/activity` — Activity feed
 - `GET /api/library/skills` — Installed skills
 - `GET /api/library/plugins` — Channel plugins
+- `GET /api/services/health` — Service health status
 
 ---
 
