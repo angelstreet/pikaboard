@@ -7,7 +7,14 @@ import { db } from '../db/index.js';
 export const usageRouter = new Hono();
 
 // Pricing per 1M tokens
-const PRICING = {
+const PRICING: Record<string, { input: number; output: number; name: string; modelId: string; provider: string }> = {
+  'opus-4-6': {
+    input: 15.0,
+    output: 75.0,
+    name: 'Opus 4.6',
+    modelId: 'claude-opus-4-6',
+    provider: 'anthropic',
+  },
   opus: {
     input: 15.0,
     output: 75.0,
@@ -94,7 +101,7 @@ function extractAgentFromContent(filePath: string): string | null {
 
 interface TokenUsage {
   date: string;
-  model: 'opus' | 'kimi' | 'unknown';
+  model: string;
   modelFull: string;
   inputTokens: number;
   outputTokens: number;
@@ -153,10 +160,13 @@ function extractBoardId(content: string): number | null {
 }
 
 // Determine model type from entry
-function getModelType(entry: SessionEntry): 'opus' | 'kimi' | 'unknown' {
+function getModelType(entry: SessionEntry): string {
   const model = entry.message?.model || entry.modelId || '';
   const provider = entry.message?.provider || entry.provider || '';
 
+  if (model.includes('opus-4-6') || model.includes('opus-4.6')) {
+    return 'opus-4-6';
+  }
   if (model.includes('claude-opus') || model.includes('opus')) {
     return 'opus';
   }
@@ -164,10 +174,9 @@ function getModelType(entry: SessionEntry): 'opus' | 'kimi' | 'unknown' {
     return 'kimi';
   }
   if (provider === 'anthropic') {
-    return 'opus';
+    return 'opus-4-6'; // Default anthropic model is now 4.6
   }
   if (provider === 'openrouter') {
-    // Check modelId from entry
     if (entry.modelId?.includes('kimi') || entry.modelId?.includes('moonshotai')) {
       return 'kimi';
     }
@@ -177,15 +186,8 @@ function getModelType(entry: SessionEntry): 'opus' | 'kimi' | 'unknown' {
 }
 
 // Calculate cost from tokens
-function calculateCost(model: 'opus' | 'kimi' | 'unknown', inputTokens: number, outputTokens: number): number {
-  if (model === 'unknown' || model === 'kimi') {
-    // Default to Kimi pricing if unknown
-    const pricing = PRICING.kimi;
-    const inputCost = (inputTokens / 1_000_000) * pricing.input;
-    const outputCost = (outputTokens / 1_000_000) * pricing.output;
-    return inputCost + outputCost;
-  }
-  const pricing = PRICING[model];
+function calculateCost(model: string, inputTokens: number, outputTokens: number): number {
+  const pricing = PRICING[model] || PRICING.kimi; // fallback to cheapest
   const inputCost = (inputTokens / 1_000_000) * pricing.input;
   const outputCost = (outputTokens / 1_000_000) * pricing.output;
   return inputCost + outputCost;

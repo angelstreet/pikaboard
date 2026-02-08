@@ -136,7 +136,8 @@ function ModelSplitChart({
 }) {
   const models = Object.entries(byModel).sort(([, a], [, b]) => b.cost - a.cost);
   const colors: Record<string, string> = {
-    opus: 'bg-purple-500 dark:bg-purple-600',
+    'opus-4-6': 'bg-purple-500 dark:bg-purple-600',
+    opus: 'bg-violet-500 dark:bg-violet-600',
     kimi: 'bg-green-500 dark:bg-green-600',
     unknown: 'bg-gray-400 dark:bg-gray-500',
   };
@@ -445,7 +446,7 @@ export default function Usage() {
           {Object.entries(data.byModel).map(([key, model]) => (
             <div key={key} className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
               <div className="flex items-center gap-2 mb-3">
-                <span className={`w-3 h-3 rounded-full ${key === 'opus' ? 'bg-purple-500' : 'bg-green-500'}`} />
+                <span className={`w-3 h-3 rounded-full ${key.includes('opus') ? 'bg-purple-500' : key === 'kimi' ? 'bg-green-500' : 'bg-gray-400'}`} />
                 <span className="font-medium text-gray-900 dark:text-white">{model.name}</span>
               </div>
               <div className="space-y-2 text-sm">

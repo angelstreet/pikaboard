@@ -99,15 +99,21 @@ export function QuoteWidget() {
 
   const showNewQuote = useCallback(() => {
     if (!isQuotesEnabled()) return;
-    // Always hide previous quote first (fix overlap)
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
     if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
-    setExiting(false);
-    setQuote(getRandomQuote());
-    setVisible(true);
-    // Auto-hide based on user-configured duration
-    const duration = getQuotesDuration() * 1000;
-    hideTimerRef.current = setTimeout(hide, duration);
+    // Hide current quote first, then show new one after exit animation
+    setExiting(true);
+    exitTimerRef.current = setTimeout(() => {
+      setVisible(false);
+      setExiting(false);
+      // Small delay then show new quote
+      setTimeout(() => {
+        setQuote(getRandomQuote());
+        setVisible(true);
+        const duration = getQuotesDuration() * 1000;
+        hideTimerRef.current = setTimeout(hide, duration);
+      }, 100);
+    }, 400);
   }, [hide]);
 
   useEffect(() => {
