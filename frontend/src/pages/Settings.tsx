@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import SystemStats from '../components/SystemStats';
+import ServiceHealth from '../components/ServiceHealth';
 import { api, WorkspaceConfig } from '../api/client';
 
 const getToken = (): string => {
@@ -81,6 +82,9 @@ export default function Settings() {
         <h2 className="text-2xl font-bold text-gray-900 dark:text-white">⚙️ Settings</h2>
         <p className="text-gray-500 dark:text-gray-400 mt-1">System configuration and monitoring</p>
       </div>
+
+      {/* Service Health Dashboard */}
+      <ServiceHealth />
 
       {/* System Monitoring */}
       <div className="border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">

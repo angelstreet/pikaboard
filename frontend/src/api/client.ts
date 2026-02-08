@@ -289,6 +289,11 @@ class ApiClient {
     return res.json();
   }
 
+  // Generic GET request
+  async get<T>(path: string): Promise<T> {
+    return this.fetch<T>(path);
+  }
+
   // Cached fetch for GET requests (3-min TTL)
   private async cachedFetch<T>(path: string): Promise<T> {
     const cached = apiCache.get<T>(path);
