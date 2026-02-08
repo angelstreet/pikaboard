@@ -246,25 +246,6 @@ function BoardBreakdownChart({
   );
 }
 
-// Savings card
-function SavingsCard({ amount, percentage }: { amount: number; percentage: number }) {
-  return (
-    <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-950/30 dark:to-emerald-950/30 border border-green-200 dark:border-green-800 rounded-xl p-6">
-      <div className="flex items-center gap-4">
-        <span className="text-4xl">💰</span>
-        <div>
-          <h3 className="font-semibold text-gray-900 dark:text-white">Cost Savings</h3>
-          <p className="text-sm text-gray-600 dark:text-gray-300">
-            Using Kimi instead of Opus for sub-agents has saved{' '}
-            <span className="font-bold text-green-600 dark:text-green-400">{formatCurrency(amount)}</span>
-            {' '}({percentage.toFixed(1)}%)
-          </p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function Usage() {
   const cachedUsage = api.getCached<UsageData>('/usage?period=week');
 
@@ -367,11 +348,6 @@ export default function Usage() {
           icon="💵"
         />
       </div>
-
-      {/* Savings Card */}
-      {data.savings.amount > 0 && (
-        <SavingsCard amount={data.savings.amount} percentage={data.savings.percentage} />
-      )}
 
       {/* Two Column Layout */}
       <div className="grid md:grid-cols-2 gap-6">

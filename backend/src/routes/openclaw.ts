@@ -116,4 +116,23 @@ openclawRoutes.post('/sessions/reset', async (c) => {
   }
 });
 
+// Get gateway auth token for frontend WebSocket connection
+let cachedGatewayToken: string | null = null;
+openclawRoutes.get('/gateway-token', async (c) => {
+  try {
+    if (!cachedGatewayToken) {
+      const { stdout } = await execAsync('openclaw config get gateway');
+      const config = JSON.parse(stdout);
+      cachedGatewayToken = config?.auth?.token || null;
+    }
+    if (!cachedGatewayToken) {
+      return c.json({ error: 'Gateway token not configured' }, 500);
+    }
+    return c.json({ token: cachedGatewayToken });
+  } catch (error) {
+    console.error('Failed to get gateway token:', error);
+    return c.json({ error: 'Failed to get gateway token' }, 500);
+  }
+});
+
 export default openclawRoutes;

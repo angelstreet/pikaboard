@@ -18,6 +18,7 @@ interface Skill {
   version?: string;
   hasSkillMd: boolean;
   usedBy: { id: string; name: string; emoji: string }[];
+  source?: string;
 }
 
 interface Plugin {
@@ -129,6 +130,38 @@ libraryRouter.get('/skills', (c) => {
       }
 
       skills.push(skill);
+    }
+
+    // Also scan built-in skills
+    const workspaceNames = new Set(skills.map(s => s.name));
+    const builtinPaths = [
+      join(process.env.HOME || '~', '.nvm/versions/node/v22.22.0/lib/node_modules/openclaw/skills'),
+      '/usr/local/lib/node_modules/openclaw/skills',
+      '/usr/lib/node_modules/openclaw/skills',
+    ];
+    for (const bp of builtinPaths) {
+      if (!existsSync(bp)) continue;
+      const builtinEntries = readdirSync(bp, { withFileTypes: true });
+      for (const entry of builtinEntries) {
+        if (!entry.isDirectory() || entry.name.startsWith('.') || workspaceNames.has(entry.name)) continue;
+        const skillDir = join(bp, entry.name);
+        const skillMdPath = join(skillDir, 'SKILL.md');
+        const usedBy = agentConfigs
+          .filter((agent) => agent.skills.includes(entry.name))
+          .map((agent) => ({ id: agent.id, name: agent.name, emoji: agent.emoji }));
+        const skill: Skill = { name: entry.name, hasSkillMd: existsSync(skillMdPath), usedBy, source: 'built-in' };
+        if (skill.hasSkillMd) {
+          try {
+            const content = readFileSync(skillMdPath, 'utf-8');
+            for (const line of content.split('\n')) {
+              const trimmed = line.trim();
+              if (trimmed && !trimmed.startsWith('#')) { skill.description = trimmed.slice(0, 150); break; }
+            }
+          } catch {}
+        }
+        skills.push(skill);
+      }
+      break;
     }
 
     skills.sort((a, b) => a.name.localeCompare(b.name));

@@ -2,21 +2,39 @@ import { useState, useEffect, useRef, useSyncExternalStore } from 'react';
 
 // ── Types ──────────────────────────────────────────────────────────
 
+interface ContentBlock {
+  type: string;
+  text?: string;
+  name?: string;
+  [key: string]: unknown;
+}
+
 interface Message {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
+  toolCalls?: string[];
   timestamp: Date;
   pending?: boolean;
+  streaming?: boolean;
 }
 
-interface WebSocketMessage {
-  type: string;
-  id?: string;
-  data?: unknown;
-  content?: string;
-  challenge?: string;
-  error?: string;
+// ── Content helpers ────────────────────────────────────────────────
+
+function extractText(content: unknown): string {
+  if (typeof content === 'string') return content;
+  if (!Array.isArray(content)) return '';
+  return (content as ContentBlock[])
+    .filter(b => b.type === 'text' && b.text)
+    .map(b => b.text!)
+    .join('\n');
+}
+
+function extractToolCalls(content: unknown): string[] {
+  if (!Array.isArray(content)) return [];
+  return (content as ContentBlock[])
+    .filter(b => (b.type === 'toolCall' || b.type === 'tool_use') && b.name)
+    .map(b => b.name as string);
 }
 
 // ── Module-level WebSocket manager (persists across navigations) ──
@@ -26,6 +44,8 @@ type ConnectionState = 'connecting' | 'connected' | 'disconnected';
 const MAX_RETRIES = 5;
 const BASE_DELAY = 3000;
 const MAX_DELAY = 30000;
+const SESSION_KEY = 'agent:main:main';
+const RPC_TIMEOUT = 30000;
 
 let ws: WebSocket | null = null;
 let connectionState: ConnectionState = 'disconnected';
@@ -34,10 +54,18 @@ let messages: Message[] = [];
 let retries = 0;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let listeners = new Set<() => void>();
+let gatewayToken: string | null = null;
+let reqCounter = 0;
+let pendingRequests = new Map<string, { resolve: (v: unknown) => void; reject: (e: Error) => void; timer: ReturnType<typeof setTimeout> }>();
+let chatRunId: string | null = null;
 
 function getWebSocketUrl() {
   const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   return `${protocol}//${window.location.host}/openclaw/ws`;
+}
+
+function genReqId(): string {
+  return `pk-${++reqCounter}-${Date.now().toString(36)}`;
 }
 
 function notify() {
@@ -61,54 +89,185 @@ function setMessages(msgs: Message[]) {
   notify();
 }
 
-function handleWsMessage(data: WebSocketMessage) {
-  // Handle wrapped event messages: {type: 'event', event: '...', payload: {...}}
-  if (data.type === 'event' && (data as any).event) {
-    console.log('WS event:', (data as any).event);
+// ── JSON-RPC helpers ───────────────────────────────────────────────
+
+function rpcCall(method: string, params: Record<string, unknown>): Promise<unknown> {
+  return new Promise((resolve, reject) => {
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      reject(new Error('WebSocket not connected'));
+      return;
+    }
+    const id = genReqId();
+    const timer = setTimeout(() => {
+      if (pendingRequests.has(id)) {
+        pendingRequests.delete(id);
+        reject(new Error('RPC timeout'));
+      }
+    }, RPC_TIMEOUT);
+    pendingRequests.set(id, { resolve, reject, timer });
+    ws.send(JSON.stringify({ type: 'req', id, method, params }));
+  });
+}
+
+function clearPendingRequests(reason: string) {
+  for (const [, { reject, timer }] of pendingRequests) {
+    clearTimeout(timer);
+    reject(new Error(reason));
+  }
+  pendingRequests.clear();
+}
+
+// ── Gateway token fetch ────────────────────────────────────────────
+
+async function fetchGatewayToken(): Promise<string> {
+  const token = localStorage.getItem('pikaboard_token') || '';
+  const res = await fetch('/api/openclaw/gateway-token', {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+  if (!res.ok) throw new Error('Failed to fetch gateway token');
+  const data = await res.json();
+  if (!data.token) throw new Error('No gateway token available');
+  return data.token;
+}
+
+// ── History loading ────────────────────────────────────────────────
+
+async function loadHistory() {
+  try {
+    const result = await rpcCall('chat.history', {
+      sessionKey: SESSION_KEY,
+      limit: 200,
+    }) as { messages?: Array<{ role: string; content: unknown; timestamp?: number }> };
+
+    if (result?.messages) {
+      const parsed: Message[] = [];
+      for (const m of result.messages) {
+        if (m.role !== 'user' && m.role !== 'assistant') continue;
+        const text = extractText(m.content);
+        if (!text.trim()) continue;
+        const tools = m.role === 'assistant' ? extractToolCalls(m.content) : [];
+        parsed.push({
+          id: `hist-${parsed.length}-${m.timestamp || Date.now()}`,
+          role: m.role as 'user' | 'assistant',
+          content: text,
+          toolCalls: tools.length > 0 ? tools : undefined,
+          timestamp: m.timestamp ? new Date(m.timestamp) : new Date(),
+        });
+      }
+      setMessages(parsed);
+    }
+  } catch (err) {
+    console.error('Failed to load chat history:', err);
+  }
+}
+
+// ── Streaming event handler ────────────────────────────────────────
+
+function handleStreamingEvent(data: Record<string, unknown>) {
+  const state = data.state as string | undefined;
+  const sessionKey = data.sessionKey as string | undefined;
+  const runId = data.runId as string | undefined;
+
+  // Only process events for our session and run
+  if (sessionKey && sessionKey !== SESSION_KEY) return;
+  if (runId && chatRunId && runId !== chatRunId) {
+    if (state === 'final') {
+      // Another run finished - refresh history
+      loadHistory();
+    }
     return;
   }
 
-  switch (data.type) {
-    case 'connect.challenge':
-      console.log('Received connect challenge:', data.challenge);
-      break;
-
-    case 'message':
-    case 'response':
-      if (data.content) {
-        const assistantMsg: Message = {
-          id: data.id || `msg-${Date.now()}`,
-          role: 'assistant',
-          content: data.content,
-          timestamp: new Date(),
-        };
-        messages = [...messages.filter((m) => !m.pending), assistantMsg];
-        notify();
-      }
-      break;
-
-    case 'error':
-      console.error('WebSocket error message:', data.error);
-      connectionError = data.error || 'An error occurred';
+  if (state === 'delta') {
+    // Accumulated response text
+    const msg = data.message as Record<string, unknown> | undefined;
+    const text = msg ? extractText(msg.content ?? msg) : '';
+    if (text) {
+      messages = messages.map(m =>
+        m.streaming
+          ? { ...m, content: text, pending: false }
+          : m
+      );
       notify();
-      break;
-
-    case 'history':
-      if (Array.isArray(data.data)) {
-        const historyMessages: Message[] = (data.data as Array<{ role: string; content: string; id?: string; timestamp?: string }>).map((item) => ({
-          id: item.id || `hist-${Date.now()}-${Math.random()}`,
-          role: item.role as 'user' | 'assistant' | 'system',
-          content: item.content,
-          timestamp: item.timestamp ? new Date(item.timestamp) : new Date(),
-        }));
-        setMessages(historyMessages);
-      }
-      break;
-
-    default:
-      console.log('Unknown message type:', data.type, data);
+    }
+  } else if (state === 'final') {
+    chatRunId = null;
+    // Reload history for clean final state
+    loadHistory();
+  } else if (state === 'aborted') {
+    chatRunId = null;
+    messages = messages.filter(m => !m.streaming);
+    notify();
+  } else if (state === 'error') {
+    chatRunId = null;
+    const errorMsg = (data.errorMessage as string) || 'An error occurred';
+    messages = messages.map(m =>
+      m.streaming
+        ? { ...m, content: errorMsg, pending: false, streaming: false }
+        : m
+    );
+    notify();
   }
 }
+
+// ── Gateway message handler ────────────────────────────────────────
+
+async function handleGatewayMessage(data: Record<string, unknown>) {
+  // JSON-RPC response
+  if (data.type === 'res') {
+    const id = data.id as string;
+    const pending = pendingRequests.get(id);
+    if (pending) {
+      pendingRequests.delete(id);
+      clearTimeout(pending.timer);
+      if (data.ok) {
+        pending.resolve(data.payload);
+      } else {
+        const err = data.error as { message?: string } | undefined;
+        pending.reject(new Error(err?.message || 'RPC error'));
+      }
+    }
+    return;
+  }
+
+  // Events
+  if (data.type === 'event') {
+    const event = data.event as string | undefined;
+
+    if (event === 'connect.challenge') {
+      // Respond with connect handshake
+      try {
+        await rpcCall('connect', {
+          minProtocol: 3,
+          maxProtocol: 3,
+          client: { id: 'webchat-ui', version: 'dev', platform: 'web', mode: 'webchat' },
+          role: 'operator',
+          scopes: [],
+          caps: [],
+          auth: { token: gatewayToken },
+          userAgent: navigator.userAgent,
+          locale: navigator.language,
+        });
+        retries = 0;
+        setState('connected', null);
+        await loadHistory();
+      } catch (err) {
+        console.error('Connect handshake failed:', err);
+        gatewayToken = null; // Clear so next retry re-fetches
+        setState('disconnected', 'Authentication failed');
+        ws?.close();
+      }
+      return;
+    }
+
+    // Streaming events have state + sessionKey fields
+    if (data.state || (data as Record<string, unknown>).sessionKey) {
+      handleStreamingEvent(data as Record<string, unknown>);
+    }
+  }
+}
+
+// ── Connection management ──────────────────────────────────────────
 
 function scheduleReconnect() {
   if (retries >= MAX_RETRIES) {
@@ -120,27 +279,26 @@ function scheduleReconnect() {
   reconnectTimer = setTimeout(connect, delay);
 }
 
-function connect() {
-  // Don't reconnect if already open or connecting
+async function connect() {
   if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
     return;
   }
 
   try {
     setState('connecting', null);
-    const socket = new WebSocket(getWebSocketUrl());
 
-    socket.onopen = () => {
-      console.log('WebSocket connected');
-      retries = 0;
-      setState('connected', null);
-    };
+    // Fetch gateway token if not cached
+    if (!gatewayToken) {
+      gatewayToken = await fetchGatewayToken();
+    }
+
+    const socket = new WebSocket(getWebSocketUrl());
 
     socket.onmessage = (event) => {
       try {
-        handleWsMessage(JSON.parse(event.data));
+        handleGatewayMessage(JSON.parse(event.data));
       } catch (err) {
-        console.error('Failed to parse WebSocket message:', err);
+        console.error('Failed to parse gateway message:', err);
       }
     };
 
@@ -149,22 +307,24 @@ function connect() {
     };
 
     socket.onclose = () => {
-      console.log('WebSocket disconnected');
       ws = null;
+      clearPendingRequests('Connection closed');
+      chatRunId = null;
       setState('disconnected');
       scheduleReconnect();
     };
 
     ws = socket;
   } catch (err) {
-    console.error('Failed to create WebSocket connection:', err);
-    setState('disconnected');
+    console.error('Failed to connect:', err);
+    setState('disconnected', err instanceof Error ? err.message : 'Connection failed');
     scheduleReconnect();
   }
 }
 
 function manualReconnect() {
   retries = 0;
+  gatewayToken = null; // Force re-fetch
   if (reconnectTimer) {
     clearTimeout(reconnectTimer);
     reconnectTimer = null;
@@ -176,37 +336,60 @@ function manualReconnect() {
   connect();
 }
 
-function sendWsMessage(content: string) {
-  if (!ws || ws.readyState !== WebSocket.OPEN) return;
+function sendMessage(content: string) {
+  if (!ws || ws.readyState !== WebSocket.OPEN || connectionState !== 'connected') return;
 
-  const userMessage: Message = {
+  const userMsg: Message = {
     id: `user-${Date.now()}`,
     role: 'user',
     content,
     timestamp: new Date(),
   };
-  addMessage(userMessage);
+  addMessage(userMsg);
 
-  ws.send(JSON.stringify({ type: 'message', id: userMessage.id, content }));
+  const runId = genReqId();
+  chatRunId = runId;
 
   addMessage({
-    id: `pending-${Date.now()}`,
+    id: `stream-${runId}`,
     role: 'assistant',
-    content: 'Thinking...',
+    content: '',
     timestamp: new Date(),
     pending: true,
+    streaming: true,
+  });
+
+  rpcCall('chat.send', {
+    sessionKey: SESSION_KEY,
+    message: content,
+    deliver: false,
+    idempotencyKey: runId,
+  }).catch(err => {
+    console.error('Failed to send message:', err);
+    chatRunId = null;
+    messages = messages.map(m =>
+      m.streaming
+        ? { ...m, content: `Error: ${err.message}`, pending: false, streaming: false }
+        : m
+    );
+    notify();
   });
 }
 
-// Connection is triggered from Chat component useEffect, not at module level
+// ── External store ─────────────────────────────────────────────────
 
-// Snapshot helpers for useSyncExternalStore
+interface StoreSnapshot {
+  connectionState: ConnectionState;
+  connectionError: string | null;
+  messages: Message[];
+}
+
 function subscribe(cb: () => void) {
   listeners.add(cb);
   return () => { listeners.delete(cb); };
 }
-let snapshot = { connectionState, connectionError, messages };
-function getSnapshot() {
+let snapshot: StoreSnapshot = { connectionState, connectionError, messages };
+function getSnapshot(): StoreSnapshot {
   return snapshot;
 }
 
@@ -228,6 +411,8 @@ export default function Chat() {
         ws.close();
         ws = null;
       }
+      clearPendingRequests('Unmounted');
+      chatRunId = null;
     };
   }, []);
 
@@ -239,7 +424,7 @@ export default function Chat() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputMessage.trim() || !isConnected) return;
-    sendWsMessage(inputMessage.trim());
+    sendMessage(inputMessage.trim());
     setInputMessage('');
   };
 
@@ -262,7 +447,7 @@ export default function Chat() {
             💬 Chat with Pika
           </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            Talk directly to Pika through the OpenClaw gateway
+            Session: <span className="font-mono text-xs">{SESSION_KEY}</span>
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -297,10 +482,14 @@ export default function Chat() {
             <div className="flex flex-col items-center justify-center h-full text-center">
               <span className="text-6xl mb-4">⚡</span>
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                Welcome! I'm Pika
+                {isConnecting ? 'Connecting...' : isConnected ? 'Welcome! I\'m Pika' : 'Disconnected'}
               </h3>
               <p className="text-gray-600 dark:text-gray-400 max-w-md">
-                I'm your AI assistant. Ask me anything about your tasks, projects, or anything else!
+                {isConnecting
+                  ? 'Loading conversation history...'
+                  : isConnected
+                  ? 'Your conversation history will appear here. Ask me anything!'
+                  : 'Unable to connect to the gateway. Click retry to reconnect.'}
               </p>
             </div>
           ) : (
@@ -329,7 +518,28 @@ export default function Chat() {
                       {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   </div>
-                  <div className="text-sm whitespace-pre-wrap">{message.content}</div>
+                  {message.pending && !message.content ? (
+                    <div className="flex items-center gap-1 text-sm">
+                      <span className="animate-pulse">Thinking</span>
+                      <span className="animate-bounce" style={{ animationDelay: '0ms' }}>.</span>
+                      <span className="animate-bounce" style={{ animationDelay: '150ms' }}>.</span>
+                      <span className="animate-bounce" style={{ animationDelay: '300ms' }}>.</span>
+                    </div>
+                  ) : (
+                    <div className="text-sm whitespace-pre-wrap">{message.content}</div>
+                  )}
+                  {message.toolCalls && message.toolCalls.length > 0 && (
+                    <div className="mt-1.5 flex flex-wrap gap-1">
+                      {message.toolCalls.map((tool, i) => (
+                        <span key={i} className="inline-flex items-center text-xs px-1.5 py-0.5 bg-gray-200 dark:bg-gray-600 rounded text-gray-600 dark:text-gray-300">
+                          🔧 {tool}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {message.streaming && message.content && (
+                    <span className="inline-block w-2 h-4 bg-gray-500 dark:bg-gray-400 animate-pulse ml-0.5 align-text-bottom" />
+                  )}
                 </div>
               </div>
             ))
