@@ -61,6 +61,12 @@ function setMessages(msgs: Message[]) {
 }
 
 function handleWsMessage(data: WebSocketMessage) {
+  // Handle wrapped event messages: {type: 'event', event: '...', payload: {...}}
+  if (data.type === 'event' && (data as any).event) {
+    console.log('WS event:', (data as any).event);
+    return;
+  }
+
   switch (data.type) {
     case 'connect.challenge':
       console.log('Received connect challenge:', data.challenge);
