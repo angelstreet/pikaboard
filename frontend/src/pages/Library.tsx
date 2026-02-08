@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { api, LibraryAgent, LibrarySkill, LibraryPlugin } from '../api/client';
 
 const PLUGIN_ICONS: Record<string, string> = {
@@ -11,6 +11,8 @@ const PLUGIN_ICONS: Record<string, string> = {
   imessage: '💬',
 };
 
+type SkillFilter = 'all' | 'workspace' | 'built-in' | 'enabled';
+
 export default function Library() {
   const cachedSkills = api.getCached<{ skills: LibrarySkill[]; agents: LibraryAgent[] }>('/library/skills');
   const cachedPlugins = api.getCached<{ plugins: LibraryPlugin[]; agents: LibraryAgent[] }>('/library/plugins');
@@ -20,6 +22,7 @@ export default function Library() {
   const [plugins, setPlugins] = useState<LibraryPlugin[]>(cachedPlugins?.plugins ?? []);
   const [agents, setAgents] = useState<LibraryAgent[]>(cachedSkills?.agents ?? cachedPlugins?.agents ?? []);
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
+  const [skillFilter, setSkillFilter] = useState<SkillFilter>('workspace');
   const [loading, setLoading] = useState(!cachedSkills);
 
   useEffect(() => {
@@ -29,11 +32,27 @@ export default function Library() {
   const fetchData = async () => {
     if (!skills.length && !plugins.length) setLoading(true);
     try {
-      const [skillsData, pluginsData] = await Promise.all([
+      const [skillsData, pluginsData, allSkillsData] = await Promise.all([
         api.getLibrarySkills(),
         api.getLibraryPlugins(),
+        api.getSkills(),
       ]);
-      setSkills(skillsData.skills || []);
+
+      // Build source map from /skills endpoint
+      const sourceMap = new Map<string, 'built-in' | 'workspace'>();
+      if (allSkillsData) {
+        for (const s of allSkillsData) {
+          if (s.source) sourceMap.set(s.name, s.source as 'built-in' | 'workspace');
+        }
+      }
+
+      // Merge source into library skills
+      const enrichedSkills = (skillsData.skills || []).map((s) => ({
+        ...s,
+        source: sourceMap.get(s.name) || ('built-in' as const),
+      }));
+
+      setSkills(enrichedSkills);
       if (skillsData.agents) setAgents(skillsData.agents);
       setPlugins(pluginsData.plugins || []);
       if (pluginsData.agents && agents.length === 0) setAgents(pluginsData.agents);
@@ -45,13 +64,42 @@ export default function Library() {
   };
 
   // Filter by agent
-  const filteredSkills = selectedAgent
+  const agentFiltered = selectedAgent
     ? skills.filter((s) => s.usedBy.some((a) => a.id === selectedAgent))
     : skills;
+
+  // Filter by skill filter tabs
+  const filteredSkills = useMemo(() => {
+    switch (skillFilter) {
+      case 'workspace':
+        return agentFiltered.filter((s) => s.source === 'workspace');
+      case 'built-in':
+        return agentFiltered.filter((s) => s.source === 'built-in');
+      case 'enabled':
+        return agentFiltered.filter((s) => s.usedBy.length > 0);
+      default:
+        return agentFiltered;
+    }
+  }, [agentFiltered, skillFilter]);
 
   const filteredPlugins = selectedAgent
     ? plugins.filter((p) => p.usedBy.some((a) => a.id === selectedAgent))
     : plugins;
+
+  // Counts for filter tabs
+  const counts = useMemo(() => ({
+    all: agentFiltered.length,
+    workspace: agentFiltered.filter((s) => s.source === 'workspace').length,
+    'built-in': agentFiltered.filter((s) => s.source === 'built-in').length,
+    enabled: agentFiltered.filter((s) => s.usedBy.length > 0).length,
+  }), [agentFiltered]);
+
+  const filterTabs: { key: SkillFilter; label: string }[] = [
+    { key: 'all', label: 'All' },
+    { key: 'workspace', label: 'Workspace' },
+    { key: 'built-in', label: 'Built-in' },
+    { key: 'enabled', label: 'Enabled' },
+  ];
 
   return (
     <div className="space-y-6">
@@ -131,6 +179,25 @@ export default function Library() {
         </nav>
       </div>
 
+      {/* Skill Filter Tabs */}
+      {tab === 'skills' && (
+        <div className="flex items-center gap-2">
+          {filterTabs.map((ft) => (
+            <button
+              key={ft.key}
+              onClick={() => setSkillFilter(ft.key)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                skillFilter === ft.key
+                  ? 'bg-pika-100 text-pika-700 dark:bg-pika-900/40 dark:text-pika-300'
+                  : 'text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700'
+              }`}
+            >
+              {ft.label} ({counts[ft.key]})
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* Content */}
       {loading ? (
         <div className="text-center py-12 text-gray-500 dark:text-gray-400">Loading...</div>
@@ -147,56 +214,77 @@ function SkillsList({ skills }: { skills: LibrarySkill[] }) {
   if (skills.length === 0) {
     return (
       <div className="text-center py-12 text-gray-500 dark:text-gray-400">
-        No skills installed. Visit{' '}
-        <a href="https://clawhub.com" className="text-pika-600 hover:underline">
-          ClawHub
-        </a>{' '}
-        to find skills.
+        No skills match this filter.
       </div>
     );
   }
 
   return (
     <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-      {skills.map((skill) => (
-        <div
-          key={skill.name}
-          className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:border-pika-300 dark:hover:border-pika-600 transition-colors"
-        >
-          <div className="flex items-start justify-between gap-2">
-            <h3 className="font-medium text-gray-900 dark:text-white">{skill.name}</h3>
-            {skill.version && (
-              <span className="text-xs text-gray-400 dark:text-gray-500">v{skill.version}</span>
+      {skills.map((skill) => {
+        const isEnabled = skill.usedBy.length > 0;
+        return (
+          <div
+            key={skill.name}
+            className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:border-pika-300 dark:hover:border-pika-600 transition-colors"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <h3 className="font-medium text-gray-900 dark:text-white">{skill.name}</h3>
+              <div className="flex items-center gap-1.5 shrink-0">
+                {/* Source badge */}
+                <span
+                  className={`text-xs px-1.5 py-0.5 rounded ${
+                    skill.source === 'workspace'
+                      ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300'
+                      : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                  }`}
+                >
+                  {skill.source === 'workspace' ? '📁' : '📦'}
+                </span>
+                {/* Enabled/Disabled badge */}
+                <span
+                  className={`inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded ${
+                    isEnabled
+                      ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
+                      : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'
+                  }`}
+                >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full ${isEnabled ? 'bg-green-500' : 'bg-gray-400'}`}
+                  />
+                  {isEnabled ? 'on' : 'off'}
+                </span>
+              </div>
+            </div>
+            {skill.description && skill.description !== '---' && (
+              <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
+                {skill.description}
+              </p>
             )}
-          </div>
-          {skill.description && (
-            <p className="mt-1 text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
-              {skill.description}
-            </p>
-          )}
-          <div className="mt-3 flex items-center justify-between">
-            <div className="flex items-center gap-1">
-              {skill.usedBy && skill.usedBy.length > 0 ? (
-                <>
-                  <span className="text-xs text-gray-400 dark:text-gray-500 mr-1">Used by:</span>
-                  {skill.usedBy.map((agent) => (
-                    <span key={agent.id} title={agent.name} className="text-base cursor-default">
-                      {agent.emoji}
-                    </span>
-                  ))}
-                </>
-              ) : (
-                <span className="text-xs text-gray-400 dark:text-gray-500 italic">Not assigned</span>
+            <div className="mt-3 flex items-center justify-between">
+              <div className="flex items-center gap-1">
+                {skill.usedBy && skill.usedBy.length > 0 ? (
+                  <>
+                    <span className="text-xs text-gray-400 dark:text-gray-500 mr-1">Used by:</span>
+                    {skill.usedBy.map((agent) => (
+                      <span key={agent.id} title={agent.name} className="text-base cursor-default">
+                        {agent.emoji}
+                      </span>
+                    ))}
+                  </>
+                ) : (
+                  <span className="text-xs text-gray-400 dark:text-gray-500 italic">Not assigned</span>
+                )}
+              </div>
+              {skill.hasSkillMd && (
+                <span className="text-xs px-2 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
+                  docs
+                </span>
               )}
             </div>
-            {skill.hasSkillMd && (
-              <span className="text-xs px-2 py-0.5 rounded bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300">
-                docs
-              </span>
-            )}
           </div>
-        </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

@@ -64,6 +64,7 @@ export interface Skill {
   hasReadme: boolean;
   hasSkillMd: boolean;
   description?: string;
+  source?: string;
 }
 
 export interface LibraryAgent {
@@ -79,6 +80,7 @@ export interface LibrarySkill {
   description?: string;
   version?: string;
   hasSkillMd: boolean;
+  source?: 'built-in' | 'workspace';
   usedBy: { id: string; name: string; emoji: string }[];
 }
 
