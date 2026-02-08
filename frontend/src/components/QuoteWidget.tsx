@@ -59,13 +59,36 @@ function isQuotesEnabled(): boolean {
   } catch { return false; }
 }
 
-export function QuoteWidget({ interval = 45000 }: { interval?: number }) {
+function getQuotesDuration(): number {
+  try {
+    const val = parseInt(localStorage.getItem('pikaboard_quotes_duration') || '8', 10);
+    return isNaN(val) ? 8 : val;
+  } catch { return 8; }
+}
+
+function getQuotesFrequency(): number {
+  try {
+    const val = parseInt(localStorage.getItem('pikaboard_quotes_frequency') || '45', 10);
+    return isNaN(val) ? 45 : val;
+  } catch { return 45; }
+}
+
+export function QuoteWidget() {
   const [quote, setQuote] = useState<Quote>(getRandomQuote);
   const [visible, setVisible] = useState(false);
   const [exiting, setExiting] = useState(false);
-  const [enabled] = useState(isQuotesEnabled);
+  const [enabled, setEnabled] = useState(isQuotesEnabled);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Re-check enabled state when localStorage changes (from Settings page)
+  useEffect(() => {
+    const onStorage = () => setEnabled(isQuotesEnabled());
+    window.addEventListener('storage', onStorage);
+    // Also poll since storage event doesn't fire in same tab
+    const poll = setInterval(() => setEnabled(isQuotesEnabled()), 2000);
+    return () => { window.removeEventListener('storage', onStorage); clearInterval(poll); };
+  }, []);
 
   const hide = useCallback(() => {
     setExiting(true);
@@ -84,21 +107,27 @@ export function QuoteWidget({ interval = 45000 }: { interval?: number }) {
     setExiting(false);
     setQuote(getRandomQuote());
     setVisible(true);
-    // Auto-hide after 8 seconds
-    hideTimerRef.current = setTimeout(hide, 8000);
+    // Auto-hide based on user-configured duration
+    const duration = getQuotesDuration() * 1000;
+    hideTimerRef.current = setTimeout(hide, duration);
   }, [hide]);
 
   useEffect(() => {
-    if (!enabled) return;
-    const initialTimer = setTimeout(showNewQuote, 10000);
-    const recurring = setInterval(showNewQuote, interval);
+    if (!enabled) {
+      setVisible(false);
+      return;
+    }
+    const frequency = getQuotesFrequency() * 1000;
+    // Show first quote quickly when enabled
+    const initialTimer = setTimeout(showNewQuote, 2000);
+    const recurring = setInterval(showNewQuote, frequency);
     return () => {
       clearTimeout(initialTimer);
       clearInterval(recurring);
       if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
       if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
     };
-  }, [interval, showNewQuote, enabled]);
+  }, [showNewQuote, enabled]);
 
   if (!enabled || !visible) return null;
 

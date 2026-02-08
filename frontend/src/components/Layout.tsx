@@ -175,7 +175,7 @@ export default function Layout() {
       </footer>
       <MobileNav onMenuClick={() => setDrawerOpen(true)} />
       <MobileDrawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} />
-      <QuoteWidget interval={60000} />
+      <QuoteWidget />
     </div>
   );
 }

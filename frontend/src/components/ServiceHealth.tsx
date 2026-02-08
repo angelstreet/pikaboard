@@ -15,20 +15,16 @@ interface HealthResponse {
 
 export default function ServiceHealth() {
   const [data, setData] = useState<HealthResponse | null>(null);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(true);
 
   const fetchHealth = async () => {
     try {
-      setLoading(true);
       const res = await api.get<HealthResponse>('/services/health');
       setData(res);
       setError(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch');
-    } finally {
-      setLoading(false);
     }
   };
 
