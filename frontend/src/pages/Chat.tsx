@@ -197,8 +197,7 @@ function sendWsMessage(content: string) {
   });
 }
 
-// Connect once at module load
-connect();
+// Connection is triggered from Chat component useEffect, not at module level
 
 // Snapshot helpers for useSyncExternalStore
 function subscribe(cb: () => void) {
@@ -218,6 +217,17 @@ export default function Chat() {
 
   const isConnected = store.connectionState === 'connected';
   const isConnecting = store.connectionState === 'connecting';
+
+  // Connect WS only when Chat page mounts, disconnect on unmount
+  useEffect(() => {
+    connect();
+    return () => {
+      if (ws) {
+        ws.close();
+        ws = null;
+      }
+    };
+  }, []);
 
   // Scroll to bottom
   useEffect(() => {
