@@ -55,7 +55,7 @@ tasksRouter.get('/', (c) => {
   const tag = c.req.query('tag');
   const includeArchived = c.req.query('includeArchived') === 'true';
 
-  let query = 'SELECT t.*, b.name as board_name FROM tasks t LEFT JOIN boards b ON t.board_id = b.id WHERE 1=1';
+  let query = 'SELECT t.*, b.name as board_name, b.icon as board_icon FROM tasks t LEFT JOIN boards b ON t.board_id = b.id WHERE 1=1';
   const params: (string | number)[] = [];
 
   // By default, exclude archived tasks

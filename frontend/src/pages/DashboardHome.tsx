@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api, DashboardStats, Task } from '../api/client';
 import ActivityFeed from '../components/ActivityFeed';
+import CompactTaskLists from '../components/CompactTaskLists';
 
 function StatCard({ 
   label, 
@@ -181,6 +182,9 @@ export default function DashboardHome() {
           subtitle="Past deadline"
         />
       </div>
+
+      {/* Compact Task Lists */}
+      <CompactTaskLists />
 
       {/* Main Content Grid */}
       <div className="grid md:grid-cols-2 gap-6 max-w-full">
