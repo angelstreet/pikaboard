@@ -97,23 +97,42 @@ export function QuoteWidget() {
     }, 400);
   }, []);
 
+  const visibleRef = useRef(false);
+  const busyRef = useRef(false);
+
+  // Keep ref in sync with state
+  useEffect(() => { visibleRef.current = visible; }, [visible]);
+
   const showNewQuote = useCallback(() => {
     if (!isQuotesEnabled()) return;
+    if (busyRef.current) return;
+    busyRef.current = true;
     if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
     if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
-    // Hide current quote first, then show new one after exit animation
-    setExiting(true);
-    exitTimerRef.current = setTimeout(() => {
-      setVisible(false);
+
+    const reveal = () => {
+      const q = getRandomQuote();
+      setQuote(q);
       setExiting(false);
-      // Small delay then show new quote
-      setTimeout(() => {
-        setQuote(getRandomQuote());
-        setVisible(true);
-        const duration = getQuotesDuration() * 1000;
-        hideTimerRef.current = setTimeout(hide, duration);
-      }, 100);
-    }, 400);
+      setVisible(true);
+      const duration = getQuotesDuration() * 1000;
+      hideTimerRef.current = setTimeout(() => {
+        hide();
+        busyRef.current = false;
+      }, duration);
+    };
+
+    if (visibleRef.current) {
+      // Fade out current quote first
+      setExiting(true);
+      exitTimerRef.current = setTimeout(() => {
+        setVisible(false);
+        setExiting(false);
+        setTimeout(reveal, 100);
+      }, 400);
+    } else {
+      setTimeout(reveal, 50);
+    }
   }, [hide]);
 
   useEffect(() => {
@@ -153,8 +172,12 @@ export function QuoteWidget() {
       >
         ×
       </button>
-      <p className="text-xs text-gray-700 dark:text-gray-300 italic leading-snug pr-3 line-clamp-2">
-        "{quote.text}"
+      <p className="text-xs text-gray-700 dark:text-gray-300 italic leading-relaxed pr-3">
+        "{quote.text.split(/(?<=\.)\s+/).map((sentence, i, arr) => (
+          <span key={i}>
+            {sentence}{i < arr.length - 1 && <br />}
+          </span>
+        ))}"
       </p>
       <p className="text-[10px] text-purple-600 dark:text-purple-400 mt-1 text-right">
         — {quote.author}

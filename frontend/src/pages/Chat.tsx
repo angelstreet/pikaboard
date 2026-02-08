@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useSyncExternalStore } from 'react';
+import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -398,7 +398,9 @@ function getSnapshot(): StoreSnapshot {
 export default function Chat() {
   const store = useSyncExternalStore(subscribe, getSnapshot);
   const [inputMessage, setInputMessage] = useState('');
+  const [isAtBottom, setIsAtBottom] = useState(true);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   const isConnected = store.connectionState === 'connected';
   const isConnecting = store.connectionState === 'connecting';
@@ -416,10 +418,29 @@ export default function Chat() {
     };
   }, []);
 
-  // Scroll to bottom
+  // Track scroll position
+  const handleScroll = useCallback(() => {
+    const el = scrollContainerRef.current;
+    if (!el) return;
+    const atBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 80;
+    setIsAtBottom(atBottom);
+  }, []);
+
+  // Auto-scroll only when already at bottom or on new user message
   useEffect(() => {
+    if (isAtBottom) {
+      messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [store.messages, isAtBottom]);
+
+  const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [store.messages]);
+    setIsAtBottom(true);
+  }, []);
+
+  const scrollToTop = useCallback(() => {
+    scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -446,8 +467,13 @@ export default function Chat() {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             💬 Chat with Pika
           </h1>
-          <p className="text-gray-600 dark:text-gray-400">
-            Session: <span className="font-mono text-xs">{SESSION_KEY}</span>
+          <p className="text-gray-600 dark:text-gray-400 flex items-center gap-2">
+            <span className="font-mono text-xs">{SESSION_KEY}</span>
+            {store.messages.length > 0 && (
+              <span className="text-xs px-1.5 py-0.5 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+                {store.messages.length} messages
+              </span>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -475,9 +501,9 @@ export default function Chat() {
       )}
 
       {/* Chat Container */}
-      <div className="flex-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col">
+      <div className="flex-1 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 overflow-hidden flex flex-col relative">
         {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div ref={scrollContainerRef} onScroll={handleScroll} className="flex-1 overflow-y-auto p-4 space-y-4">
           {store.messages.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-full text-center">
               <span className="text-6xl mb-4">⚡</span>
@@ -546,6 +572,30 @@ export default function Chat() {
           )}
           <div ref={messagesEndRef} />
         </div>
+
+        {/* Scroll Navigation */}
+        {store.messages.length > 0 && !isAtBottom && (
+          <div className="absolute bottom-[76px] right-4 z-10 flex flex-col gap-1.5">
+            <button
+              onClick={scrollToTop}
+              className="w-9 h-9 rounded-full bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 shadow-md flex items-center justify-center text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+              title="Scroll to top"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M5 15l7-7 7 7" />
+              </svg>
+            </button>
+            <button
+              onClick={scrollToBottom}
+              className="w-9 h-9 rounded-full bg-pika-500 shadow-md flex items-center justify-center text-white hover:bg-pika-600 transition-colors"
+              title="Scroll to latest"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+          </div>
+        )}
 
         {/* Input Area */}
         <div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-gray-50 dark:bg-gray-900/50">
