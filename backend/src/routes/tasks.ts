@@ -3,6 +3,36 @@ import { db, logActivity } from '../db/index.js';
 
 export const tasksRouter = new Hono();
 
+// Safe JSON parse for tags - never crash on bad data
+function parseTags(raw: string | null): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    if (Array.isArray(parsed)) return parsed;
+    // Handle plain comma-separated string
+    if (typeof parsed === 'string') return parsed.split(',').map(s => s.trim()).filter(Boolean);
+    return [];
+  } catch {
+    // Fallback: treat as comma-separated string
+    return raw.split(',').map(s => s.trim().replace(/^"|"$/g, '')).filter(Boolean);
+  }
+}
+
+// Normalize tags input to always store as JSON array
+function normalizeTags(tags: unknown): string | null {
+  if (tags === null || tags === undefined) return null;
+  if (Array.isArray(tags)) return JSON.stringify(tags);
+  if (typeof tags === 'string') {
+    try {
+      const parsed = JSON.parse(tags);
+      if (Array.isArray(parsed)) return JSON.stringify(parsed);
+    } catch {}
+    // Comma-separated string
+    return JSON.stringify(tags.split(',').map(s => s.trim()).filter(Boolean));
+  }
+  return null;
+}
+
 // Types
 interface Task {
   id: number;
@@ -96,7 +126,7 @@ tasksRouter.get('/', (c) => {
   // Parse tags JSON
   const parsed = tasks.map((t) => ({
     ...t,
-    tags: t.tags ? JSON.parse(t.tags) : [],
+    tags: parseTags(t.tags),
   }));
 
   return c.json({ tasks: parsed });
@@ -121,7 +151,7 @@ tasksRouter.get('/archived', (c) => {
   return c.json({
     tasks: tasks.map((t) => ({
       ...t,
-      tags: t.tags ? JSON.parse(t.tags) : [],
+      tags: parseTags(t.tags),
     })),
   });
 });
@@ -138,7 +168,7 @@ tasksRouter.get('/:id', (c) => {
 
   return c.json({
     ...task,
-    tags: task.tags ? JSON.parse(task.tags) : [],
+    tags: parseTags(task.tags),
   });
 });
 
@@ -191,7 +221,7 @@ tasksRouter.post('/', async (c) => {
     body.description || null,
     body.status || 'inbox',
     body.priority || 'medium',
-    body.tags ? JSON.stringify(body.tags) : null,
+    normalizeTags(body.tags),
     boardId,
     position,
     body.deadline || null
@@ -205,7 +235,7 @@ tasksRouter.post('/', async (c) => {
   return c.json(
     {
       ...newTask,
-      tags: newTask.tags ? JSON.parse(newTask.tags) : [],
+      tags: parseTags(newTask.tags),
     },
     201
   );
@@ -261,7 +291,7 @@ tasksRouter.patch('/:id', async (c) => {
   }
   if (body.tags !== undefined) {
     updates.push('tags = ?');
-    params.push(JSON.stringify(body.tags));
+    params.push(normalizeTags(body.tags));
   }
   if (body.board_id !== undefined) {
     // Validate board exists
@@ -332,7 +362,7 @@ tasksRouter.patch('/:id', async (c) => {
 
   return c.json({
     ...updated,
-    tags: updated.tags ? JSON.parse(updated.tags) : [],
+    tags: parseTags(updated.tags),
   });
 });
 
