@@ -16,7 +16,7 @@ export interface Task {
   description: string | null;
   status: 'inbox' | 'up_next' | 'in_progress' | 'testing' | 'in_review' | 'done' | 'rejected';
   priority: 'low' | 'medium' | 'high' | 'urgent';
-  tags: string[];
+  tags: string | string[];
   board_id: number | null;
   position: number;
   deadline: string | null;

@@ -26,27 +26,57 @@ Managing AI agents is like herding cats — they work 24/7, spawn sub-agents, an
 
 ### 📋 Multi-Board Kanban
 Organize work across unlimited boards with drag-and-drop. Full workflow support:
-`inbox` → `up_next` → `in_progress` → `testing` → `in_review` → `done`
+`inbox` → `up_next` → `in_progress` → `in_review` → `done`
 
-<!-- ![Kanban Board](docs/screenshots/kanban.png) -->
+Mobile-optimized with single-column status dropdown view.
 
 ### 🤖 Agent Team Roster
 Real-time status for your entire AI team:
-- **WORKING** — Agent has tasks in progress
+- **WORKING** — Agent has active sub-agents running
 - **IDLE** — Online but no active tasks
 - **OFFLINE** — No recent heartbeat
+- Sub-agent count badges, session logs, token usage stats
 
-Each agent shows their current task, purpose, and assigned board.
+### 📥 Unified Inbox
+Human oversight for agent autonomy:
+- **Pending Approvals** — Accept/deny agent proposals
+- **Questions** — Answer agent queries inline
+- **Blockers** — Unblock stuck agents
+- Uses task prefix system: `[APPROVAL]`, `[QUESTION]`, `[BLOCKER]`
 
-<!-- ![Agent Roster](docs/screenshots/agents.png) -->
+### 🎯 Goals
+Strategic objectives that guide agent behavior:
+- Global and per-agent goals with progress tracking
+- Link tasks to goals for automatic progress calculation
+- Agent heartbeat integration for autonomous task proposals
+
+### ⏰ Reminders
+Cron-based reminder system:
+- One-time and recurring (daily/weekly/monthly/custom cron)
+- Multi-channel delivery (WhatsApp, Slack, Email)
+- Execution logs and manual trigger
+
+### 💰 Usage & Cost Tracking
+Token and cost analytics:
+- Per-agent and per-board cost breakdowns
+- Model comparison (Opus vs alternatives)
+- Daily/weekly/monthly spend trends
+- Time period filters
+
+### 📊 Insights & Analytics
+Comprehensive dashboards:
+- Task completion trends over time
+- Priority and status distribution charts
+- Per-agent productivity metrics
+- Agent and board filters
+
+### 💬 Chat
+Talk to your AI captain directly from PikaBoard via OpenClaw gateway integration.
 
 ### 📁 Files Explorer  
 Browse agent outputs without SSH:
-- Research reports
-- Agent memory files
-- Generated documentation
-
-<!-- ![Files Explorer](docs/screenshots/files.png) -->
+- Research reports, agent memory files, generated docs
+- Markdown rendering with syntax highlighting
 
 ### 📚 Skills Library
 See what tools your agents have access to:
@@ -54,27 +84,21 @@ See what tools your agents have access to:
 - Which agents use each skill
 - Channel plugins (Slack, Telegram, Discord...)
 
-<!-- ![Library](docs/screenshots/library.png) -->
-
 ### 🖥️ System Monitoring
-Live stats in one glance:
+Live stats in the header:
 - CPU & RAM usage with alerts
-- Load average (1min/10min)
-- Disk usage per mount
+- Load average, disk usage
 - Gateway connection status
-
-<!-- ![System Stats](docs/screenshots/system.png) -->
-
-### 📊 Activity Feed
-Real-time log of everything:
-- Task status changes
-- Agent activity
-- System events
-
-Filter by type, agent, or time range.
+- OpenClaw restart button
 
 ### 🌙 Dark Mode
-Easy on the eyes, day or night. Toggle in the sidebar.
+Full dark/light/system theme support with persistence.
+
+### 💬 Quotes Widget
+Floating motivational quotes (205 quotes, EN/FR) with theme-aware styling.
+
+### 📱 Mobile Responsive
+Compact mobile layout with bottom navigation, status dropdown, and touch-friendly cards.
 
 ---
 
@@ -82,7 +106,7 @@ Easy on the eyes, day or night. Toggle in the sidebar.
 
 ### Prerequisites
 - Node.js 18+
-- npm or pnpm
+- npm
 
 ### Installation
 
@@ -113,6 +137,14 @@ cd backend && npm run build
 # Frontend
 cd frontend && npm run build
 # Serve dist/ with nginx or any static host
+```
+
+### Demo Mode
+
+Run with mock data — no backend needed:
+```bash
+cd frontend
+VITE_DEMO_MODE=true npm run dev
 ```
 
 ---
@@ -165,6 +197,21 @@ location /pikaboard/api/ {
 
 ---
 
+## 🧪 Testing
+
+```bash
+# Sanity check (quick, <10s)
+bash backend/scripts/sanity-quick.sh
+
+# API tests
+cd tests/api && bash run.sh
+
+# E2E tests (Playwright, 14 tests)
+cd tests/e2e && bash run.sh
+```
+
+---
+
 ## 🤝 Built for OpenClaw
 
 PikaBoard is designed to work with [OpenClaw](https://github.com/openclaw/openclaw) — the open-source AI agent orchestration platform. 
@@ -175,10 +222,8 @@ PikaBoard is designed to work with [OpenClaw](https://github.com/openclaw/opencl
 
 ## 📝 API Reference
 
-Full backend API documentation: `backend/API.md`
-
 ### Tasks
-- `GET /api/tasks` — List all tasks (filter: `?status=`, `?board_id=`)
+- `GET /api/tasks` — List tasks (filter: `?status=`, `?board_id=`)
 - `POST /api/tasks` — Create task
 - `PATCH /api/tasks/:id` — Update task
 - `DELETE /api/tasks/:id` — Delete task
@@ -191,20 +236,22 @@ Full backend API documentation: `backend/API.md`
 ### Agents
 - `GET /api/agents` — List agents with status
 - `GET /api/agents/:id` — Agent details + SOUL.md
+- `GET /api/agents/:id/logs` — Session logs
+
+### Goals
+- `GET /api/goals` — List goals
+- `POST /api/goals` — Create goal
+- `GET /api/goals/agent/:agentId` — Agent goals with task needs
+
+### Usage & Insights
+- `GET /api/usage` — Token/cost data (filter: `?period=`)
+- `GET /api/insights` — Analytics data
 
 ### System
 - `GET /api/system` — CPU, RAM, disk stats
 - `GET /api/activity` — Activity feed
-
----
-
-## 🛣️ Roadmap
-
-- [ ] **Goals** — Strategic objectives that guide agent behavior
-- [ ] **Insights** — Analytics dashboard with charts
-- [ ] **Agent Chat** — Direct communication with agents
-- [ ] **Webhooks** — External integrations
-- [ ] **Mobile App** — React Native companion
+- `GET /api/library/skills` — Installed skills
+- `GET /api/library/plugins` — Channel plugins
 
 ---
 

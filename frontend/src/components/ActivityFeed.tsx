@@ -5,11 +5,13 @@ type FilterType = 'all' | 'agents' | 'tasks';
 
 interface ActivityMetadata {
   agent_label?: string;
+  session_key?: string;
   status?: 'running' | 'completed' | 'failed';
   duration_sec?: number;
   tokens_total?: number;
   task_summary?: string;
   taskId?: number;
+  task_id?: number | null;
   boardId?: number;
   changes?: string[];
   run_id?: string;
@@ -26,18 +28,33 @@ const AGENT_EMOJIS: Record<string, string> = {
   evoli: '🦊',
   psykokwak: '🦆',
   mew: '✨',
-  porygon: '🔵',
+  porygon: '🔷',
+  lanturn: '🔦',
   'pika-ops': '⚡🔧',
 };
 
-// Map session ID or agent label to display name with emoji
-function getAgentDisplayName(agentLabel?: string): { emoji: string; name: string; full: string } {
-  if (!agentLabel) {
-    return { emoji: '🤖', name: 'Unknown', full: '🤖 Unknown' };
+// Extract agent name from session_key (e.g., "agent:psykokwak:subagent:uuid" -> "psykokwak")
+// Falls back to agent_label split on "-" (e.g., "bulbi-2026-02-07-001" -> "bulbi")
+function getAgentDisplayName(agentLabel?: string, sessionKey?: string): { emoji: string; name: string; full: string } {
+  let agentId = '';
+
+  // Primary: extract from session_key ("agent:NAME:subagent:...")
+  if (sessionKey) {
+    const parts = sessionKey.split(':');
+    if (parts.length >= 2 && parts[0] === 'agent') {
+      agentId = parts[1].toLowerCase();
+    }
   }
 
-  // Extract agent ID from session ID (e.g., "bulbi-2026-02-07-001" -> "bulbi")
-  const agentId = agentLabel.split('-')[0].toLowerCase();
+  // Fallback: extract from agent_label (only if it doesn't look like a UUID)
+  if (!agentId && agentLabel && !/^[0-9a-f]{8}-/.test(agentLabel)) {
+    agentId = agentLabel.split('-')[0].toLowerCase();
+  }
+
+  if (!agentId) {
+    return { emoji: '🤖', name: 'Agent', full: '🤖 Agent' };
+  }
+
   const emoji = AGENT_EMOJIS[agentId] || '🤖';
   const name = agentId.charAt(0).toUpperCase() + agentId.slice(1);
 
@@ -74,27 +91,35 @@ function formatTokens(tokens: number): string {
   return String(tokens);
 }
 
+// Format task reference as "#123" if available
+function formatTaskRef(metadata?: ActivityMetadata): string {
+  const id = metadata?.task_id ?? metadata?.taskId;
+  return id ? ` (#${id})` : '';
+}
+
 // Build a human-readable message for agent_activity entries instead of showing raw UUIDs
 function formatAgentMessage(message: string, metadata?: ActivityMetadata): string {
   if (!metadata) return message;
 
-  const agent = getAgentDisplayName(metadata.agent_label);
+  const agent = getAgentDisplayName(metadata.agent_label, metadata.session_key);
+  const taskRef = formatTaskRef(metadata);
 
   if (metadata.status === 'completed') {
     const parts = [`${agent.name} completed`];
     if (metadata.task_summary) parts[0] = `${agent.name} completed: ${metadata.task_summary}`;
+    if (taskRef) parts[0] += taskRef;
     if (metadata.duration_sec !== undefined) parts.push(`in ${formatDuration(metadata.duration_sec)}`);
     if (metadata.tokens_total && metadata.tokens_total > 0) parts.push(`(${formatTokens(metadata.tokens_total)} tokens)`);
     return parts.join(' ');
   }
 
   if (metadata.status === 'running') {
-    if (metadata.task_summary) return `${agent.name} working on: ${metadata.task_summary}`;
+    if (metadata.task_summary) return `${agent.name} working on: ${metadata.task_summary}${taskRef}`;
     return `${agent.name} is running`;
   }
 
   if (metadata.status === 'failed') {
-    if (metadata.task_summary) return `${agent.name} failed: ${metadata.task_summary}`;
+    if (metadata.task_summary) return `${agent.name} failed: ${metadata.task_summary}${taskRef}`;
     return `${agent.name} failed`;
   }
 
@@ -157,7 +182,7 @@ function ActivityItem({
   
   const isAgent = activity.type === 'agent_activity';
   const isRunning = metadata?.status === 'running';
-  const agentDisplay = getAgentDisplayName(metadata?.agent_label);
+  const agentDisplay = getAgentDisplayName(metadata?.agent_label, metadata?.session_key);
   
   return (
     <div 
@@ -205,9 +230,9 @@ function ActivityItem({
                   <span className="font-medium">Task:</span> {metadata.task_summary}
                 </p>
               )}
-              {metadata.taskId && (
+              {(metadata.task_id || metadata.taskId) && (
                 <p className="text-gray-600 dark:text-gray-400">
-                  <span className="font-medium">Task ID:</span> #{metadata.taskId}
+                  <span className="font-medium">Task:</span> #{metadata.task_id ?? metadata.taskId}
                 </p>
               )}
               {metadata.changes && metadata.changes.length > 0 && (

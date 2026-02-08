@@ -29,8 +29,7 @@ const moreNavItems = [
   { path: '/settings', label: '⚙️ Settings', title: 'Settings' },
 ];
 
-// Combined for mobile nav and other uses
-const navItems = [...primaryNavItems, ...moreNavItems];
+// primaryNavItems + moreNavItems used directly in components
 
 // Build info from env vars (set at build time)
 const VERSION = import.meta.env.VITE_VERSION || '0.1.0';
