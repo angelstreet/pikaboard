@@ -41,6 +41,7 @@ function getWebSocketUrl() {
 }
 
 function notify() {
+  snapshot = { connectionState, connectionError, messages };
   listeners.forEach((l) => l());
 }
 
@@ -204,8 +205,9 @@ function subscribe(cb: () => void) {
   listeners.add(cb);
   return () => { listeners.delete(cb); };
 }
+let snapshot = { connectionState, connectionError, messages };
 function getSnapshot() {
-  return { connectionState, connectionError, messages };
+  return snapshot;
 }
 
 // ── Component ──────────────────────────────────────────────────────

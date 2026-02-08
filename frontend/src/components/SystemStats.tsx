@@ -95,7 +95,7 @@ export default function SystemStats() {
 
   if (loading) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden p-4">
         <div className="animate-pulse space-y-3">
           <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/3"></div>
           <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded"></div>
@@ -107,7 +107,7 @@ export default function SystemStats() {
 
   if (error) {
     return (
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+      <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden p-4">
         <div className="flex items-center gap-2 text-red-500">
           <span>⚠️</span>
           <span className="text-sm">{error}</span>
@@ -123,11 +123,11 @@ export default function SystemStats() {
   const ringColor = data.status === 'critical' ? 'ring-2 ring-red-500 ring-opacity-50' : data.status === 'warning' ? 'ring-2 ring-yellow-500 ring-opacity-50' : '';
 
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-lg shadow transition-all ${ringColor}`}>
+    <div className={`bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden transition-all ${ringColor}`}>
       {/* Header */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full px-4 py-3 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors rounded-lg"
+        className={`w-full px-4 py-3 flex items-center justify-between bg-gray-50 dark:bg-gray-700/50 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${expanded ? 'border-b border-gray-200 dark:border-gray-700' : ''}`}
       >
         <div className="flex items-center gap-3">
           <span className="text-lg">🖥️</span>
@@ -170,7 +170,7 @@ export default function SystemStats() {
 
       {/* Expanded Details */}
       {expanded && (
-        <div className="px-4 pb-4 space-y-4 border-t border-gray-100 dark:border-gray-700 pt-4">
+        <div className="px-4 pb-4 space-y-4 pt-4">
           {/* Alerts */}
           {data.alerts && data.alerts.length > 0 && (
             <div className={`p-3 rounded-lg ${data.status === 'critical' ? 'bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800' : 'bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800'}`}>
