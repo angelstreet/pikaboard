@@ -320,7 +320,7 @@ agentsRouter.get('/', async (c) => {
 });
 
 // Helper: Parse gateway logs for session stats
-async function parseGatewayLogsForAgent(agentId: string): Promise<{
+async function parseAgentSessions(agentId: string): Promise<{
   totalTokens: number;
   inputTokens: number;
   outputTokens: number;
@@ -341,63 +341,27 @@ async function parseGatewayLogsForAgent(agentId: string): Promise<{
     lastActiveAt: null as string | null,
   };
 
-  const logDir = '/tmp/openclaw';
-  if (!existsSync(logDir)) return result;
-
+  // Read from OpenClaw sessions.json for this agent
+  const sessionsPath = join(homedir(), '.openclaw', 'agents', agentId, 'sessions', 'sessions.json');
   try {
-    const files = await readdir(logDir);
-    const logFiles = files
-      .filter((f) => f.startsWith('openclaw-') && f.endsWith('.log'))
-      .sort()
-      .reverse()
-      .slice(0, 7);
+    const content = await readFile(sessionsPath, 'utf-8');
+    const sessions = JSON.parse(content);
 
-    for (const file of logFiles) {
-      const filePath = join(logDir, file);
-      const rl = createInterface({
-        input: createReadStream(filePath),
-        crlfDelay: Infinity,
-      });
-
-      for await (const line of rl) {
-        try {
-          if (!line.includes('\\"usage\\"') || !line.includes('\\"sessionId\\"')) continue;
-
-          const parsed = JSON.parse(line);
-          const logData = parsed['0'];
-          if (!logData || typeof logData !== 'string') continue;
-
-          const innerData = JSON.parse(logData);
-          const meta = innerData?.result?.meta;
-          if (!meta?.agentMeta) continue;
-
-          const { sessionId, usage } = meta.agentMeta;
-          if (!sessionId) continue;
-
-          const sessionAgentId = sessionId.split('-')[0].toLowerCase();
-          if (sessionAgentId !== agentId.toLowerCase()) continue;
-
-          result.sessionCount++;
-          if (usage) {
-            result.inputTokens += usage.input || 0;
-            result.outputTokens += usage.output || 0;
-            result.cacheReadTokens += usage.cacheRead || 0;
-            result.cacheWriteTokens += usage.cacheWrite || 0;
-            result.totalTokens += usage.total || 0;
-          }
-          if (meta.durationMs) {
-            result.totalDurationMs += meta.durationMs;
-          }
-          if (parsed.time && (!result.lastActiveAt || parsed.time > result.lastActiveAt)) {
-            result.lastActiveAt = parsed.time;
-          }
-        } catch {
-          // Skip malformed lines
+    for (const [key, session] of Object.entries(sessions)) {
+      const s = session as any;
+      result.sessionCount++;
+      result.totalTokens += s.totalTokens || 0;
+      // OpenClaw sessions store contextTokens but not input/output breakdown
+      // totalTokens is the best we have
+      if (s.updatedAt) {
+        const isoTime = new Date(s.updatedAt).toISOString();
+        if (!result.lastActiveAt || isoTime > result.lastActiveAt) {
+          result.lastActiveAt = isoTime;
         }
       }
     }
   } catch {
-    // Ignore errors
+    // No sessions file or parse error
   }
 
   return result;
@@ -428,7 +392,7 @@ agentsRouter.get('/:id/stats', async (c) => {
     }
 
     const createdAt = dirStat.birthtime || dirStat.ctime;
-    const logStats = await parseGatewayLogsForAgent(id);
+    const logStats = await parseAgentSessions(id);
 
     const runsPath = join(homedir(), '.openclaw', 'subagents', 'runs.json');
     let runsStats = { sessionCount: 0, totalDurationMs: 0, lastActiveAt: null as string | null };
