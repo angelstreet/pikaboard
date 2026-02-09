@@ -2,6 +2,7 @@ import { useEffect } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useAuth, useUser, SignIn } from '@clerk/clerk-react';
+import { dark as clerkDark } from '@clerk/themes';
 import Layout from './components/Layout';
 import DashboardHome from './pages/DashboardHome';
 import Boards from './pages/Boards';
@@ -60,7 +61,7 @@ function ClerkGate({ children }: { children: React.ReactNode }) {
         <div className="text-center">
           <h1 className="text-3xl font-bold mb-2 text-yellow-400">⚡ PikaBoard</h1>
           <p className="text-gray-400 text-sm mb-8">AI Agent Management</p>
-          <SignIn routing="hash" />
+          <SignIn routing="hash" appearance={{ baseTheme: clerkDark }} />
         </div>
       </div>
     );
