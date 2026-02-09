@@ -28,6 +28,8 @@ Managing AI agents is like herding cats — they work 24/7, spawn sub-agents, an
 Organize work across unlimited boards with drag-and-drop. Full workflow support:
 `inbox` → `up_next` → `in_progress` → `in_review` → `done`
 
+**Task Assignment**: Assign tasks to specific agents with visual badges. Agents can filter by assignee.
+
 Mobile-optimized with single-column status dropdown view.
 
 ### 🤖 Agent Team Roster
@@ -42,7 +44,8 @@ Human oversight for agent autonomy:
 - **Pending Approvals** — Accept/deny agent proposals
 - **Questions** — Answer agent queries inline
 - **Blockers** — Unblock stuck agents
-- Uses task prefix system: `[APPROVAL]`, `[QUESTION]`, `[BLOCKER]`
+- **Issues** — View all tasks tagged with `[ISSUE]` prefix across all boards for quick triage
+- Uses task prefix system: `[APPROVAL]`, `[QUESTION]`, `[BLOCKER]`, `[ISSUE]`
 
 ### 🎯 Goals
 Strategic objectives that guide agent behavior:
@@ -72,6 +75,9 @@ Comprehensive dashboards:
 
 ### 💬 Chat
 Talk to your AI captain directly from PikaBoard via OpenClaw gateway integration.
+
+### 🔔 Webhooks & Integrations
+**Lanturn Webhook**: Automatic notifications to Lanturn (monitoring agent) on task mutations (create, update, delete). Configurable per-task payload delivery.
 
 ### 📁 Files Explorer  
 Browse agent outputs without SSH:
