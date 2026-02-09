@@ -3,14 +3,8 @@ import { db, logActivity } from '../db/index.js';
 
 export const tasksRouter = new Hono();
 
-// Fire-and-forget: trigger Lanturn's cron directly (no Pika middleman)
-import { exec } from 'child_process';
-function notifyLanturn(id: number | string, event: string, boardId: number | string) {
-  exec('openclaw cron run b2ca724f-d375-44a0-8889-3ca0f6208eb8', (err) => {
-    if (err) console.error('[webhook] Failed to trigger Lanturn cron:', err.message);
-    else console.log(`[webhook] Triggered Lanturn for task #${id} ${event}`);
-  });
-}
+// Webhook removed — Lanturn's 5min cron handles dispatch.
+// Event-driven wake deferred until OpenClaw supports targeting specific agents via hooks.
 
 // Safe JSON parse for tags
 function parseTags(raw: string | null): string[] {
@@ -126,7 +120,7 @@ tasksRouter.post('/', async (c) => {
   const task = newTask.rows[0] as any;
 
   await logActivity('task_created', `Created task: ${body.name}`, { taskId: task.id, boardId: task.board_id });
-  if (task.status === 'up_next') notifyLanturn(task.id, 'created', task.board_id);
+
 
   return c.json({ ...task, tags: parseTags(task.tags) }, 201);
 });
@@ -206,7 +200,7 @@ tasksRouter.patch('/:id', async (c) => {
     await logActivity('task_updated', `Updated task: ${task.name}`, { taskId: task.id, changes: Object.keys(body) });
   }
 
-  if (body.status === 'up_next') notifyLanturn(task.id, 'status_to_up_next', task.board_id);
+
 
   return c.json({ ...task, tags: parseTags(task.tags) });
 });
@@ -220,7 +214,7 @@ tasksRouter.delete('/:id', async (c) => {
 
   await db.execute({ sql: 'DELETE FROM tasks WHERE id = ?', args: [id] });
   await logActivity('task_deleted', `Deleted task: ${task.name}`, { taskId: task.id });
-  // No webhook on delete
+
 
   return c.json({ success: true });
 });
@@ -233,7 +227,7 @@ tasksRouter.post('/:id/archive', async (c) => {
 
   await db.execute({ sql: 'UPDATE tasks SET archived = 1, archived_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?', args: [id] });
   await logActivity('task_archived', `Archived task: ${(existing.rows[0] as any).name}`, { taskId: (existing.rows[0] as any).id });
-  // No webhook on archive
+
 
   return c.json({ success: true, message: 'Task archived' });
 });
@@ -246,7 +240,7 @@ tasksRouter.post('/:id/restore', async (c) => {
 
   await db.execute({ sql: 'UPDATE tasks SET archived = 0, archived_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?', args: [id] });
   await logActivity('task_restored', `Restored task: ${(existing.rows[0] as any).name}`, { taskId: (existing.rows[0] as any).id });
-  // No webhook on restore
+
 
   return c.json({ success: true, message: 'Task restored' });
 });
