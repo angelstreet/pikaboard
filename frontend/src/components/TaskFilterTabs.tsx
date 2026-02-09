@@ -51,7 +51,7 @@ export function TaskFilterTabs({ tasks, activeFilter, onFilterChange }: TaskFilt
                   }
                 `}
               >
-                {status.label}{count > 0 ? ` (${count})` : ''}
+                {status.label} ({count})
               </button>
             );
           })}
