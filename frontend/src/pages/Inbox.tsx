@@ -3,23 +3,24 @@ import { api, Task } from '../api/client';
 
 type InboxTask = Task & { board_name?: string };
 
-type InboxSection = 'approval' | 'question' | 'blocker' | 'other';
+type InboxSection = 'approval' | 'question' | 'blocker' | 'issue' | 'other';
 
 function getSection(name: string): InboxSection {
   const upper = name.toUpperCase();
   if (upper.startsWith('[APPROVAL]') || upper.startsWith('[APPROVED]') || upper.startsWith('[DENIED]')) return 'approval';
   if (upper.startsWith('[QUESTION]') || upper.startsWith('[ANSWERED]')) return 'question';
   if (upper.startsWith('[BLOCKER]') || upper.startsWith('[UNBLOCKED]')) return 'blocker';
+  if (upper.startsWith('[ISSUE]') || upper.startsWith('[RESOLVED]')) return 'issue';
   return 'other';
 }
 
 function isActionable(name: string): boolean {
   const upper = name.toUpperCase();
-  return upper.startsWith('[APPROVAL]') || upper.startsWith('[QUESTION]') || upper.startsWith('[BLOCKER]');
+  return upper.startsWith('[APPROVAL]') || upper.startsWith('[QUESTION]') || upper.startsWith('[BLOCKER]') || upper.startsWith('[ISSUE]');
 }
 
 function stripPrefix(name: string): string {
-  return name.replace(/^\[(APPROVAL|APPROVED|DENIED|QUESTION|ANSWERED|BLOCKER|UNBLOCKED)\]\s*/i, '');
+  return name.replace(/^\[(APPROVAL|APPROVED|DENIED|QUESTION|ANSWERED|BLOCKER|UNBLOCKED|ISSUE|RESOLVED)\]\s*/i, '');
 }
 
 export default function Inbox() {
@@ -33,11 +34,13 @@ export default function Inbox() {
   const [approvalsOpen, setApprovalsOpen] = useState(true);
   const [questionsOpen, setQuestionsOpen] = useState(true);
   const [blockersOpen, setBlockersOpen] = useState(true);
+  const [issuesOpen, setIssuesOpen] = useState(true);
   const [otherOpen, setOtherOpen] = useState(true);
 
   const approvalsTouched = useRef(false);
   const questionsTouched = useRef(false);
   const blockersTouched = useRef(false);
+  const issuesTouched = useRef(false);
   const otherTouched = useRef(false);
 
   const loadData = async () => {
@@ -62,20 +65,22 @@ export default function Inbox() {
   const approvals = useMemo(() => tasks.filter(t => getSection(t.name) === 'approval' && isActionable(t.name)), [tasks]);
   const questions = useMemo(() => tasks.filter(t => getSection(t.name) === 'question' && isActionable(t.name)), [tasks]);
   const blockers = useMemo(() => tasks.filter(t => getSection(t.name) === 'blocker' && isActionable(t.name)), [tasks]);
+  const issues = useMemo(() => tasks.filter(t => getSection(t.name) === 'issue' && isActionable(t.name)), [tasks]);
   const historyTasks = useMemo(() => {
-    const handled = new Set([...approvals, ...questions, ...blockers].map(t => t.id));
+    const handled = new Set([...approvals, ...questions, ...blockers, ...issues].map(t => t.id));
     return tasks.filter(t => !handled.has(t.id))
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       .slice(0, 5);
-  }, [tasks, approvals, questions, blockers]);
+  }, [tasks, approvals, questions, blockers, issues]);
 
   // Auto-open sections with items
   useEffect(() => { if (!approvalsTouched.current) setApprovalsOpen(approvals.length > 0); }, [approvals.length]);
   useEffect(() => { if (!questionsTouched.current) setQuestionsOpen(questions.length > 0); }, [questions.length]);
   useEffect(() => { if (!blockersTouched.current) setBlockersOpen(blockers.length > 0); }, [blockers.length]);
+  useEffect(() => { if (!issuesTouched.current) setIssuesOpen(issues.length > 0); }, [issues.length]);
   useEffect(() => { if (!otherTouched.current) setOtherOpen(historyTasks.length > 0); }, [historyTasks.length]);
 
-  const totalItems = approvals.length + questions.length + blockers.length;
+  const totalItems = approvals.length + questions.length + blockers.length + issues.length;
 
   const getAgentEmoji = (name: string): string => {
     const emojis: Record<string, string> = { pika: '⚡', bulbi: '🌱', tortoise: '🐢', sala: '🦎', evoli: '🦊', psykokwak: '🦆', mew: '✨' };
@@ -146,6 +151,26 @@ export default function Inbox() {
       setReplyText(prev => { const n = { ...prev }; delete n[task.id]; return n; });
     } catch (err) {
       console.error('Failed to reply:', err);
+    } finally {
+      setActionLoading(null);
+    }
+  };
+
+  const handleResolveIssue = async (task: InboxTask) => {
+    const key = `resolve-${task.id}`;
+    setActionLoading(key);
+    try {
+      const comment = comments[task.id] || '';
+      const newName = task.name.replace(/^\[ISSUE\]/i, '[RESOLVED]');
+      const appendText = comment ? `\n\n---\n**Resolved:** ${comment}` : '\n\n---\n**Resolved**';
+      await api.updateTask(task.id, {
+        name: newName,
+        description: (task.description || '') + appendText,
+      });
+      setTasks(prev => prev.map(t => t.id === task.id ? { ...t, name: newName } : t));
+      setComments(prev => { const n = { ...prev }; delete n[task.id]; return n; });
+    } catch (err) {
+      console.error('Failed to resolve issue:', err);
     } finally {
       setActionLoading(null);
     }
@@ -377,6 +402,43 @@ export default function Inbox() {
                     onChange={e => setComments(prev => ({ ...prev, [task.id]: e.target.value }))}
                     placeholder="Add resolution note (optional)..."
                     className="w-full text-sm px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+        ))}
+      </section>
+
+      {/* Issues Section */}
+      <section>
+        <SectionToggle
+          open={issuesOpen}
+          onToggle={() => { issuesTouched.current = true; setIssuesOpen(v => !v); }}
+          icon="🚨" label="Issues" count={issues.length}
+        />
+        {issuesOpen && (issues.length === 0 ? (
+          <EmptyState icon="✅" text="No open issues" sub="All clear across all boards" />
+        ) : (
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden divide-y divide-gray-100 dark:divide-gray-700">
+            {issues.map(task => (
+              <div key={task.id} className="px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                <TaskRow task={task} actions={
+                  <button
+                    onClick={() => handleResolveIssue(task)}
+                    disabled={actionLoading === `resolve-${task.id}`}
+                    className="px-3 py-1.5 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors"
+                  >
+                    {actionLoading === `resolve-${task.id}` ? '...' : '✓ Resolve'}
+                  </button>
+                } />
+                <div className="px-4 pb-3">
+                  <input
+                    type="text"
+                    value={comments[task.id] || ''}
+                    onChange={e => setComments(prev => ({ ...prev, [task.id]: e.target.value }))}
+                    placeholder="Add resolution note (optional)..."
+                    className="w-full text-sm px-3 py-2 border border-gray-200 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-red-500"
                   />
                 </div>
               </div>
