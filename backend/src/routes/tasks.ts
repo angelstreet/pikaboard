@@ -3,19 +3,13 @@ import { db, logActivity } from '../db/index.js';
 
 export const tasksRouter = new Hono();
 
-// Fire-and-forget webhook to wake Lanturn on task mutations
+// Fire-and-forget: trigger Lanturn's cron directly (no Pika middleman)
+import { exec } from 'child_process';
 function notifyLanturn(id: number | string, event: string, boardId: number | string) {
-  fetch('http://localhost:18789/hooks/wake', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': 'Bearer pikaboard-webhook-secret-2026',
-    },
-    body: JSON.stringify({
-      text: `[PikaBoard] Task #${id} ${event} on board ${boardId}`,
-      mode: 'now',
-    }),
-  }).catch(() => {});
+  exec('openclaw cron run b2ca724f-d375-44a0-8889-3ca0f6208eb8', (err) => {
+    if (err) console.error('[webhook] Failed to trigger Lanturn cron:', err.message);
+    else console.log(`[webhook] Triggered Lanturn for task #${id} ${event}`);
+  });
 }
 
 // Safe JSON parse for tags
