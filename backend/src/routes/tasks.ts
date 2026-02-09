@@ -132,7 +132,7 @@ tasksRouter.post('/', async (c) => {
   const task = newTask.rows[0] as any;
 
   await logActivity('task_created', `Created task: ${body.name}`, { taskId: task.id, boardId: task.board_id });
-  notifyLanturn(task.id, 'created', task.board_id);
+  if (task.status === 'up_next') notifyLanturn(task.id, 'created', task.board_id);
 
   return c.json({ ...task, tags: parseTags(task.tags) }, 201);
 });
@@ -212,7 +212,7 @@ tasksRouter.patch('/:id', async (c) => {
     await logActivity('task_updated', `Updated task: ${task.name}`, { taskId: task.id, changes: Object.keys(body) });
   }
 
-  notifyLanturn(task.id, 'updated', task.board_id);
+  if (body.status === 'up_next') notifyLanturn(task.id, 'status_to_up_next', task.board_id);
 
   return c.json({ ...task, tags: parseTags(task.tags) });
 });
@@ -226,7 +226,7 @@ tasksRouter.delete('/:id', async (c) => {
 
   await db.execute({ sql: 'DELETE FROM tasks WHERE id = ?', args: [id] });
   await logActivity('task_deleted', `Deleted task: ${task.name}`, { taskId: task.id });
-  notifyLanturn(task.id, 'deleted', task.board_id);
+  // No webhook on delete
 
   return c.json({ success: true });
 });
@@ -239,7 +239,7 @@ tasksRouter.post('/:id/archive', async (c) => {
 
   await db.execute({ sql: 'UPDATE tasks SET archived = 1, archived_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?', args: [id] });
   await logActivity('task_archived', `Archived task: ${(existing.rows[0] as any).name}`, { taskId: (existing.rows[0] as any).id });
-  notifyLanturn(id, 'archived', (existing.rows[0] as any).board_id);
+  // No webhook on archive
 
   return c.json({ success: true, message: 'Task archived' });
 });
@@ -252,7 +252,7 @@ tasksRouter.post('/:id/restore', async (c) => {
 
   await db.execute({ sql: 'UPDATE tasks SET archived = 0, archived_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?', args: [id] });
   await logActivity('task_restored', `Restored task: ${(existing.rows[0] as any).name}`, { taskId: (existing.rows[0] as any).id });
-  notifyLanturn(id, 'restored', (existing.rows[0] as any).board_id);
+  // No webhook on restore
 
   return c.json({ success: true, message: 'Task restored' });
 });
