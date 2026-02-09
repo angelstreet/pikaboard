@@ -3,6 +3,15 @@ import { db, logActivity } from '../db/index.js';
 
 export const tasksRouter = new Hono();
 
+// Fire-and-forget webhook to wake Lanturn on task mutations
+function notifyLanturn(id: number | string, event: string, boardId: number | string) {
+  fetch('http://localhost:18789/api/sessions/agent:lanturn:main/send', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ message: `Task #${id} ${event} on board ${boardId}` }),
+  }).catch(() => {});
+}
+
 // Safe JSON parse for tags
 function parseTags(raw: string | null): string[] {
   if (!raw) return [];
@@ -115,6 +124,7 @@ tasksRouter.post('/', async (c) => {
   const task = newTask.rows[0] as any;
 
   await logActivity('task_created', `Created task: ${body.name}`, { taskId: task.id, boardId: task.board_id });
+  notifyLanturn(task.id, 'created', task.board_id);
 
   return c.json({ ...task, tags: parseTags(task.tags) }, 201);
 });
@@ -193,6 +203,8 @@ tasksRouter.patch('/:id', async (c) => {
     await logActivity('task_updated', `Updated task: ${task.name}`, { taskId: task.id, changes: Object.keys(body) });
   }
 
+  notifyLanturn(task.id, 'updated', task.board_id);
+
   return c.json({ ...task, tags: parseTags(task.tags) });
 });
 
@@ -205,6 +217,7 @@ tasksRouter.delete('/:id', async (c) => {
 
   await db.execute({ sql: 'DELETE FROM tasks WHERE id = ?', args: [id] });
   await logActivity('task_deleted', `Deleted task: ${task.name}`, { taskId: task.id });
+  notifyLanturn(task.id, 'deleted', task.board_id);
 
   return c.json({ success: true });
 });
@@ -217,6 +230,7 @@ tasksRouter.post('/:id/archive', async (c) => {
 
   await db.execute({ sql: 'UPDATE tasks SET archived = 1, archived_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?', args: [id] });
   await logActivity('task_archived', `Archived task: ${(existing.rows[0] as any).name}`, { taskId: (existing.rows[0] as any).id });
+  notifyLanturn(id, 'archived', (existing.rows[0] as any).board_id);
 
   return c.json({ success: true, message: 'Task archived' });
 });
@@ -229,6 +243,7 @@ tasksRouter.post('/:id/restore', async (c) => {
 
   await db.execute({ sql: 'UPDATE tasks SET archived = 0, archived_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?', args: [id] });
   await logActivity('task_restored', `Restored task: ${(existing.rows[0] as any).name}`, { taskId: (existing.rows[0] as any).id });
+  notifyLanturn(id, 'restored', (existing.rows[0] as any).board_id);
 
   return c.json({ success: true, message: 'Task restored' });
 });
