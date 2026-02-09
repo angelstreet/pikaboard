@@ -5,10 +5,16 @@ export const tasksRouter = new Hono();
 
 // Fire-and-forget webhook to wake Lanturn on task mutations
 function notifyLanturn(id: number | string, event: string, boardId: number | string) {
-  fetch('http://localhost:18789/api/sessions/agent:lanturn:main/send', {
+  fetch('http://localhost:18789/hooks/wake', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ message: `Task #${id} ${event} on board ${boardId}` }),
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer pikaboard-webhook-secret-2026',
+    },
+    body: JSON.stringify({
+      text: `[PikaBoard] Task #${id} ${event} on board ${boardId}`,
+      mode: 'now',
+    }),
   }).catch(() => {});
 }
 
