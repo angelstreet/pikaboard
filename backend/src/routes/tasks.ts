@@ -48,7 +48,16 @@ tasksRouter.get('/', async (c) => {
   if (status) { query += ' AND t.status = ?'; params.push(status); }
   if (priority) { query += ' AND t.priority = ?'; params.push(priority); }
   if (boardId) { query += ' AND t.board_id = ?'; params.push(parseInt(boardId)); }
-  if (search) { query += ' AND (t.name LIKE ? OR t.description LIKE ?)'; params.push(`%${search}%`, `%${search}%`); }
+  if (search) {
+    const idMatch = search.match(/^#(\d+)$/);
+    if (idMatch) {
+      query += ' AND (t.id = ? OR t.name LIKE ? OR t.description LIKE ?)';
+      params.push(parseInt(idMatch[1]), `%${search}%`, `%${search}%`);
+    } else {
+      query += ' AND (t.name LIKE ? OR t.description LIKE ?)';
+      params.push(`%${search}%`, `%${search}%`);
+    }
+  }
   if (tag) { query += ' AND t.tags LIKE ?'; params.push(`%"${tag}"%`); }
   const assignee = c.req.query('assignee');
   if (assignee) { query += ' AND t.assignee = ?'; params.push(assignee); }
