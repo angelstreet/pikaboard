@@ -74,11 +74,18 @@ export function TaskCard({ task, onClick, onArchive, isDragging }: TaskCardProps
             );
           })()}
         </h4>
-        {task.priority !== 'medium' && (
-          <span className={`px-1.5 py-0.5 text-xs rounded font-medium ${priority.badge}`}>
-            {priority.text}
-          </span>
-        )}
+        <div className="flex items-center gap-1 flex-shrink-0">
+          {task.assignee && (
+            <span className="w-5 h-5 rounded-full bg-blue-500 text-white text-[10px] font-bold flex items-center justify-center uppercase" title={task.assignee}>
+              {task.assignee.charAt(0)}
+            </span>
+          )}
+          {task.priority !== 'medium' && (
+            <span className={`px-1.5 py-0.5 text-xs rounded font-medium ${priority.badge}`}>
+              {priority.text}
+            </span>
+          )}
+        </div>
       </div>
       
       {task.description && (

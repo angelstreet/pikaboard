@@ -87,6 +87,9 @@ export async function initDatabase() {
     await db.execute({ sql: "INSERT INTO boards (name, icon, color) VALUES ('Main', '⚡', 'blue')", args: [] });
   }
 
+  // Migration: add assignee column
+  try { await db.execute('ALTER TABLE tasks ADD COLUMN assignee TEXT'); } catch {}
+
   // Assign orphan tasks to default board
   const defaultBoard = await db.execute('SELECT id FROM boards ORDER BY id LIMIT 1');
   if (defaultBoard.rows.length > 0) {

@@ -196,6 +196,7 @@ export const demoApi = {
       deadline: task.deadline || null,
       rating: null,
       rejection_reason: null,
+      assignee: task.assignee || null,
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
       completed_at: null,

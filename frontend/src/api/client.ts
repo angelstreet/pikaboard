@@ -22,6 +22,7 @@ export interface Task {
   deadline: string | null;
   rating: number | null;
   rejection_reason: string | null;
+  assignee: string | null;
   created_at: string;
   updated_at: string;
   completed_at: string | null;

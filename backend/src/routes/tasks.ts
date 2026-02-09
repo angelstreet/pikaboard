@@ -56,6 +56,8 @@ tasksRouter.get('/', async (c) => {
   if (boardId) { query += ' AND t.board_id = ?'; params.push(parseInt(boardId)); }
   if (search) { query += ' AND (t.name LIKE ? OR t.description LIKE ?)'; params.push(`%${search}%`, `%${search}%`); }
   if (tag) { query += ' AND t.tags LIKE ?'; params.push(`%"${tag}"%`); }
+  const assignee = c.req.query('assignee');
+  if (assignee) { query += ' AND t.assignee = ?'; params.push(assignee); }
 
   query += ' ORDER BY t.position ASC, t.created_at DESC';
 
@@ -116,8 +118,8 @@ tasksRouter.post('/', async (c) => {
   const position = body.position !== undefined ? body.position : ((maxPos.rows[0] as any).max ?? -1) + 1;
 
   const result = await db.execute({
-    sql: 'INSERT INTO tasks (name, description, status, priority, tags, board_id, position, deadline) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-    args: [body.name, body.description || null, body.status || 'inbox', body.priority || 'medium', normalizeTags(body.tags), boardId!, position, body.deadline || null]
+    sql: 'INSERT INTO tasks (name, description, status, priority, tags, board_id, position, deadline, assignee) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+    args: [body.name, body.description || null, body.status || 'inbox', body.priority || 'medium', normalizeTags(body.tags), boardId!, position, body.deadline || null, body.assignee || null]
   });
 
   const newTask = await db.execute({ sql: 'SELECT * FROM tasks WHERE id = ?', args: [Number(result.lastInsertRowid)] });
@@ -170,6 +172,7 @@ tasksRouter.patch('/:id', async (c) => {
     updates.push('rated_at = ?'); params.push(body.rating !== null ? new Date().toISOString() : null);
   }
   if (body.rejection_reason !== undefined) { updates.push('rejection_reason = ?'); params.push(body.rejection_reason); }
+  if (body.assignee !== undefined) { updates.push('assignee = ?'); params.push(body.assignee); }
 
   if (updates.length === 0) return c.json({ error: 'No fields to update' }, 400);
 
