@@ -32,28 +32,29 @@ export function TaskFilterTabs({ tasks, activeFilter, onFilterChange }: TaskFilt
 
   return (
     <>
-      {/* Mobile: dropdown */}
-      <div className="sm:hidden mb-4">
-        <div className="relative">
-          <select
-            value={activeFilter}
-            onChange={(e) => onFilterChange(e.target.value as Task['status'] | 'all')}
-            className="w-full appearance-none bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-2.5 pr-10 text-sm font-medium text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            {STATUS_CONFIGS.map((status) => {
-              const count = status.id === 'all' ? tasks.length : (counts[status.id] || 0);
-              return (
-                <option key={status.id} value={status.id}>
-                  {status.label} ({count})
-                </option>
-              );
-            })}
-          </select>
-          <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
-            <svg className="w-4 h-4 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-            </svg>
-          </div>
+      {/* Mobile: horizontal scrollable tabs */}
+      <div className="sm:hidden mb-4 -mx-1">
+        <div className="flex items-center gap-1 overflow-x-auto no-scrollbar px-1 pb-1">
+          {STATUS_CONFIGS.map((status) => {
+            const count = status.id === 'all' ? tasks.length : (counts[status.id] || 0);
+            const isActive = activeFilter === status.id;
+
+            return (
+              <button
+                key={status.id}
+                onClick={() => onFilterChange(status.id)}
+                className={`
+                  flex-shrink-0 px-3 py-1.5 rounded-full text-xs font-medium transition-all whitespace-nowrap
+                  ${isActive
+                    ? 'bg-blue-500 text-white shadow-sm'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 active:bg-gray-200 dark:active:bg-gray-600'
+                  }
+                `}
+              >
+                {status.label}{count > 0 ? ` (${count})` : ''}
+              </button>
+            );
+          })}
         </div>
       </div>
 
