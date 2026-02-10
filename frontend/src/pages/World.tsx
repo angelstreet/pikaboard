@@ -262,10 +262,7 @@ export default function World() {
 
   return (
     <div className="h-[calc(100vh-4rem)] w-full relative">
-      <div className="absolute top-4 left-4 z-10">
-        <h1 className="text-xl font-bold text-white">🌍 Agent World</h1>
-        <p className="text-sm text-gray-400">{agents.length} agents • drag to rotate</p>
-      </div>
+{/* labels removed */}
       {/* Zoom & recenter controls */}
       <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
         <button onClick={() => handleZoom(-1)} className="w-10 h-10 rounded-lg bg-gray-800/80 hover:bg-gray-700 text-white text-xl font-bold flex items-center justify-center backdrop-blur-sm border border-gray-600/50">+</button>
