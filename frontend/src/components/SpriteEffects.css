@@ -1,0 +1,92 @@
+/* SpriteEffects — Pure CSS overlay animations */
+
+.se-wrapper {
+  position: relative;
+  display: inline-block;
+}
+
+.se-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 10;
+}
+
+.se-particle {
+  position: absolute;
+  will-change: transform, opacity;
+  animation-iteration-count: infinite;
+  animation-timing-function: linear;
+}
+
+/* === Rain === */
+.se-rain {
+  width: 2px;
+  top: -20px;
+  background: rgba(174, 194, 224, 0.7);
+  border-radius: 1px;
+  animation-name: se-rain-fall;
+}
+
+@keyframes se-rain-fall {
+  0% { transform: translateY(0); opacity: 0.8; }
+  100% { transform: translateY(calc(100cqh + 20px)); opacity: 0.3; }
+}
+
+/* fallback if cqh not supported */
+@supports not (height: 1cqh) {
+  @keyframes se-rain-fall {
+    0% { transform: translateY(0); opacity: 0.8; }
+    100% { transform: translateY(200px); opacity: 0.3; }
+  }
+}
+
+/* === Snow === */
+.se-snow {
+  top: -10px;
+  background: white;
+  border-radius: 50%;
+  opacity: 0.9;
+  animation-name: se-snow-fall;
+}
+
+@keyframes se-snow-fall {
+  0% { transform: translateY(0) translateX(0); opacity: 0.9; }
+  25% { transform: translateY(25%) translateX(8px); }
+  50% { transform: translateY(50%) translateX(-5px); opacity: 0.8; }
+  75% { transform: translateY(75%) translateX(6px); }
+  100% { transform: translateY(200px) translateX(0); opacity: 0.4; }
+}
+
+/* === Hearts === */
+.se-hearts {
+  bottom: 0;
+  line-height: 1;
+  animation-name: se-hearts-rise;
+}
+
+@keyframes se-hearts-rise {
+  0% { transform: translateY(0) scale(0.5); opacity: 0.9; }
+  50% { transform: translateY(-80px) scale(1); opacity: 0.7; }
+  100% { transform: translateY(-160px) scale(0.8); opacity: 0; }
+}
+
+/* === Sparkles === */
+.se-sparkles {
+  line-height: 1;
+  animation-name: se-sparkle-blink;
+}
+
+@keyframes se-sparkle-blink {
+  0%, 100% { transform: scale(0.3); opacity: 0; }
+  50% { transform: scale(1); opacity: 1; }
+}
+
+/* Accessibility: respect reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  .se-particle {
+    animation: none !important;
+    opacity: 0.5;
+  }
+}
