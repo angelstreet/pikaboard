@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { TEAM_ROSTER, TeamMember } from '../config/team';
 import { api } from '../api/client';
 import LogViewer from './LogViewer';
+import AgentAvatar from './AgentAvatar';
 
 interface AgentStatus {
   agentId: string;
@@ -166,7 +167,7 @@ export default function TeamRoster({ collapsed, onToggle }: TeamRosterProps) {
                 style={isBoardOwner ? { '--tw-ring-color': member.color } as React.CSSProperties : undefined}
                 title={`${member.name}: ${status?.status || 'idle'}`}
               >
-                <span className="text-lg">{member.avatar}</span>
+                <AgentAvatar agent={member} size={28} />
                 {status?.status === 'working' && (
                   <span className="absolute bottom-1 right-1 w-2 h-2 bg-green-500 rounded-full animate-pulse" />
                 )}
@@ -234,12 +235,7 @@ export default function TeamRoster({ collapsed, onToggle }: TeamRosterProps) {
                 >
                   <div className="flex items-start gap-3">
                     {/* Avatar */}
-                    <div 
-                      className="w-10 h-10 rounded-full flex items-center justify-center text-xl"
-                      style={{ backgroundColor: `${member.color}20` }}
-                    >
-                      {member.avatar}
-                    </div>
+                    <AgentAvatar agent={member} size={40} />
 
                     {/* Info - 2 lines only */}
                     <div className="flex-1 min-w-0">

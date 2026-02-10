@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Agent } from '../api/client';
 import SpriteAnimator, { Direction, useSpriteInfo } from './SpriteAnimator';
+import AgentAvatar from './AgentAvatar';
 
 interface AgentCardProps {
   agent: Agent;
@@ -32,16 +33,6 @@ const statusConfig: Record<
     bg: 'bg-gray-100 dark:bg-gray-700',
     label: 'Offline',
   },
-};
-
-// Emoji icons for agents (based on Pokemon-inspired names)
-const agentEmojis: Record<string, string> = {
-  bulbi: '🌱',
-  evoli: '🦊',
-  psykokwak: '🦆',
-  sala: '🔥',
-  tortue: '🐢',
-  pika: '⚡',
 };
 
 // Map agent IDs to sprite folder names
@@ -82,7 +73,6 @@ function useSpriteExists(agent: string): boolean {
 
 export function AgentCard({ agent, onClick }: AgentCardProps) {
   const status = statusConfig[agent.status] || statusConfig.offline;
-  const emoji = agentEmojis[agent.id.toLowerCase()] || '🤖';
   const cardRef = useRef<HTMLDivElement>(null);
   const [direction, setDirection] = useState<Direction>('S');
   const spriteName = agentSpriteNames[agent.id.toLowerCase()];
@@ -118,7 +108,7 @@ export function AgentCard({ agent, onClick }: AgentCardProps) {
       {/* Header: Avatar + Name + Status */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          <div className="text-3xl">{emoji}</div>
+          <AgentAvatar agent={agent.id.toLowerCase()} size={40} />
           <div>
             <h3 className="font-semibold text-gray-900 dark:text-gray-100">
               {agent.name}
@@ -249,11 +239,10 @@ function formatLastSeen(dateStr: string): string {
 // Compact variant for dashboard or sidebar
 export function AgentCardCompact({ agent }: { agent: Agent }) {
   const status = statusConfig[agent.status] || statusConfig.offline;
-  const emoji = agentEmojis[agent.id.toLowerCase()] || '🤖';
 
   return (
     <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-      <span className="text-xl">{emoji}</span>
+      <AgentAvatar agent={agent.id.toLowerCase()} size={28} />
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
           {agent.name}
