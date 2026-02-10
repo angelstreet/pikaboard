@@ -48,14 +48,6 @@ export default function Agents() {
     setAgentDetail(null);
   }
 
-  // Stats
-  const stats = {
-    total: agents.length,
-    active: agents.filter((a) => a.status === 'active' || a.status === 'busy').length,
-    working: agents.filter((a) => a.status === 'busy').length,
-    idle: agents.filter((a) => a.status === 'idle').length,
-  };
-
   if (loading) {
     return (
       <div className="space-y-6">
@@ -73,36 +65,6 @@ export default function Agents() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">🤖 Agent Roster</h2>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">
-            Your AI team at a glance
-          </p>
-        </div>
-      </div>
-
-      {/* Stats Bar */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-          <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.total}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Total Agents</p>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-          <p className="text-2xl font-bold text-green-600 dark:text-green-400">{stats.active}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Active</p>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-          <p className="text-2xl font-bold text-purple-600 dark:text-purple-400">{stats.working}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Working</p>
-        </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 border border-gray-200 dark:border-gray-700">
-          <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">{stats.idle}</p>
-          <p className="text-sm text-gray-500 dark:text-gray-400">Idle</p>
-        </div>
-      </div>
-
       {/* Error */}
       {error && (
         <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-lg p-4">
