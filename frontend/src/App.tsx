@@ -16,6 +16,7 @@ import Chat from './pages/Chat';
 import Usage from './pages/Usage';
 import Goals from './pages/Goals';
 import Reminders from './pages/Reminders';
+import World from './pages/World';
 import { QuoteWidget } from './components/QuoteWidget';
 import { setClerkTokenProvider } from './api/client';
 
@@ -107,6 +108,7 @@ function AppContent() {
         <Route path="usage" element={<Usage />} />
         <Route path="library" element={<Library />} />
         <Route path="settings" element={<Settings />} />
+        <Route path="world" element={<World />} />
       </Route>
     </Routes>
     </>
