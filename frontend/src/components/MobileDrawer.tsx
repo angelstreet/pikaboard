@@ -18,6 +18,7 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
     { path: '/library', icon: '📚', label: 'Library' },
     { path: '/files', icon: '📁', label: 'Files' },
     { path: '/chat', icon: '💬', label: 'Chat' },
+    { path: '/apps', icon: '🚀', label: 'Apps' },
     { path: '/settings', icon: '⚙️', label: 'Settings' },
   ];
 

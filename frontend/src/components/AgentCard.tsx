@@ -1,4 +1,6 @@
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { Agent } from '../api/client';
+import SpriteAnimator, { Direction, useSpriteInfo } from './SpriteAnimator';
 
 interface AgentCardProps {
   agent: Agent;
@@ -42,14 +44,71 @@ const agentEmojis: Record<string, string> = {
   pika: '⚡',
 };
 
+// Map agent IDs to sprite folder names
+const agentSpriteNames: Record<string, string> = {
+  pika: 'pika',
+  bulbi: 'bulbi',
+  evoli: 'evoli',
+  psykokwak: 'psykokwak',
+  sala: 'sala',
+  tortue: 'tortue',
+  main: 'pika',
+};
+
+function angleToDirection8(angle: number): Direction {
+  // angle in degrees, 0 = right, going counter-clockwise
+  const normalized = ((angle % 360) + 360) % 360;
+  if (normalized < 22.5 || normalized >= 337.5) return 'E';
+  if (normalized < 67.5) return 'NE';
+  if (normalized < 112.5) return 'N';
+  if (normalized < 157.5) return 'NW';
+  if (normalized < 202.5) return 'W';
+  if (normalized < 247.5) return 'SW';
+  if (normalized < 292.5) return 'S';
+  return 'SE';
+}
+
+function useSpriteExists(agent: string): boolean {
+  const [exists, setExists] = useState(false);
+  useEffect(() => {
+    const base = import.meta.env.BASE_URL || '/';
+    const img = new window.Image();
+    img.onload = () => setExists(true);
+    img.onerror = () => setExists(false);
+    img.src = `${base}characters/${agent}/idle.png`;
+  }, [agent]);
+  return exists;
+}
+
 export function AgentCard({ agent, onClick }: AgentCardProps) {
   const status = statusConfig[agent.status] || statusConfig.offline;
   const emoji = agentEmojis[agent.id.toLowerCase()] || '🤖';
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [direction, setDirection] = useState<Direction>('S');
+  const spriteName = agentSpriteNames[agent.id.toLowerCase()];
+  const spriteExists = useSpriteExists(spriteName || '');
+  const { directions } = useSpriteInfo(spriteName || '', 'idle');
+  const showSprite = !!spriteName && spriteExists;
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!cardRef.current) return;
+    const rect = cardRef.current.getBoundingClientRect();
+    const cx = rect.left + rect.width / 2;
+    const cy = rect.top + rect.height / 2;
+    const dx = e.clientX - cx;
+    const dy = -(e.clientY - cy); // invert Y for math angle
+    const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+    setDirection(angleToDirection8(angle));
+  }, []);
 
   return (
     <div
+      ref={cardRef}
       onClick={() => onClick?.(agent)}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={() => setDirection('S')}
       className={`
+        relative overflow-hidden
         bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700
         p-4 cursor-pointer hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600
         transition-all duration-200
@@ -145,6 +204,21 @@ export function AgentCard({ agent, onClick }: AgentCardProps) {
         <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">
           Last seen: {formatLastSeen(agent.lastSeen)}
         </p>
+      )}
+
+      {/* Sprite Avatar */}
+      {showSprite && (
+        <div
+          className="absolute bottom-1 right-1 pointer-events-none"
+          style={{ transform: 'scale(0.6)', transformOrigin: 'bottom right' }}
+        >
+          <SpriteAnimator
+            agent={spriteName}
+            animation="idle"
+            direction={direction}
+            directions={directions}
+          />
+        </div>
       )}
     </div>
   );

@@ -16,8 +16,7 @@ import Chat from './pages/Chat';
 import Usage from './pages/Usage';
 import Goals from './pages/Goals';
 import Reminders from './pages/Reminders';
-const World = lazy(() => import('./pages/World'));
-const Characters = lazy(() => import('./pages/Characters'));
+const Apps = lazy(() => import('./pages/Apps'));
 import { QuoteWidget } from './components/QuoteWidget';
 import { setClerkTokenProvider } from './api/client';
 
@@ -109,8 +108,7 @@ function AppContent() {
         <Route path="usage" element={<Usage />} />
         <Route path="library" element={<Library />} />
         <Route path="settings" element={<Settings />} />
-        <Route path="world" element={<Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500"></div></div>}><World /></Suspense>} />
-        <Route path="characters" element={<Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500"></div></div>}><Characters /></Suspense>} />
+        <Route path="apps" element={<Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500"></div></div>}><Apps /></Suspense>} />
       </Route>
     </Routes>
     </>

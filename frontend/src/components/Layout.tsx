@@ -17,8 +17,7 @@ const primaryNavItems = [
   { path: '/goals', label: '🎯 Goals', title: 'Goals' },
   { path: '/reminders', label: '🔔 Reminders', title: 'Reminders' },
   { path: '/agents', label: '🤖 Agents', title: 'Agents' },
-  { path: '/world', label: '🌍 World', title: 'Agent World' },
-  { path: '/characters', label: '🎮 Characters', title: 'Characters' },
+  { path: '/apps', label: '🚀 Apps', title: 'Apps' },
   { path: '/chat', label: '💬 Chat', title: 'Chat' },
 ];
 
