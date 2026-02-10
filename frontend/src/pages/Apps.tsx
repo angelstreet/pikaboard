@@ -4,8 +4,8 @@ const apps = [
   { name: 'PikaBoard', emoji: '📋', desc: 'Task management for AI teams', url: '/pikaboard/', status: 'live' as const },
   { name: 'Kozy', emoji: '🏠', desc: 'Property management', url: '/kozy/', status: 'live' as const },
   { name: 'Konto', emoji: '💰', desc: 'AI-powered accounting', url: '/kompta/', status: 'dev' as const },
-  { name: 'SoulSprite', emoji: '🎨', desc: 'Sprite & avatar generation', url: '/soulsprite/', status: 'coming soon' as const },
-  { name: 'SoulWorld', emoji: '🌍', desc: 'Virtual world explorer', url: '/soulworld/', status: 'coming soon' as const },
+  { name: 'SoulSprite', emoji: '🎨', desc: 'Sprite & avatar generation', url: '/soulsprite/', status: 'live' as const },
+  { name: 'SoulWorld', emoji: '🌍', desc: 'Virtual world explorer', url: '/soulworld/', status: 'live' as const },
   { name: 'SoulFight', emoji: '⚔️', desc: 'AI battle game', url: '#', status: 'coming soon' as const },
 ];
 
