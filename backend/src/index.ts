@@ -23,6 +23,7 @@ import { usageRouter } from './routes/usage.js';
 import openclawRoutes from './routes/openclaw.js';
 import remindersRoutes from './routes/reminders.js';
 import { servicesRouter } from './routes/services.js';
+import { soulspriteRouter } from './routes/soulsprite.js';
 import { initDatabase } from './db/index.js';
 
 config();
@@ -62,6 +63,7 @@ app.route('/api/usage', usageRouter);
 app.route('/api/openclaw', openclawRoutes);
 app.route('/api/reminders', remindersRoutes);
 app.route('/api/services', servicesRouter);
+app.route('/api/soulsprite', soulspriteRouter);
 
 // Initialize database and start server only when not testing
 if (process.env.NODE_ENV !== 'test') {
