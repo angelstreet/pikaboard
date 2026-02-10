@@ -237,6 +237,11 @@ export default function Inbox() {
                 #{task.id} {stripPrefix(task.name)}
               </p>
             </div>
+            {task.description && (
+              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 ml-7 truncate max-w-md">
+                {task.description.split('\n')[0].slice(0, 80)}{task.description.split('\n')[0].length > 80 ? '…' : ''}
+              </p>
+            )}
             {agent && (
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 ml-7">
                 from {agent.charAt(0).toUpperCase() + agent.slice(1)}

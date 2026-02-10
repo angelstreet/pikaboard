@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { useAuth, useUser, SignIn } from '@clerk/clerk-react';
@@ -16,7 +16,8 @@ import Chat from './pages/Chat';
 import Usage from './pages/Usage';
 import Goals from './pages/Goals';
 import Reminders from './pages/Reminders';
-import World from './pages/World';
+const World = lazy(() => import('./pages/World'));
+const Characters = lazy(() => import('./pages/Characters'));
 import { QuoteWidget } from './components/QuoteWidget';
 import { setClerkTokenProvider } from './api/client';
 
@@ -108,7 +109,8 @@ function AppContent() {
         <Route path="usage" element={<Usage />} />
         <Route path="library" element={<Library />} />
         <Route path="settings" element={<Settings />} />
-        <Route path="world" element={<World />} />
+        <Route path="world" element={<Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500"></div></div>}><World /></Suspense>} />
+        <Route path="characters" element={<Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500"></div></div>}><Characters /></Suspense>} />
       </Route>
     </Routes>
     </>

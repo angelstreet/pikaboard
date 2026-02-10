@@ -150,7 +150,7 @@ function AgentCharacter({ agent, position, index }: { agent: Agent; position: [n
         <meshStandardMaterial color="#1a1a1a" />
       </mesh>
       {/* Name */}
-      <Text position={[0, 1.45, 0]} fontSize={0.18} color="white" anchorX="center" anchorY="middle">
+      <Text position={[0, 1.45, 0]} fontSize={0.18} color="white" anchorX="center" anchorY="middle" font="https://fonts.gstatic.com/s/roboto/v30/KFOmCnqEu92Fr1Mu4mxP.ttf">
         {agent.name || agent.id}
       </Text>
       {/* Status ring */}
@@ -267,7 +267,7 @@ export default function World() {
         <p className="text-sm text-gray-400">{agents.length} agents • drag to rotate</p>
       </div>
       {/* Zoom & recenter controls */}
-      <div className="absolute bottom-6 right-4 z-10 flex flex-col gap-2">
+      <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
         <button onClick={() => handleZoom(-1)} className="w-10 h-10 rounded-lg bg-gray-800/80 hover:bg-gray-700 text-white text-xl font-bold flex items-center justify-center backdrop-blur-sm border border-gray-600/50">+</button>
         <button onClick={() => handleZoom(1)} className="w-10 h-10 rounded-lg bg-gray-800/80 hover:bg-gray-700 text-white text-xl font-bold flex items-center justify-center backdrop-blur-sm border border-gray-600/50">−</button>
         <button onClick={handleRecenter} className="w-10 h-10 rounded-lg bg-gray-800/80 hover:bg-gray-700 text-white text-sm flex items-center justify-center backdrop-blur-sm border border-gray-600/50" title="Recenter">⌂</button>

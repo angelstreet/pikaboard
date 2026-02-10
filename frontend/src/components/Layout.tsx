@@ -18,6 +18,7 @@ const primaryNavItems = [
   { path: '/reminders', label: '🔔 Reminders', title: 'Reminders' },
   { path: '/agents', label: '🤖 Agents', title: 'Agents' },
   { path: '/world', label: '🌍 World', title: 'Agent World' },
+  { path: '/characters', label: '🎮 Characters', title: 'Characters' },
   { path: '/chat', label: '💬 Chat', title: 'Chat' },
 ];
 
