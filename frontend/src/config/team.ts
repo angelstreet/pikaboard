@@ -28,6 +28,30 @@ export const TEAM_ROSTER: TeamMember[] = [
     boards: [],
   },
   {
+    id: 'main',
+    name: 'Pika',
+    role: 'captain',
+    roleLabel: 'CPT',
+    function: 'Main Agent',
+    avatar: '⚡',
+    avatarImg: '/characters/pika/avatar.png',
+    color: '#FACC15', // yellow
+    boardId: 1, // Main
+    boards: [],
+  },
+  {
+    id: 'pika-ops',
+    name: 'Pika-Ops',
+    role: 'specialist',
+    roleLabel: 'OPS',
+    function: 'Operations Agent',
+    avatar: '🔧',
+    avatarImg: '/characters/pika/avatar.png',
+    color: '#EF4444', // red
+    boardId: undefined,
+    boards: [],
+  },
+  {
     id: 'bulbi',
     name: 'Bulbi',
     role: 'specialist',
