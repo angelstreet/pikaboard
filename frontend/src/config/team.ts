@@ -40,14 +40,14 @@ export const TEAM_ROSTER: TeamMember[] = [
     boards: [],
   },
   {
-    id: 'pika-ops',
-    name: 'Pika-Ops',
+    id: 'mewtwo',
+    name: 'Mewtwo',
     role: 'specialist',
     roleLabel: 'OPS',
     function: 'Operations Agent',
-    avatar: '🔧',
-    avatarImg: '/characters/pika/avatar.png',
-    color: '#EF4444', // red
+    avatar: '🧬',
+    avatarImg: '/characters/mewtwo/avatar.png',
+    color: '#9333EA', // psychic purple (distinct from yellow Pika)
     boardId: undefined,
     boards: [],
   },
