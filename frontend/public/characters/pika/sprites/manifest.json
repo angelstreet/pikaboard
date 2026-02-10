@@ -2,16 +2,12 @@
   "agent": "pika",
   "version": 1,
   "cellSize": 128,
-  "directions": 8,
+  "directions": 4,
   "directionOrder": [
     "S",
     "W",
     "N",
-    "E",
-    "SW",
-    "NW",
-    "NE",
-    "SE"
+    "E"
   ],
   "animations": {
     "idle": {
