@@ -1,0 +1,32 @@
+{
+  "agent": "pika",
+  "version": 1,
+  "cellSize": 128,
+  "directions": 8,
+  "directionOrder": [
+    "S",
+    "W",
+    "N",
+    "E",
+    "SW",
+    "NW",
+    "NE",
+    "SE"
+  ],
+  "animations": {
+    "idle": {
+      "file": "idle.png",
+      "frames": 4,
+      "fps": 5
+    },
+    "walk": {
+      "file": "walk.png",
+      "frames": 4,
+      "fps": 5
+    }
+  },
+  "groundLine": 110,
+  "safeZone": {
+    "margin": 8
+  }
+}

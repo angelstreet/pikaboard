@@ -1,0 +1,22 @@
+{
+  "agent": "mew",
+  "version": 1,
+  "cellSize": 128,
+  "directions": 8,
+  "directionOrder": [
+    "S",
+    "W",
+    "N",
+    "E",
+    "SW",
+    "NW",
+    "NE",
+    "SE"
+  ],
+  "animations": {},
+  "groundLine": 110,
+  "safeZone": {
+    "margin": 8
+  },
+  "note": "Sprites not yet generated"
+}
