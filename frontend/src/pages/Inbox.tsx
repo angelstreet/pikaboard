@@ -225,8 +225,28 @@ export default function Inbox() {
     </div>
   );
 
+  const getDescriptionPreview = (task: InboxTask): string | null => {
+    if (!task.description) return null;
+    const section = getSection(task.name);
+    // For approvals/questions, try to extract the actual question line
+    if (section === 'approval' || section === 'question') {
+      const lines = task.description.split('\n').map(l => l.trim()).filter(Boolean);
+      // Skip metadata lines like "**From:** agent"
+      const contentLine = lines.find(l => !l.startsWith('**From:') && !l.startsWith('---'));
+      if (contentLine) {
+        const clean = contentLine.replace(/\*\*/g, '');
+        return clean.length > 80 ? clean.slice(0, 80) + '…' : clean;
+      }
+    }
+    // Default: first line truncated
+    const firstLine = task.description.split('\n')[0].trim();
+    if (!firstLine) return null;
+    return firstLine.length > 80 ? firstLine.slice(0, 80) + '…' : firstLine;
+  };
+
   const TaskRow = ({ task, actions }: { task: InboxTask; actions: React.ReactNode }) => {
     const agent = extractAgent(task);
+    const preview = getDescriptionPreview(task);
     return (
       <div className="px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
         <div className="flex items-start justify-between gap-4">
@@ -237,9 +257,9 @@ export default function Inbox() {
                 #{task.id} {stripPrefix(task.name)}
               </p>
             </div>
-            {task.description && (
+            {preview && (
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 ml-7 truncate max-w-md">
-                {task.description.split('\n')[0].slice(0, 80)}{task.description.split('\n')[0].length > 80 ? '…' : ''}
+                {preview}
               </p>
             )}
             {agent && (
@@ -335,19 +355,27 @@ export default function Inbox() {
           <EmptyState icon="💬" text="No pending questions" sub="Agents will ask when they need help" />
         ) : (
           <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 shadow-sm overflow-hidden divide-y divide-gray-100 dark:divide-gray-700">
-            {questions.map(task => (
+            {questions.map(task => {
+              const preview = getDescriptionPreview(task);
+              const agent = extractAgent(task);
+              return (
               <div key={task.id} className="px-4 py-4 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
-                      {extractAgent(task) && <span className="text-lg">{getAgentEmoji(extractAgent(task)!)}</span>}
+                      {agent && <span className="text-lg">{getAgentEmoji(agent)}</span>}
                       <p className="font-medium text-gray-900 dark:text-white">
                         #{task.id} {stripPrefix(task.name)}
                       </p>
                     </div>
-                    {extractAgent(task) && (
+                    {preview && (
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 ml-7 truncate max-w-md">
+                        {preview}
+                      </p>
+                    )}
+                    {agent && (
                       <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 ml-7">
-                        from {extractAgent(task)!.charAt(0).toUpperCase() + extractAgent(task)!.slice(1)}
+                        from {agent.charAt(0).toUpperCase() + agent.slice(1)}
                       </p>
                     )}
                   </div>
@@ -373,7 +401,8 @@ export default function Inbox() {
                   </button>
                 </div>
               </div>
-            ))}
+            );
+            })}
           </div>
         ))}
       </section>
