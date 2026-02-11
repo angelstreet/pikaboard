@@ -7,8 +7,8 @@ export const modelRouter = new Hono();
 
 const OPENCLAW_CONFIG_PATH = join(homedir(), '.openclaw', 'openclaw.json');
 
-// Model definitions
-export const MODELS = {
+// Built-in model definitions used as safe defaults
+const BUILTIN_MODELS = {
   opus: {
     id: 'anthropic/claude-opus-4-6',
     alias: 'opus',
@@ -25,15 +25,36 @@ export const MODELS = {
   },
 } as const;
 
-export type ModelKey = keyof typeof MODELS;
+export type BuiltinModelKey = keyof typeof BUILTIN_MODELS;
+
+export interface ModelInfo {
+  id: string;
+  alias: string;
+  name: string;
+  provider: string;
+  description: string;
+}
+
+interface ProviderModel {
+  id: string;
+  name?: string;
+}
 
 interface OpenClawConfig {
+  models?: {
+    providers?: Record<string, {
+      models?: ProviderModel[];
+    }>;
+  };
   agents?: {
     defaults?: {
       model?: {
         primary?: string;
         fallbacks?: string[];
       };
+      models?: Record<string, {
+        alias?: string;
+      }>;
     };
     list?: Array<{
       id: string;
@@ -45,7 +66,12 @@ interface OpenClawConfig {
   };
 }
 
-// Read the OpenClaw config file
+interface ModelChain {
+  primary: string;
+  fallbacks: string[];
+  source: 'main' | 'defaults' | 'builtin';
+}
+
 function readConfig(): OpenClawConfig | null {
   try {
     const content = readFileSync(OPENCLAW_CONFIG_PATH, 'utf-8');
@@ -56,7 +82,6 @@ function readConfig(): OpenClawConfig | null {
   }
 }
 
-// Write the OpenClaw config file
 function writeConfig(config: OpenClawConfig): boolean {
   try {
     writeFileSync(OPENCLAW_CONFIG_PATH, JSON.stringify(config, null, 2));
@@ -67,125 +92,269 @@ function writeConfig(config: OpenClawConfig): boolean {
   }
 }
 
-// Get the current primary model for the main agent
-function getCurrentModel(config: OpenClawConfig | null): ModelKey {
-  if (!config?.agents?.defaults?.model?.primary) {
-    return 'opus';
+function unique(values: string[]): string[] {
+  return Array.from(new Set(values.filter(Boolean)));
+}
+
+function toTitleCase(value: string): string {
+  return value
+    .replace(/[-_]+/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
+function humanizeModelId(modelId: string): string {
+  const parts = modelId.split('/');
+  const tail = parts[parts.length - 1] || modelId;
+  return toTitleCase(tail);
+}
+
+function inferProvider(modelId: string): string {
+  const parts = modelId.split('/');
+  return parts[0] || 'unknown';
+}
+
+function getAliasMap(config: OpenClawConfig | null): Record<string, string> {
+  const configured = config?.agents?.defaults?.models || {};
+  const aliases: Record<string, string> = {};
+
+  for (const [modelId, def] of Object.entries(configured)) {
+    if (def?.alias) {
+      aliases[modelId] = def.alias;
+    }
   }
-  
-  const primary = config.agents.defaults.model.primary;
-  
-  // Check if it matches any known model
-  if (primary.includes('opus') || primary === MODELS.opus.id) {
-    return 'opus';
+
+  aliases[BUILTIN_MODELS.opus.id] ||= BUILTIN_MODELS.opus.alias;
+  aliases[BUILTIN_MODELS.codex.id] ||= BUILTIN_MODELS.codex.alias;
+
+  return aliases;
+}
+
+function getMainModelChain(config: OpenClawConfig | null): ModelChain {
+  const mainAgent = config?.agents?.list?.find(agent => agent.id === 'main');
+  if (mainAgent?.model?.primary) {
+    return {
+      primary: mainAgent.model.primary,
+      fallbacks: unique(mainAgent.model.fallbacks || []),
+      source: 'main',
+    };
   }
-  if (primary.includes('codex') || primary === MODELS.codex.id) {
-    return 'codex';
+
+  const defaults = config?.agents?.defaults?.model;
+  if (defaults?.primary) {
+    return {
+      primary: defaults.primary,
+      fallbacks: unique(defaults.fallbacks || []),
+      source: 'defaults',
+    };
   }
-  
-  // Default to opus if unknown
-  return 'opus';
+
+  return {
+    primary: BUILTIN_MODELS.opus.id,
+    fallbacks: [BUILTIN_MODELS.codex.id],
+    source: 'builtin',
+  };
+}
+
+function buildModelRegistry(config: OpenClawConfig | null): Record<string, ModelInfo> {
+  const aliasMap = getAliasMap(config);
+  const registry: Record<string, ModelInfo> = {};
+
+  const upsert = (id: string, partial: Partial<ModelInfo> = {}) => {
+    const existing = registry[id];
+    registry[id] = {
+      id,
+      alias: partial.alias || existing?.alias || aliasMap[id] || id.split('/').pop() || 'model',
+      name: partial.name || existing?.name || humanizeModelId(id),
+      provider: partial.provider || existing?.provider || inferProvider(id),
+      description: partial.description || existing?.description || `${humanizeModelId(id)} (${inferProvider(id)})`,
+    };
+  };
+
+  for (const model of Object.values(BUILTIN_MODELS)) {
+    upsert(model.id, model);
+  }
+
+  const configuredAliases = config?.agents?.defaults?.models || {};
+  for (const [modelId, def] of Object.entries(configuredAliases)) {
+    upsert(modelId, {
+      alias: def.alias,
+      provider: inferProvider(modelId),
+      name: humanizeModelId(modelId),
+    });
+  }
+
+  const providers = config?.models?.providers || {};
+  for (const [providerKey, providerDef] of Object.entries(providers)) {
+    for (const providerModel of providerDef.models || []) {
+      const prefixed = `${providerKey}/${providerModel.id}`;
+      upsert(prefixed, {
+        name: providerModel.name || humanizeModelId(prefixed),
+        provider: providerKey,
+      });
+      if (aliasMap[prefixed]) {
+        upsert(prefixed, { alias: aliasMap[prefixed] });
+      }
+    }
+  }
+
+  return registry;
+}
+
+function resolveModelInfo(modelId: string, registry: Record<string, ModelInfo>, config: OpenClawConfig | null): ModelInfo {
+  if (registry[modelId]) {
+    return registry[modelId];
+  }
+
+  const alias = getAliasMap(config)[modelId] || modelId.split('/').pop() || 'model';
+  return {
+    id: modelId,
+    alias,
+    name: humanizeModelId(modelId),
+    provider: inferProvider(modelId),
+    description: `${humanizeModelId(modelId)} (${inferProvider(modelId)})`,
+  };
+}
+
+function resolveTargetModelId(
+  input: string,
+  registry: Record<string, ModelInfo>,
+  config: OpenClawConfig | null,
+): string | null {
+  const trimmed = input.trim();
+
+  if ((trimmed as BuiltinModelKey) in BUILTIN_MODELS) {
+    return BUILTIN_MODELS[trimmed as BuiltinModelKey].id;
+  }
+
+  if (registry[trimmed]) {
+    return registry[trimmed].id;
+  }
+
+  const aliasMap = getAliasMap(config);
+  for (const [modelId, alias] of Object.entries(aliasMap)) {
+    if (alias.toLowerCase() === trimmed.toLowerCase()) {
+      return modelId;
+    }
+  }
+
+  for (const model of Object.values(registry)) {
+    if (model.alias.toLowerCase() === trimmed.toLowerCase()) {
+      return model.id;
+    }
+  }
+
+  if (trimmed.includes('/')) {
+    return trimmed;
+  }
+
+  return null;
 }
 
 // GET /api/model - Get current model configuration
 modelRouter.get('/', (c) => {
   const config = readConfig();
-  const currentModel = getCurrentModel(config);
-  
+  const chain = getMainModelChain(config);
+  const registry = buildModelRegistry(config);
+  const relevantIds = unique([chain.primary, ...chain.fallbacks]);
+
+  // Return at least the relevant chain + built-ins to keep the UI usable.
+  const models: Record<string, ModelInfo> = {};
+  for (const modelId of unique([...relevantIds, BUILTIN_MODELS.opus.id, BUILTIN_MODELS.codex.id])) {
+    models[modelId] = resolveModelInfo(modelId, registry, config);
+  }
+
   return c.json({
-    current: currentModel,
-    models: MODELS,
+    current: chain.primary,
+    models,
     config: {
-      primary: config?.agents?.defaults?.model?.primary || MODELS.opus.id,
-      fallbacks: config?.agents?.defaults?.model?.fallbacks || [],
+      primary: chain.primary,
+      fallbacks: chain.fallbacks,
+      source: chain.source,
     },
   });
 });
 
-// POST /api/model/switch - Switch between Opus and Codex
+// POST /api/model/switch - Switch to any configured model id/alias
 modelRouter.post('/switch', async (c) => {
-  const body = await c.req.json<{ model?: ModelKey }>();
-  const targetModel = body?.model;
-  
-  if (!targetModel || !(targetModel in MODELS)) {
-    return c.json({ error: 'Invalid model. Use "opus" or "codex"' }, 400);
+  const body = await c.req.json<{ model?: string }>();
+  const requestedModel = body?.model;
+
+  if (!requestedModel) {
+    return c.json({ error: 'Invalid model. Provide a model alias or id.' }, 400);
   }
-  
+
   const config = readConfig();
   if (!config) {
     return c.json({ error: 'Failed to read configuration' }, 500);
   }
-  
-  // Ensure agents.defaults exists
-  if (!config.agents) {
-    config.agents = {};
+
+  const registry = buildModelRegistry(config);
+  const currentChain = getMainModelChain(config);
+  const targetModelId = resolveTargetModelId(requestedModel, registry, config);
+
+  if (!targetModelId) {
+    return c.json({ error: `Unknown model: ${requestedModel}` }, 400);
   }
-  if (!config.agents.defaults) {
-    config.agents.defaults = {};
+
+  // Ensure container objects
+  config.agents ||= {};
+  config.agents.defaults ||= {};
+  config.agents.defaults.model ||= {};
+  config.agents.list ||= [];
+
+  let mainAgent = config.agents.list.find(agent => agent.id === 'main');
+  if (!mainAgent) {
+    mainAgent = { id: 'main', model: {} };
+    config.agents.list.push(mainAgent);
   }
-  if (!config.agents.defaults.model) {
-    config.agents.defaults.model = {};
-  }
-  
-  const newModelId = MODELS[targetModel].id;
-  const oldModel = getCurrentModel(config);
-  
-  // Update the primary model
-  config.agents.defaults.model.primary = newModelId;
-  
-  // Update fallbacks to include the other model
-  const otherModel = targetModel === 'opus' ? MODELS.codex.id : MODELS.opus.id;
-  const currentFallbacks = config.agents.defaults.model.fallbacks || [];
-  
-  // Remove the new primary from fallbacks and add the other model
-  config.agents.defaults.model.fallbacks = [
-    otherModel,
-    ...currentFallbacks.filter(m => m !== newModelId && m !== otherModel),
-  ].slice(0, 3); // Keep max 3 fallbacks
-  
-  // Also update the main agent (Pika) if it exists
-  if (config.agents.list) {
-    const mainAgent = config.agents.list.find(a => a.id === 'main');
-    if (mainAgent) {
-      if (!mainAgent.model) {
-        mainAgent.model = {};
-      }
-      mainAgent.model.primary = newModelId;
-      mainAgent.model.fallbacks = config.agents.defaults.model.fallbacks;
-    }
-  }
-  
+  mainAgent.model ||= {};
+
+  const previousPrimary = currentChain.primary;
+  const existingFallbacks = unique(currentChain.fallbacks);
+  const nextFallbacks = unique([
+    previousPrimary,
+    ...existingFallbacks,
+  ]).filter(modelId => modelId !== targetModelId).slice(0, 5);
+
+  // Keep main and defaults aligned so older codepaths still behave.
+  mainAgent.model.primary = targetModelId;
+  mainAgent.model.fallbacks = nextFallbacks;
+  config.agents.defaults.model.primary = targetModelId;
+  config.agents.defaults.model.fallbacks = nextFallbacks;
+
   if (!writeConfig(config)) {
     return c.json({ error: 'Failed to save configuration' }, 500);
   }
-  
+
+  const updatedRegistry = buildModelRegistry(config);
+  const previousInfo = resolveModelInfo(previousPrimary, updatedRegistry, config);
+  const currentInfo = resolveModelInfo(targetModelId, updatedRegistry, config);
+
   return c.json({
     success: true,
-    previous: oldModel,
-    current: targetModel,
-    model: MODELS[targetModel],
-    message: `Switched primary model from ${MODELS[oldModel].name} to ${MODELS[targetModel].name}`,
+    previous: previousPrimary,
+    current: targetModelId,
+    model: currentInfo,
+    message: `Switched primary model from ${previousInfo.name} to ${currentInfo.name}`,
   });
 });
 
 // GET /api/model/status - Get model status including rate limit info
 modelRouter.get('/status', async (c) => {
   const config = readConfig();
-  const currentModel = getCurrentModel(config);
-  
-  // Check for rate limit info from session files
-  // This is a simplified check - in production you'd want more robust detection
+  const chain = getMainModelChain(config);
+  const registry = buildModelRegistry(config);
+
   const rateLimitInfo = await checkRateLimitStatus();
-  
+
   return c.json({
-    current: currentModel,
-    model: MODELS[currentModel],
+    current: chain.primary,
+    model: resolveModelInfo(chain.primary, registry, config),
     rateLimit: rateLimitInfo,
     timestamp: new Date().toISOString(),
   });
 });
 
-// Check rate limit status by looking at recent session errors
 async function checkRateLimitStatus(): Promise<{
   limited: boolean;
   provider?: string;
@@ -194,14 +363,6 @@ async function checkRateLimitStatus(): Promise<{
   message?: string;
 } | null> {
   try {
-    // Look for rate limit indicators in recent sessions
-    // This is a placeholder - real implementation would check:
-    // 1. Session error logs for 429 errors
-    // 2. Provider-specific rate limit headers
-    // 3. Gateway rate limit state
-    
-    // For now, return null (no rate limit detected)
-    // The frontend will handle this gracefully
     return null;
   } catch {
     return null;

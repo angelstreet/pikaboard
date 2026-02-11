@@ -6,7 +6,7 @@ import TeamRoster from './TeamRoster';
 import MobileNav from './MobileNav';
 import MobileDrawer from './MobileDrawer';
 import { QuoteWidget } from './QuoteWidget';
-import { api } from '../api/client';
+import { api, API_BASE_URL } from '../api/client';
 import { useTaskNotifications } from '../hooks/useTaskNotifications';
 
 // Mobile Health Status Component
@@ -18,7 +18,7 @@ function MobileHealthStatus() {
     const checkHealth = async () => {
       try {
         // Use the public health endpoint for proper health check
-        const res = await fetch('/api/health', { 
+        const res = await fetch('/health', {
           method: 'GET',
           headers: { 'Accept': 'application/json' }
         });
@@ -113,10 +113,13 @@ function MobileRestartButton() {
     setIsRestarting(true);
     setShowConfirm(false);
     try {
-      // Try the gateway restart endpoint first
-      const res = await fetch('/openclaw/api/restart', { 
+      // Restart via authenticated backend endpoint
+      const res = await fetch(`${API_BASE_URL}/openclaw/restart`, {
         method: 'POST',
-        headers: { 'Accept': 'application/json' }
+        headers: {
+          'Accept': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('pikaboard_token') || ''}`,
+        },
       });
       if (res.ok) {
         showAlertModal('Success', 'Restart command sent successfully. Gateway will restart shortly.', 'success');

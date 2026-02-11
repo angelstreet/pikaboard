@@ -10,7 +10,7 @@ export default function RateLimitIndicator({
   variant = 'badge',
   showWhenClear = false 
 }: RateLimitIndicatorProps) {
-  const { status, currentModel } = useModel();
+  const { status, currentModel, config } = useModel();
   const [dismissed, setDismissed] = useState(false);
   const [countdown, setCountdown] = useState<number | null>(null);
 
@@ -66,7 +66,7 @@ export default function RateLimitIndicator({
     if (model) return model;
     if (provider === 'anthropic') return 'Claude Opus';
     if (provider === 'openai-codex') return 'Codex';
-    return currentModel === 'opus' ? 'Claude Opus' : 'Codex';
+    return config?.models?.[currentModel]?.name || currentModel || 'Current model';
   };
 
   // If no rate limit and showWhenClear is false, don't render

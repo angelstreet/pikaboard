@@ -94,6 +94,7 @@ function DroppableColumn({
               onClick={onTaskClick}
               onArchive={id === 'done' ? onArchive : undefined}
               isDragging={!readOnly && task.id === activeId}
+              readOnly={readOnly}
               showBoardName={showBoardNames}
               boardBadge={task.board_id != null ? boardLookup?.[task.board_id] : undefined}
             />
@@ -218,6 +219,7 @@ export default function Boards() {
 
   // Filter done tasks to only show those completed within last 48 hours
   const visibleTasks = useMemo(() => {
+    if (isGlobalView) return tasks;
     const now = Date.now();
     const hours48 = 48 * 60 * 60 * 1000;
     return tasks.filter((t) => {
@@ -225,7 +227,7 @@ export default function Boards() {
       if (!t.completed_at) return true;
       return (now - new Date(t.completed_at).getTime()) < hours48;
     });
-  }, [tasks]);
+  }, [tasks, isGlobalView]);
 
   const tasksByStatus = useCallback(
     (status: Task['status']) => visibleTasks.filter((t) => t.status === status),
@@ -352,13 +354,11 @@ export default function Boards() {
   };
 
   const handleTaskClick = async (task: Task) => {
-    // On Main board, switch to task's actual board.
+    // On Main board, only navigate to the task's board (read-only global view).
     if (isGlobalView) {
       const taskBoard = boards.find(b => b.id === task.board_id);
       if (!taskBoard) return;
       selectBoard(taskBoard);
-      setEditingTask(task);
-      setTaskModalOpen(true);
       return;
     }
     setEditingTask(task);

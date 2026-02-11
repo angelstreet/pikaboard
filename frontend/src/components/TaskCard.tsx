@@ -7,6 +7,7 @@ interface TaskCardProps {
   onClick: (task: Task) => void;
   onArchive?: (task: Task) => void;
   isDragging?: boolean;
+  readOnly?: boolean;
   showBoardName?: boolean;
   boardBadge?: {
     name: string;
@@ -36,7 +37,7 @@ function getTagColor(tag: string): string {
   return tagColors[index % tagColors.length];
 }
 
-export function TaskCard({ task, onClick, onArchive, isDragging, showBoardName, boardBadge }: TaskCardProps) {
+export function TaskCard({ task, onClick, onArchive, isDragging, readOnly, showBoardName, boardBadge }: TaskCardProps) {
   const {
     attributes,
     listeners,
@@ -44,12 +45,14 @@ export function TaskCard({ task, onClick, onArchive, isDragging, showBoardName, 
     transform,
     transition,
     isDragging: sortableIsDragging,
-  } = useSortable({ id: task.id });
+  } = useSortable({ id: task.id, disabled: !!readOnly });
 
-  const style = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-  };
+  const style = readOnly
+    ? undefined
+    : {
+        transform: CSS.Transform.toString(transform),
+        transition,
+      };
 
   const priority = priorityColors[task.priority] || priorityColors.medium;
   const dragging = isDragging || sortableIsDragging;
@@ -68,8 +71,8 @@ export function TaskCard({ task, onClick, onArchive, isDragging, showBoardName, 
     <div
       ref={setNodeRef}
       style={style}
-      {...attributes}
-      {...listeners}
+      {...(!readOnly ? attributes : {})}
+      {...(!readOnly ? listeners : {})}
       onClick={() => onClick(task)}
       className={`
         bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 border-l-4 ${priority.border}

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useSyncExternalStore } from 'react';
+import { API_BASE_URL } from '../api/client';
 
 // ── Types ──────────────────────────────────────────────────────────
 
@@ -121,7 +122,7 @@ function clearPendingRequests(reason: string) {
 
 async function fetchGatewayToken(): Promise<string> {
   const token = localStorage.getItem('pikaboard_token') || '';
-  const res = await fetch('/api/openclaw/gateway-token', {
+  const res = await fetch(`${API_BASE_URL}/openclaw/gateway-token`, {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
   if (!res.ok) throw new Error('Failed to fetch gateway token');

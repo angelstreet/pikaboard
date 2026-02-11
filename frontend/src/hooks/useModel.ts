@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api } from '../api/client';
 
-export type ModelKey = 'opus' | 'codex';
+export type ModelKey = string;
 
 export interface ModelInfo {
   id: string;
@@ -13,10 +13,11 @@ export interface ModelInfo {
 
 export interface ModelConfig {
   current: ModelKey;
-  models: Record<ModelKey, ModelInfo>;
+  models: Record<string, ModelInfo>;
   config: {
     primary: string;
     fallbacks: string[];
+    source?: 'main' | 'defaults' | 'builtin';
   };
 }
 
@@ -42,8 +43,8 @@ export async function getModelConfig(): Promise<ModelConfig> {
 
 export async function switchModel(model: ModelKey): Promise<{
   success: boolean;
-  previous: ModelKey;
-  current: ModelKey;
+  previous: string;
+  current: string;
   model: ModelInfo;
   message: string;
 }> {
@@ -116,7 +117,7 @@ export function useModel() {
     status,
     loading,
     error,
-    currentModel: config?.current || 'opus',
+    currentModel: config?.current || config?.config?.primary || '',
     switchToModel,
     refresh: fetchConfig,
   };

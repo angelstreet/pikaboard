@@ -293,7 +293,18 @@ function normalizeBaseUrl(url: string): string {
   return url.endsWith('/') ? url.slice(0, -1) : url;
 }
 
-export const API_BASE_URL = normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL || '/api');
+function getDefaultApiBaseUrl(): string {
+  // Use root /api by default. In production, nginx usually exposes /api at root
+  // even when the UI is served under /pikaboard or /pikaboard-dev.
+  if (typeof window !== 'undefined') {
+    return `${window.location.origin}/api`;
+  }
+
+  // SSR/default fallback.
+  return '/api';
+}
+
+export const API_BASE_URL = normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL || getDefaultApiBaseUrl());
 
 // API Client
 class ApiClient {
@@ -311,9 +322,24 @@ class ApiClient {
       },
     });
 
+    const contentType = res.headers.get('content-type') || '';
+    const isJson = contentType.includes('application/json');
+
     if (!res.ok) {
-      const error = await res.json().catch(() => ({ error: 'Request failed' }));
+      const error = isJson
+        ? await res.json().catch(() => ({ error: 'Request failed' }))
+        : { error: `HTTP ${res.status}` };
       throw new Error(error.error || `HTTP ${res.status}`);
+    }
+
+    if (!isJson) {
+      const snippet = (await res.text()).slice(0, 80).trim();
+      if (snippet.startsWith('<!doctype') || snippet.startsWith('<html')) {
+        throw new Error(
+          `API returned HTML instead of JSON for ${this.baseUrl}${path}. Check API base URL/proxy configuration.`
+        );
+      }
+      throw new Error(`Unexpected response format from ${this.baseUrl}${path}`);
     }
 
     return res.json();

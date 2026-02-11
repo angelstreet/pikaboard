@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { api, Task, UsageSummary, InsightsData } from '../api/client';
+import { api, API_BASE_URL, Task, UsageSummary, InsightsData } from '../api/client';
 import ThemeToggle from './ThemeToggle';
 import { useConfirmModal } from './ConfirmModal';
 import ModelToggle from './ModelToggle';
@@ -110,7 +110,7 @@ export default function HeaderStatsBar() {
   useEffect(() => {
     const fetchContext = async () => {
       try {
-        const res = await fetch('/api/openclaw/context', {
+        const res = await fetch(`${API_BASE_URL}/openclaw/context`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('pikaboard_token') || ''}` },
         });
         if (res.ok) {
@@ -146,7 +146,7 @@ export default function HeaderStatsBar() {
 
     setIsResetting(true);
     try {
-      const res = await fetch('/api/openclaw/sessions/reset', {
+      const res = await fetch(`${API_BASE_URL}/openclaw/sessions/reset`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -157,7 +157,7 @@ export default function HeaderStatsBar() {
       if (res.ok) {
         // Wait briefly for session to clear, then fetch new context
         await new Promise(r => setTimeout(r, 1500));
-        const contextRes = await fetch('/api/openclaw/context', {
+        const contextRes = await fetch(`${API_BASE_URL}/openclaw/context`, {
           headers: { Authorization: `Bearer ${localStorage.getItem('pikaboard_token') || ''}` },
         });
         if (contextRes.ok) {
@@ -190,10 +190,11 @@ export default function HeaderStatsBar() {
 
     setIsRestarting(true);
     try {
-      const res = await fetch('/openclaw/api/restart', {
+      const res = await fetch(`${API_BASE_URL}/openclaw/restart`, {
         method: 'POST',
         headers: {
           'Accept': 'application/json',
+          Authorization: `Bearer ${localStorage.getItem('pikaboard_token') || ''}`,
         },
       });
       if (res.ok) {

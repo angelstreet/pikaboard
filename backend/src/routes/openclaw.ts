@@ -116,6 +116,21 @@ openclawRoutes.post('/sessions/reset', async (c) => {
   }
 });
 
+// Restart OpenClaw gateway service via CLI
+openclawRoutes.post('/restart', async (c) => {
+  try {
+    await execAsync('openclaw gateway restart');
+    return c.json({
+      success: true,
+      message: 'Restart command sent. Gateway will restart shortly.',
+    });
+  } catch (error: any) {
+    const details = error?.stderr || error?.message || 'unknown error';
+    console.error('Failed to restart gateway:', details);
+    return c.json({ error: `Failed to restart gateway: ${details}` }, 500);
+  }
+});
+
 // Get gateway auth token for frontend WebSocket connection
 let cachedGatewayToken: string | null = null;
 openclawRoutes.get('/gateway-token', async (c) => {

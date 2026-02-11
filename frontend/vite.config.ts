@@ -32,6 +32,16 @@ export default defineConfig({
         target: 'http://localhost:3001',
         changeOrigin: true,
       },
+      '/pikaboard/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/pikaboard\/api/, '/api'),
+      },
+      '/pikaboard-dev/api': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/pikaboard-dev\/api/, '/api'),
+      },
       '/widgets': {
         target: 'http://localhost:3001',
         changeOrigin: true,
