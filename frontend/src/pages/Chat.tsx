@@ -527,10 +527,10 @@ export default function Chat() {
                 <div
                   className={`max-w-[80%] rounded-lg px-4 py-3 ${
                     message.role === 'user'
-                      ? 'bg-pika-500 text-white'
+                      ? 'bg-slate-600 dark:bg-slate-600 text-white'
                       : message.pending
-                      ? 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400 italic'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white'
+                      ? 'bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 italic'
+                      : 'bg-gray-100 dark:bg-slate-800 text-gray-900 dark:text-slate-100'
                   }`}
                 >
                   <div className="flex items-center gap-2 mb-1">
@@ -587,7 +587,7 @@ export default function Chat() {
             </button>
             <button
               onClick={scrollToBottom}
-              className="w-9 h-9 rounded-full bg-pika-500 shadow-md flex items-center justify-center text-white hover:bg-pika-600 transition-colors"
+              className="w-9 h-9 rounded-full bg-slate-600 dark:bg-slate-600 shadow-md flex items-center justify-center text-white hover:bg-slate-700 dark:hover:bg-slate-500 transition-colors"
               title="Scroll to latest"
             >
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -607,12 +607,12 @@ export default function Chat() {
               onKeyDown={handleKeyPress}
               placeholder={isConnected ? 'Type your message...' : 'Connecting...'}
               disabled={!isConnected}
-              className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-pika-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-gray-900 dark:text-slate-100 placeholder-gray-400 dark:placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
             />
             <button
               type="submit"
               disabled={!isConnected || !inputMessage.trim()}
-              className="px-6 py-2.5 bg-pika-500 hover:bg-pika-600 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+              className="px-6 py-2.5 bg-slate-600 dark:bg-slate-600 hover:bg-slate-700 dark:hover:bg-slate-500 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               <span>Send</span>
               <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 20 20" fill="currentColor">
