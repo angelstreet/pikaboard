@@ -4,6 +4,7 @@ import ThemeToggle from './ThemeToggle';
 import { useConfirmModal } from './ConfirmModal';
 import ModelToggle from './ModelToggle';
 import RateLimitIndicator from './RateLimitIndicator';
+import toast from 'react-hot-toast';
 
 type ConnectionStatus = 'connected' | 'disconnected' | 'loading';
 type TimePeriod = 'today' | 'alltime';
@@ -43,6 +44,7 @@ export default function HeaderStatsBar() {
   const [timePeriod, setTimePeriod] = useState<TimePeriod>('today');
   const [contextTokens, setContextTokens] = useState({ current: 0, total: 200000, initial: 0 });
   const [isResetting, setIsResetting] = useState(false);
+  const [isRestarting, setIsRestarting] = useState(false);
 
   // Update time every minute
   useEffect(() => {
@@ -172,6 +174,38 @@ export default function HeaderStatsBar() {
       console.error('Failed to reset session:', e);
     } finally {
       setIsResetting(false);
+    }
+  };
+
+  // Restart gateway
+  const handleRestartGateway = async () => {
+    const confirmed = await confirm({
+      title: 'Restart Gateway?',
+      message: 'This will restart the OpenClaw gateway. All agents will be temporarily unavailable.',
+      confirmText: 'Restart',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
+
+    setIsRestarting(true);
+    try {
+      const res = await fetch('/openclaw/api/restart', {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+        },
+      });
+      if (res.ok) {
+        toast.success('Restart command sent. Gateway will restart shortly.');
+      } else {
+        throw new Error(`HTTP ${res.status}`);
+      }
+    } catch (e) {
+      console.error('Restart failed:', e);
+      toast.error('Failed to restart gateway. Please check gateway status.');
+    } finally {
+      setIsRestarting(false);
     }
   };
 
@@ -331,17 +365,12 @@ export default function HeaderStatsBar() {
             <span className="text-xs text-gray-500 dark:text-gray-400 hidden sm:inline">{text}</span>
           </a>
           <button
-            onClick={async () => {
-              try {
-                await fetch('/openclaw/api/restart', { method: 'POST' });
-              } catch (e) {
-                console.error('Restart failed', e);
-              }
-            }}
-            className="px-2 py-0.5 text-xs font-medium text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 transition-colors hidden sm:block"
+            onClick={handleRestartGateway}
+            disabled={isRestarting}
+            className="px-2 py-0.5 text-xs font-medium text-red-600 hover:text-red-700 dark:text-red-500 dark:hover:text-red-400 transition-colors hidden sm:block disabled:opacity-50 disabled:cursor-not-allowed"
             title="Restart OpenClaw Gateway"
           >
-            restart
+            {isRestarting ? 'restarting...' : 'restart'}
           </button>
           <ThemeToggle />
         </div>
