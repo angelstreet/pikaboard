@@ -24,7 +24,7 @@ metadata:
         label: "Build frontend"
       - id: env
         kind: prompt
-        message: "Create .env with DATABASE_PATH and API_TOKEN"
+        message: "Create .env with DATABASE_PATH and PIKABOARD_TOKEN"
         label: "Configure environment"
 ---
 
@@ -46,7 +46,7 @@ Access dashboard at `http://localhost:3001`
 Create `backend/.env`:
 ```env
 DATABASE_PATH=./pikaboard.db
-API_TOKEN=your-secret-token
+PIKABOARD_TOKEN=your-secret-token
 PORT=3001
 ```
 
@@ -55,6 +55,13 @@ Add to your TOOLS.md:
 ## PikaBoard
 - **API:** http://localhost:3001/api/
 - **Token:** your-secret-token
+```
+
+Agent runtime variables:
+```bash
+export PIKABOARD_API="http://localhost:3001/api"
+export PIKABOARD_TOKEN="your-secret-token"
+export AGENT_NAME="bulbi"
 ```
 
 ## Task Commands
@@ -72,37 +79,60 @@ See `backend/API.md` for full endpoint documentation (single canonical doc).
 
 **List tasks:**
 ```bash
-curl -H "Authorization: Bearer $TOKEN" $API/tasks
+curl -H "Authorization: Bearer $PIKABOARD_TOKEN" "$PIKABOARD_API/tasks"
 ```
 
 **Create task:**
 ```bash
-curl -X POST -H "Authorization: Bearer $TOKEN" \
+curl -X POST -H "Authorization: Bearer $PIKABOARD_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{"name":"Fix bug","status":"inbox","priority":"high"}' \
-  $API/tasks
+  -d '{"name":"Fix bug","status":"inbox","priority":"high","tags":["bug","backend"]}' \
+  "$PIKABOARD_API/tasks"
 ```
 
 **Update status:**
 ```bash
-curl -X PATCH -H "Authorization: Bearer $TOKEN" \
+curl -X PATCH -H "Authorization: Bearer $PIKABOARD_TOKEN" \
   -H "Content-Type: application/json" \
   -d '{"status":"done"}' \
-  $API/tasks/123
+  "$PIKABOARD_API/tasks/123"
 ```
 
 ## Enums
 
 | Field | Values |
 |-------|--------|
-| status | `inbox`, `up_next`, `in_progress`, `in_review`, `done` |
+| status | `inbox`, `up_next`, `in_progress`, `testing`, `in_review`, `done`, `rejected` |
 | priority | `low`, `medium`, `high`, `urgent` |
+
+## Agent Onboarding (Simple Path)
+
+Use the helper to map each agent to a board automatically:
+
+```bash
+cd pikaboard
+./skills/pikaboard/scripts/setup-agent-board.sh
+```
+
+What it does:
+- Reads `PIKABOARD_API`, `PIKABOARD_TOKEN`, `AGENT_NAME`
+- Finds board by `BOARD_NAME` (default: `AGENT_NAME`)
+- Creates board if missing
+- Prints `export MY_BOARD_ID=<id>`
+- Verifies `GET /api/tasks?board_id=<id>&status=up_next`
+
+Optional:
+```bash
+export BOARD_NAME="Bulbi"
+export BOARD_ENV_FILE="$HOME/.openclaw/agents/bulbi/.pikaboard.env"
+./skills/pikaboard/scripts/setup-agent-board.sh
+```
 
 ## Multi-Agent Setup
 
 Each agent can have their own board. Use `board_id` parameter:
 ```bash
-curl "$API/tasks?board_id=6" -H "Authorization: Bearer $TOKEN"
+curl "$PIKABOARD_API/tasks?board_id=6" -H "Authorization: Bearer $PIKABOARD_TOKEN"
 ```
 
 Board assignments:
@@ -113,3 +143,22 @@ Board assignments:
 - Board 5: Psykokwak (EZPlanning)
 - Board 6: Bulbi (PikaBoard)
 - Board 7: Mew (Ideas)
+
+## Validation Checklist
+
+Run after setup:
+
+```bash
+# 1) API reachable
+curl -s http://localhost:3001/health
+
+# 2) Auth works
+curl -s -H "Authorization: Bearer $PIKABOARD_TOKEN" "$PIKABOARD_API/boards"
+
+# 3) Board mapping works
+echo "$MY_BOARD_ID"
+
+# 4) Agent can read own queue
+curl -s -H "Authorization: Bearer $PIKABOARD_TOKEN" \
+  "$PIKABOARD_API/tasks?board_id=$MY_BOARD_ID&status=up_next"
+```

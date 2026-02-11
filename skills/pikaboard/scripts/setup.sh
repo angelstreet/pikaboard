@@ -39,11 +39,11 @@ if [ ! -f backend/.env ]; then
     echo "⚙️ Creating .env..."
     cat > backend/.env << EOF
 DATABASE_PATH=./pikaboard.db
-API_TOKEN=$(openssl rand -hex 32)
+PIKABOARD_TOKEN=$(openssl rand -hex 32)
 PORT=3001
 EOF
     echo "✅ Created backend/.env with random API token"
-    echo "   Check the file for your API_TOKEN"
+    echo "   Check the file for your PIKABOARD_TOKEN"
 else
     echo "✅ backend/.env already exists"
 fi
