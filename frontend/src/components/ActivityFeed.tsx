@@ -224,14 +224,9 @@ function ActivityItem({
             </div>
           </div>
           
-          {/* Expanded details */}
-          {expanded && metadata && (
+          {/* Expanded details - only for non-agent activities */}
+          {expanded && metadata && !isAgent && (
             <div className="mt-2 pt-2 border-t border-gray-200 dark:border-gray-700 text-xs space-y-1">
-              {isAgent && metadata.task_summary && (
-                <p className="text-gray-600 dark:text-gray-400">
-                  <span className="font-medium">Task:</span> {metadata.task_summary}
-                </p>
-              )}
               {(metadata.task_id || metadata.taskId) && (
                 <p className="text-gray-600 dark:text-gray-400">
                   <span className="font-medium">Task:</span> #{metadata.task_id ?? metadata.taskId}
@@ -240,23 +235,6 @@ function ActivityItem({
               {metadata.changes && metadata.changes.length > 0 && (
                 <p className="text-gray-600 dark:text-gray-400">
                   <span className="font-medium">Changed:</span> {metadata.changes.join(', ')}
-                </p>
-              )}
-              {isAgent && metadata.started_at && (
-                <p className="text-gray-600 dark:text-gray-400">
-                  <span className="font-medium">Started:</span>{' '}
-                  {new Date(metadata.started_at).toLocaleString()}
-                </p>
-              )}
-              {isAgent && metadata.ended_at && (
-                <p className="text-gray-600 dark:text-gray-400">
-                  <span className="font-medium">Ended:</span>{' '}
-                  {new Date(metadata.ended_at).toLocaleString()}
-                </p>
-              )}
-              {isAgent && metadata.run_id && (
-                <p className="text-gray-500 dark:text-gray-500 font-mono text-[10px]">
-                  Run: {metadata.run_id.slice(0, 8)}...
                 </p>
               )}
             </div>

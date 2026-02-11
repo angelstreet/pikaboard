@@ -24,7 +24,7 @@ export async function initDatabase() {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
       description TEXT,
-      status TEXT DEFAULT 'inbox' CHECK(status IN ('inbox', 'up_next', 'in_progress', 'testing', 'in_review', 'done', 'rejected')),
+      status TEXT DEFAULT 'inbox' CHECK(status IN ('inbox', 'up_next', 'in_progress', 'testing', 'in_review', 'done', 'solved', 'rejected')),
       priority TEXT DEFAULT 'medium' CHECK(priority IN ('low', 'medium', 'high', 'urgent')),
       tags TEXT,
       board_id INTEGER REFERENCES boards(id),
@@ -79,6 +79,20 @@ export async function initDatabase() {
     CREATE INDEX IF NOT EXISTS idx_goals_board ON goals(board_id);
     CREATE INDEX IF NOT EXISTS idx_goal_tasks_goal ON goal_tasks(goal_id);
     CREATE INDEX IF NOT EXISTS idx_goal_tasks_task ON goal_tasks(task_id);
+
+    CREATE TABLE IF NOT EXISTS task_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      task_id INTEGER NOT NULL REFERENCES tasks(id) ON DELETE CASCADE,
+      timestamp DATETIME DEFAULT CURRENT_TIMESTAMP,
+      actor TEXT NOT NULL,
+      action TEXT NOT NULL,
+      details TEXT,
+      session_id TEXT,
+      subagent_id TEXT
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_task_events_task ON task_events(task_id);
+    CREATE INDEX IF NOT EXISTS idx_task_events_timestamp ON task_events(timestamp DESC);
   `);
 
   // Ensure default board exists
@@ -103,5 +117,28 @@ export async function logActivity(type: string, message: string, metadata?: obje
   await db.execute({
     sql: 'INSERT INTO activity (type, message, metadata) VALUES (?, ?, ?)',
     args: [type, message, metadata ? JSON.stringify(metadata) : null]
+  });
+}
+
+export interface TaskEventInput {
+  taskId: number;
+  actor: string;
+  action: string;
+  details?: object;
+  sessionId?: string;
+  subagentId?: string;
+}
+
+export async function logTaskEvent(input: TaskEventInput) {
+  await db.execute({
+    sql: 'INSERT INTO task_events (task_id, actor, action, details, session_id, subagent_id) VALUES (?, ?, ?, ?, ?, ?)',
+    args: [
+      input.taskId,
+      input.actor,
+      input.action,
+      input.details ? JSON.stringify(input.details) : null,
+      input.sessionId || null,
+      input.subagentId || null
+    ]
   });
 }

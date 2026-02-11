@@ -36,3 +36,8 @@ coverage/
 # Temp
 tmp/
 temp/
+.aider*
+
+# Gemini CLI
+.GEMINI
+GEMINI.md

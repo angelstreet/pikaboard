@@ -135,8 +135,8 @@ export function TaskCard({ task, onClick, onArchive, isDragging, showBoardName }
         </div>
       )}
 
-      {/* Rating display for done tasks */}
-      {task.status === 'done' && (
+      {/* Rating display for done/solved tasks */}
+      {(task.status === 'done' || task.status === 'solved') && (
         <div className="flex items-center justify-between gap-1 mt-2">
           <div className="flex items-center gap-1">
             {task.rating ? (

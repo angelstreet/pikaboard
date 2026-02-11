@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { api, Agent, AgentStats } from '../api/client';
 import { AgentCard } from '../components/AgentCard';
+import LogViewer from '../components/LogViewer';
 
 export default function Agents() {
   const [agents, setAgents] = useState<Agent[]>([]);
@@ -132,6 +133,7 @@ function AgentDetailView({
   onClose: () => void;
 }) {
   const [showSoul, setShowSoul] = useState(false);
+  const [showLogs, setShowLogs] = useState(false);
 
   const agentEmojis: Record<string, string> = {
     bulbi: '🌱',
@@ -334,6 +336,15 @@ function AgentDetailView({
           )}
         </div>
       )}
+
+      {/* Session Logs Panel */}
+      <div className="p-6 border-t border-gray-200 dark:border-gray-700">
+        <LogViewer
+          agentId={agent.id}
+          isOpen={showLogs}
+          onToggle={() => setShowLogs(!showLogs)}
+        />
+      </div>
 
       {/* Footer */}
       <div className="p-4 bg-gray-50 dark:bg-gray-900 flex justify-between items-center text-sm text-gray-500 dark:text-gray-400">

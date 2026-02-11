@@ -15,7 +15,7 @@ export interface Task {
   id: number;
   name: string;
   description: string | null;
-  status: 'inbox' | 'up_next' | 'in_progress' | 'testing' | 'in_review' | 'done' | 'rejected';
+  status: 'inbox' | 'up_next' | 'in_progress' | 'testing' | 'in_review' | 'done' | 'solved' | 'rejected';
   priority: 'low' | 'medium' | 'high' | 'urgent';
   tags: string | string[];
   board_id: number | null;
@@ -51,6 +51,17 @@ export interface Activity {
   message: string;
   metadata: Record<string, unknown> | null;
   created_at: string;
+}
+
+export interface TaskEvent {
+  id: number;
+  taskId: number;
+  timestamp: string;
+  actor: string;
+  action: string;
+  details: Record<string, unknown> | null;
+  sessionId: string | null;
+  subagentId: string | null;
 }
 
 export interface Cron {
@@ -313,6 +324,14 @@ class ApiClient {
     return this.fetch<T>(path);
   }
 
+  // Generic POST request
+  async post<T>(path: string, body: unknown): Promise<T> {
+    return this.fetch<T>(path, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    });
+  }
+
   // Cached fetch for GET requests (3-min TTL)
   private async cachedFetch<T>(path: string): Promise<T> {
     const cached = apiCache.get<T>(path);
@@ -433,6 +452,11 @@ class ApiClient {
     const query = search.toString();
     const res = await this.fetch<{ tasks: Task[] }>(`/tasks/archived${query ? `?${query}` : ''}`);
     return res.tasks;
+  }
+
+  async getTaskEvents(taskId: number): Promise<TaskEvent[]> {
+    const res = await this.fetch<{ events: TaskEvent[] }>(`/tasks/${taskId}/events`);
+    return res.events;
   }
 
   // Activity

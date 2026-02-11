@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api, Reminder } from '../api/client';
+import { useConfirmModal } from '../components/ConfirmModal';
 
 type ReminderCategory = 'all' | 'personal' | 'work' | 'project';
 
@@ -61,6 +62,9 @@ export default function Reminders() {
   const [scheduleValue, setScheduleValue] = useState('');
   const [creating, setCreating] = useState(false);
 
+  // Confirm modal
+  const { confirm, ConfirmModalComponent } = useConfirmModal();
+
   // Filtered reminders
   const filteredReminders = categoryFilter === 'all'
     ? reminders
@@ -109,7 +113,14 @@ export default function Reminders() {
   };
 
   const deleteReminder = async (id: string) => {
-    if (!confirm('Delete this reminder?')) return;
+    const confirmed = await confirm({
+      title: 'Delete Reminder?',
+      message: 'Are you sure you want to delete this reminder? This action cannot be undone.',
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
 
     try {
       await api.deleteReminder(id);
@@ -392,6 +403,9 @@ export default function Reminders() {
           ))}
         </div>
       )}
+
+      {/* Custom Confirm Modal */}
+      <ConfirmModalComponent />
     </div>
   );
 }

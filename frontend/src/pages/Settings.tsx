@@ -1,6 +1,9 @@
 import { useState, useEffect } from 'react';
 import SystemStats from '../components/SystemStats';
 import ServiceHealth from '../components/ServiceHealth';
+import ModelToggle from '../components/ModelToggle';
+import RateLimitIndicator from '../components/RateLimitIndicator';
+import { useModel } from '../hooks/useModel';
 import { api, WorkspaceConfig } from '../api/client';
 
 const getToken = (): string => {
@@ -44,6 +47,153 @@ function TokenDisplay({ masked }: { masked: string }) {
       >
         {copied ? '✓ Copied' : '📋 Copy'}
       </button>
+    </div>
+  );
+}
+
+// Model Settings Component
+function ModelSettings() {
+  const { config, loading, error, currentModel, switchToModel } = useModel();
+  const [expanded, setExpanded] = useState(true);
+
+  return (
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className={`w-full px-4 py-3 bg-gray-50 dark:bg-gray-700/50 flex items-center justify-between hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${expanded ? 'border-b border-gray-200 dark:border-gray-700' : ''}`}
+      >
+        <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+          🤖 Model Configuration
+        </h3>
+        <div className="flex items-center gap-3">
+          <span className="text-xs text-gray-500 dark:text-gray-400">
+            Current: <span className="font-medium text-gray-700 dark:text-gray-300">{config?.models?.[currentModel]?.name || currentModel}</span>
+          </span>
+          <span className={`text-gray-400 transition-transform ${expanded ? 'rotate-180' : ''}`}>
+            ▼
+          </span>
+        </div>
+      </button>
+
+      {expanded && (
+        <div className="p-4 space-y-4">
+          {/* Rate Limit Banner */}
+          <RateLimitIndicator variant="banner" showWhenClear />
+
+          {error && (
+            <div className="p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg text-red-700 dark:text-red-300 text-sm">
+              ⚠️ {error}
+            </div>
+          )}
+
+          {/* Current Model Display */}
+          <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Primary Model</h4>
+                <div className="flex items-center gap-2">
+                  <span className="text-2xl">{currentModel === 'opus' ? '🧠' : '💻'}</span>
+                  <div>
+                    <div className="font-semibold text-gray-900 dark:text-white">
+                      {config?.models?.[currentModel]?.name || (currentModel === 'opus' ? 'Opus 4.6' : 'Codex')}
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400">
+                      {config?.models?.[currentModel]?.provider || 'anthropic'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <ModelToggle showLabel size="md" variant="default" />
+            </div>
+          </div>
+
+          {/* Model Options */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {/* Opus Option */}
+            <button
+              onClick={() => switchToModel('opus')}
+              disabled={loading || currentModel === 'opus'}
+              className={`p-4 rounded-lg border-2 text-left transition-all ${
+                currentModel === 'opus'
+                  ? 'border-purple-500 bg-purple-50 dark:bg-purple-900/20'
+                  : 'border-gray-200 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-700'
+              } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">🧠</span>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-gray-900 dark:text-white">Opus 4.6</span>
+                    {currentModel === 'opus' && (
+                      <span className="text-xs bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-full">
+                        Active
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    Claude Opus 4.6 - Most capable model for complex reasoning and analysis
+                  </p>
+                  <p className="text-xs text-purple-600 dark:text-purple-400 mt-1">
+                    Provider: Anthropic
+                  </p>
+                </div>
+              </div>
+            </button>
+
+            {/* Codex Option */}
+            <button
+              onClick={() => switchToModel('codex')}
+              disabled={loading || currentModel === 'codex'}
+              className={`p-4 rounded-lg border-2 text-left transition-all ${
+                currentModel === 'codex'
+                  ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                  : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700'
+              } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+            >
+              <div className="flex items-start gap-3">
+                <span className="text-2xl">💻</span>
+                <div className="flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-gray-900 dark:text-white">Codex</span>
+                    {currentModel === 'codex' && (
+                      <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full">
+                        Active
+                      </span>
+                    )}
+                  </div>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                    OpenAI GPT-5.3 Codex - Optimized for coding tasks and development
+                  </p>
+                  <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                    Provider: OpenAI
+                  </p>
+                </div>
+              </div>
+            </button>
+          </div>
+
+          {/* Implementation Notes */}
+          <div className="bg-gray-50 dark:bg-gray-900/50 rounded-lg p-4">
+            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Implementation Notes</h4>
+            <div className="space-y-2 text-xs text-gray-600 dark:text-gray-400">
+              <p>
+                <strong className="text-gray-700 dark:text-gray-300">Model Configuration:</strong> The primary model is stored in <code className="bg-gray-200 dark:bg-gray-700 px-1 py-0.5 rounded">openclaw.json</code> under <code className="bg-gray-200 dark:bg-gray-700 px-1 py-0.5 rounded">agents.defaults.model.primary</code>.
+              </p>
+              <p>
+                <strong className="text-gray-700 dark:text-gray-300">Rate Limit Detection:</strong> Rate limits are detected via HTTP 429 responses from providers. The system checks for:
+              </p>
+              <ul className="list-disc list-inside ml-2 space-y-1">
+                <li><code className="bg-gray-200 dark:bg-gray-700 px-1 py-0.5 rounded">Retry-After</code> headers for cooldown timing</li>
+                <li><code className="bg-gray-200 dark:bg-gray-700 px-1 py-0.5 rounded">X-Provider</code> headers to identify the affected provider</li>
+                <li>Automatic fallback to secondary models when primary is rate-limited</li>
+              </ul>
+              <p>
+                <strong className="text-gray-700 dark:text-gray-300">Fallback Chain:</strong> When a model is rate-limited, the system automatically falls back through the configured fallback models in order.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -98,6 +248,9 @@ export default function Settings() {
 
       {/* System Monitoring */}
       <SystemStats />
+
+      {/* Model Configuration */}
+      <ModelSettings />
 
       {/* Workspace Configuration */}
       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">

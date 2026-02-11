@@ -5,11 +5,51 @@ interface AuthGuardProps {
   children: ReactNode;
 }
 
+// Hook for info alert
+function useInfoAlert() {
+  const [showAlert, setShowAlert] = useState(false);
+
+  const showInfo = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setShowAlert(true);
+  };
+
+  const InfoModal = () => {
+    if (!showAlert) return null;
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm" onClick={() => setShowAlert(false)}>
+        <div className="bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 border border-gray-200 dark:border-gray-700" onClick={(e) => e.stopPropagation()}>
+          <div className="flex items-center gap-3 mb-4">
+            <div className="text-3xl">🔑</div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Where to Find Token</h3>
+            </div>
+          </div>
+          <p className="text-gray-600 dark:text-gray-400 mb-6">
+            Check TOOLS.md for your PikaBoard token. The token is stored locally in your browser.
+          </p>
+          <div className="flex justify-end">
+            <button
+              onClick={() => setShowAlert(false)}
+              className="px-4 py-2 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  return { showInfo, InfoModal };
+}
+
 export default function AuthGuard({ children }: AuthGuardProps) {
   const [token, setToken] = useState<string | null>(null);
   const [inputToken, setInputToken] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(true);
+  const { showInfo, InfoModal } = useInfoAlert();
 
   useEffect(() => {
     // Check URL ?token= param first
@@ -125,8 +165,11 @@ export default function AuthGuard({ children }: AuthGuardProps) {
           </form>
 
           <p className="text-xs text-gray-400 mt-6 text-center">
-            Token stored locally in browser • <a href="#" className="underline" onClick={(e) => { e.preventDefault(); alert('Check TOOLS.md for your PikaBoard token'); }}>Where to find token?</a>
+            Token stored locally in browser • <a href="#" className="underline" onClick={showInfo}>Where to find token?</a>
           </p>
+
+          {/* Info Modal */}
+          <InfoModal />
         </div>
       </div>
     );

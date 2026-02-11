@@ -18,6 +18,7 @@ import Goals from './pages/Goals';
 import Reminders from './pages/Reminders';
 const Apps = lazy(() => import('./pages/Apps'));
 const SoulSprite = lazy(() => import('./pages/SoulSprite'));
+const Crypto = lazy(() => import('./pages/Crypto'));
 import { QuoteWidget } from './components/QuoteWidget';
 import { setClerkTokenProvider } from './api/client';
 
@@ -111,6 +112,7 @@ function AppContent() {
         <Route path="settings" element={<Settings />} />
         <Route path="apps" element={<Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500"></div></div>}><Apps /></Suspense>} />
         <Route path="soulsprite" element={<Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500"></div></div>}><SoulSprite /></Suspense>} />
+        <Route path="crypto" element={<Suspense fallback={<div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-yellow-500"></div></div>}><Crypto /></Suspense>} />
       </Route>
     </Routes>
     </>

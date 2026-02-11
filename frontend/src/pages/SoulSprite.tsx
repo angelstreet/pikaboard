@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import toast from 'react-hot-toast';
 import SpriteAnimator from '../components/SpriteAnimator';
+import { useConfirmModal } from '../components/ConfirmModal';
 
 const BASE = import.meta.env.BASE_URL || '/';
 
@@ -54,6 +55,9 @@ export default function SoulSprite() {
   const [previewAnimation, setPreviewAnimation] = useState<'idle' | 'walk'>('idle');
   const [previewDirection, setPreviewDirection] = useState('S');
   const [isLoading, setIsLoading] = useState(true);
+
+  // Confirm modal
+  const { confirm, ConfirmModalComponent } = useConfirmModal();
 
   // Load existing characters on mount
   useEffect(() => {
@@ -160,9 +164,14 @@ export default function SoulSprite() {
   };
 
   const handleDelete = async (name: string) => {
-    if (!confirm(`Are you sure you want to delete "${name}"?`)) {
-      return;
-    }
+    const confirmed = await confirm({
+      title: 'Delete Character?',
+      message: `Are you sure you want to delete "${name}"? This action cannot be undone.`,
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      variant: 'danger',
+    });
+    if (!confirmed) return;
 
     const toastId = toast.loading('Deleting character...');
 
@@ -548,6 +557,9 @@ export default function SoulSprite() {
           </div>
         </div>
       </div>
+
+      {/* Custom Confirm Modal */}
+      <ConfirmModalComponent />
     </div>
   );
 }

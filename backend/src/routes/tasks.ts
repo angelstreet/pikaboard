@@ -1,5 +1,5 @@
 import { Hono } from 'hono';
-import { db, logActivity } from '../db/index.js';
+import { db, logActivity, logTaskEvent } from '../db/index.js';
 
 export const tasksRouter = new Hono();
 
@@ -102,7 +102,7 @@ tasksRouter.post('/', async (c) => {
   const body = await c.req.json<any>();
   if (!body.name) return c.json({ error: 'Name is required' }, 400);
 
-  const validStatuses = ['inbox', 'up_next', 'in_progress', 'testing', 'in_review', 'done', 'rejected'];
+  const validStatuses = ['inbox', 'up_next', 'in_progress', 'testing', 'in_review', 'done', 'solved', 'rejected'];
   const validPriorities = ['low', 'medium', 'high', 'urgent'];
 
   if (body.status && !validStatuses.includes(body.status)) return c.json({ error: `Invalid status` }, 400);
@@ -135,7 +135,18 @@ tasksRouter.post('/', async (c) => {
   const task = newTask.rows[0] as any;
 
   await logActivity('task_created', `Created task: ${body.name}`, { taskId: task.id, boardId: task.board_id });
-
+  await logTaskEvent({
+    taskId: task.id,
+    actor: body.assignee || 'system',
+    action: 'created',
+    details: {
+      name: body.name,
+      status: body.status || 'inbox',
+      priority: body.priority || 'medium',
+      boardId: boardId,
+      assignee: body.assignee
+    }
+  });
 
   return c.json({ ...task, tags: parseTags(task.tags) }, 201);
 });
@@ -149,7 +160,7 @@ tasksRouter.patch('/:id', async (c) => {
   if (existingResult.rows.length === 0) return c.json({ error: 'Task not found' }, 404);
   const existing = existingResult.rows[0] as any;
 
-  const validStatuses = ['inbox', 'up_next', 'in_progress', 'testing', 'in_review', 'done', 'rejected'];
+  const validStatuses = ['inbox', 'up_next', 'in_progress', 'testing', 'in_review', 'done', 'solved', 'rejected'];
   const validPriorities = ['low', 'medium', 'high', 'urgent'];
 
   if (body.status && !validStatuses.includes(body.status)) return c.json({ error: `Invalid status` }, 400);
@@ -162,8 +173,11 @@ tasksRouter.patch('/:id', async (c) => {
   if (body.description !== undefined) { updates.push('description = ?'); params.push(body.description); }
   if (body.status !== undefined) {
     updates.push('status = ?'); params.push(body.status);
-    if (body.status === 'done' && existing.status !== 'done') updates.push('completed_at = CURRENT_TIMESTAMP');
-    else if (body.status !== 'done' && existing.status === 'done') updates.push('completed_at = NULL');
+    const terminalStatuses = ['done', 'solved'];
+    const wasTerminal = terminalStatuses.includes(existing.status);
+    const isTerminal = terminalStatuses.includes(body.status);
+    if (isTerminal && !wasTerminal) updates.push('completed_at = CURRENT_TIMESTAMP');
+    else if (!isTerminal && wasTerminal) updates.push('completed_at = NULL');
   }
   if (body.priority !== undefined) { updates.push('priority = ?'); params.push(body.priority); }
   if (body.tags !== undefined) { updates.push('tags = ?'); params.push(normalizeTags(body.tags)); }
@@ -200,7 +214,7 @@ tasksRouter.patch('/:id', async (c) => {
     const linkedGoals = await db.execute({ sql: 'SELECT goal_id FROM goal_tasks WHERE task_id = ?', args: [parseInt(id)] });
     for (const row of linkedGoals.rows as any[]) {
       const stats = await db.execute({
-        sql: `SELECT COUNT(*) as total, SUM(CASE WHEN t.status = 'done' THEN 1 ELSE 0 END) as done FROM goal_tasks gt JOIN tasks t ON gt.task_id = t.id WHERE gt.goal_id = ?`,
+        sql: `SELECT COUNT(*) as total, SUM(CASE WHEN t.status IN ('done', 'solved') THEN 1 ELSE 0 END) as done FROM goal_tasks gt JOIN tasks t ON gt.task_id = t.id WHERE gt.goal_id = ?`,
         args: [row.goal_id]
       });
       const s = stats.rows[0] as any;
@@ -212,15 +226,58 @@ tasksRouter.patch('/:id', async (c) => {
   const updated = await db.execute({ sql: 'SELECT * FROM tasks WHERE id = ?', args: [id] });
   const task = updated.rows[0] as any;
 
-  if (body.status === 'done' && existing.status !== 'done') {
-    await logActivity('task_completed', `Completed task: ${task.name}`, { taskId: task.id });
+  const terminalStatuses = ['done', 'solved'];
+  const wasTerminal = terminalStatuses.includes(existing.status);
+  const isTerminal = terminalStatuses.includes(body.status);
+  if (isTerminal && !wasTerminal) {
+    await logActivity('task_completed', `${body.status === 'solved' ? 'Solved' : 'Completed'} task: ${task.name}`, { taskId: task.id, status: body.status });
+    await logTaskEvent({
+      taskId: parseInt(id),
+      actor: body.assignee || existing.assignee || 'system',
+      action: body.status === 'solved' ? 'solved' : 'completed',
+      details: { fromStatus: existing.status, rating: body.rating }
+    });
   } else if (body.rating !== undefined && body.rating !== null) {
     await logActivity('task_rated', `Rated task: ${task.name} (${body.rating}/5)`, { taskId: task.id, rating: body.rating });
+    await logTaskEvent({
+      taskId: parseInt(id),
+      actor: body.assignee || existing.assignee || 'system',
+      action: 'rated',
+      details: { rating: body.rating }
+    });
   } else {
     await logActivity('task_updated', `Updated task: ${task.name}`, { taskId: task.id, changes: Object.keys(body) });
   }
 
+  // Log status changes
+  if (body.status && body.status !== existing.status && !isTerminal) {
+    await logTaskEvent({
+      taskId: parseInt(id),
+      actor: body.assignee || existing.assignee || 'system',
+      action: 'status_changed',
+      details: { from: existing.status, to: body.status }
+    });
+  }
 
+  // Log assignment changes
+  if (body.assignee !== undefined && body.assignee !== existing.assignee) {
+    await logTaskEvent({
+      taskId: parseInt(id),
+      actor: body.assignee || 'system',
+      action: 'assigned',
+      details: { from: existing.assignee, to: body.assignee }
+    });
+  }
+
+  // Log rejection with reason
+  if (body.status === 'rejected' && existing.status !== 'rejected') {
+    await logTaskEvent({
+      taskId: parseInt(id),
+      actor: body.assignee || existing.assignee || 'system',
+      action: 'rejected',
+      details: { reason: body.rejection_reason, previousStatus: existing.status }
+    });
+  }
 
   return c.json({ ...task, tags: parseTags(task.tags) });
 });
@@ -234,7 +291,12 @@ tasksRouter.delete('/:id', async (c) => {
 
   await db.execute({ sql: 'DELETE FROM tasks WHERE id = ?', args: [id] });
   await logActivity('task_deleted', `Deleted task: ${task.name}`, { taskId: task.id });
-
+  await logTaskEvent({
+    taskId: parseInt(id),
+    actor: 'system',
+    action: 'deleted',
+    details: { taskName: task.name }
+  });
 
   return c.json({ success: true });
 });
@@ -247,7 +309,12 @@ tasksRouter.post('/:id/archive', async (c) => {
 
   await db.execute({ sql: 'UPDATE tasks SET archived = 1, archived_at = CURRENT_TIMESTAMP, updated_at = CURRENT_TIMESTAMP WHERE id = ?', args: [id] });
   await logActivity('task_archived', `Archived task: ${(existing.rows[0] as any).name}`, { taskId: (existing.rows[0] as any).id });
-
+  await logTaskEvent({
+    taskId: parseInt(id),
+    actor: 'system',
+    action: 'archived',
+    details: { taskName: (existing.rows[0] as any).name }
+  });
 
   return c.json({ success: true, message: 'Task archived' });
 });
@@ -260,7 +327,37 @@ tasksRouter.post('/:id/restore', async (c) => {
 
   await db.execute({ sql: 'UPDATE tasks SET archived = 0, archived_at = NULL, updated_at = CURRENT_TIMESTAMP WHERE id = ?', args: [id] });
   await logActivity('task_restored', `Restored task: ${(existing.rows[0] as any).name}`, { taskId: (existing.rows[0] as any).id });
-
+  await logTaskEvent({
+    taskId: parseInt(id),
+    actor: 'system',
+    action: 'restored',
+    details: { taskName: (existing.rows[0] as any).name }
+  });
 
   return c.json({ success: true, message: 'Task restored' });
+});
+
+// GET /api/tasks/:id/events - Get event timeline for a task
+tasksRouter.get('/:id/events', async (c) => {
+  const id = c.req.param('id');
+  const taskExists = await db.execute({ sql: 'SELECT id FROM tasks WHERE id = ?', args: [id] });
+  if (taskExists.rows.length === 0) return c.json({ error: 'Task not found' }, 404);
+
+  const result = await db.execute({
+    sql: 'SELECT * FROM task_events WHERE task_id = ? ORDER BY timestamp DESC',
+    args: [id]
+  });
+
+  const events = (result.rows as any[]).map(row => ({
+    id: row.id,
+    taskId: row.task_id,
+    timestamp: row.timestamp,
+    actor: row.actor,
+    action: row.action,
+    details: row.details ? JSON.parse(row.details) : null,
+    sessionId: row.session_id,
+    subagentId: row.subagent_id
+  }));
+
+  return c.json({ events });
 });

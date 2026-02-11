@@ -135,6 +135,15 @@ export default function Boards() {
   const [pendingRejectionTask, setPendingRejectionTask] = useState<Task | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
 
+  // Info modal state (replaces window.alert/window.confirm)
+  const [infoModalOpen, setInfoModalOpen] = useState(false);
+  const [infoModalConfig, setInfoModalConfig] = useState<{
+    title: string;
+    message: string;
+    type: 'alert' | 'confirm';
+    resolve?: (value: boolean) => void;
+  }>({ title: '', message: '', type: 'alert' });
+
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
@@ -317,11 +326,32 @@ export default function Boards() {
     setRejectionReason('');
   };
 
-  const handleTaskClick = (task: Task) => {
+  // Info/Alert modal helper (replaces window.alert/window.confirm)
+  const showInfoModal = (config: { title: string; message: string; type: 'alert' | 'confirm' }): Promise<boolean> => {
+    return new Promise((resolve) => {
+      setInfoModalConfig({ ...config, resolve });
+      setInfoModalOpen(true);
+    });
+  };
+
+  const handleInfoModalClose = (confirmed: boolean) => {
+    infoModalConfig.resolve?.(confirmed);
+    setInfoModalOpen(false);
+  };
+
+  const handleTaskClick = async (task: Task) => {
     // On Main board, show info and navigate to task's actual board
     if (currentBoard?.is_main) {
       const taskBoard = boards.find(b => b.id === task.board_id);
-      if (taskBoard && window.confirm(`This task belongs to "${taskBoard.name}" board. Switch to that board to edit?`)) {
+      if (!taskBoard) return;
+      
+      const confirmed = await showInfoModal({
+        title: 'Switch Board?',
+        message: `This task belongs to "${taskBoard.name}" board. Switch to that board to edit?`,
+        type: 'confirm',
+      });
+      
+      if (confirmed) {
         selectBoard(taskBoard);
         setEditingTask(task);
         setTaskModalOpen(true);
@@ -349,7 +379,11 @@ export default function Boards() {
     } else {
       // Create new task - block creation on Main board
       if (currentBoard?.is_main || currentBoard?.id === 1) {
-        alert('Cannot create tasks on Main board. Please switch to a specific board first.');
+        await showInfoModal({
+          title: 'Cannot Create Task',
+          message: 'Cannot create tasks on Main board. Please switch to a specific board first.',
+          type: 'alert',
+        });
         return;
       }
       const newTask = await api.createTask({
@@ -637,6 +671,62 @@ export default function Boards() {
               >
                 Reject Task
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Info/Alert Modal (replaces window.alert/window.confirm) */}
+      {infoModalOpen && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4"
+          onClick={() => handleInfoModalClose(false)}
+        >
+          <div className="absolute inset-0 bg-black/50" />
+          <div
+            className="relative bg-white dark:bg-gray-800 rounded-xl shadow-2xl border border-gray-200 dark:border-gray-700 max-w-md w-full p-6 transform"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Icon */}
+            <div className="text-4xl text-center mb-4">
+              {infoModalConfig.type === 'confirm' ? '❓' : 'ℹ️'}
+            </div>
+
+            {/* Title */}
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-white text-center mb-2">
+              {infoModalConfig.title}
+            </h3>
+
+            {/* Message */}
+            <p className="text-gray-600 dark:text-gray-400 text-center mb-6">
+              {infoModalConfig.message}
+            </p>
+
+            {/* Actions */}
+            <div className="flex gap-3">
+              {infoModalConfig.type === 'confirm' ? (
+                <>
+                  <button
+                    onClick={() => handleInfoModalClose(false)}
+                    className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={() => handleInfoModalClose(true)}
+                    className="flex-1 px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
+                  >
+                    Confirm
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => handleInfoModalClose(true)}
+                  className="w-full px-4 py-2.5 bg-blue-500 hover:bg-blue-600 text-white rounded-lg font-medium transition-colors"
+                >
+                  OK
+                </button>
+              )}
             </div>
           </div>
         </div>

@@ -6,9 +6,10 @@ interface ConfirmModalProps {
   message: string;
   confirmText?: string;
   cancelText?: string;
-  variant?: 'danger' | 'warning' | 'info';
+  variant?: 'danger' | 'warning' | 'info' | 'success';
   onConfirm: () => void;
   onCancel: () => void;
+  mode?: 'confirm' | 'alert';
 }
 
 export function ConfirmModal({
@@ -20,6 +21,7 @@ export function ConfirmModal({
   variant = 'warning',
   onConfirm,
   onCancel,
+  mode = 'confirm',
 }: ConfirmModalProps) {
   const [isVisible, setIsVisible] = useState(false);
 
@@ -46,6 +48,10 @@ export function ConfirmModal({
     info: {
       icon: 'ℹ️',
       confirmBtn: 'bg-blue-500 hover:bg-blue-600 text-white',
+    },
+    success: {
+      icon: '✅',
+      confirmBtn: 'bg-green-500 hover:bg-green-600 text-white',
     },
   };
 
@@ -82,16 +88,18 @@ export function ConfirmModal({
         </p>
 
         {/* Actions */}
-        <div className="flex gap-3">
-          <button
-            onClick={onCancel}
-            className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-          >
-            {cancelText}
-          </button>
+        <div className={`flex gap-3 ${mode === 'alert' ? 'justify-center' : ''}`}>
+          {mode === 'confirm' && (
+            <button
+              onClick={onCancel}
+              className="flex-1 px-4 py-2.5 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg font-medium hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+            >
+              {cancelText}
+            </button>
+          )}
           <button
             onClick={onConfirm}
-            className={`flex-1 px-4 py-2.5 rounded-lg font-medium transition-colors ${style.confirmBtn}`}
+            className={`${mode === 'alert' ? 'px-8' : 'flex-1'} px-4 py-2.5 rounded-lg font-medium transition-colors ${style.confirmBtn}`}
           >
             {confirmText}
           </button>
@@ -109,12 +117,14 @@ export function useConfirmModal() {
     message: string;
     confirmText?: string;
     cancelText?: string;
-    variant?: 'danger' | 'warning' | 'info';
+    variant?: 'danger' | 'warning' | 'info' | 'success';
+    mode?: 'confirm' | 'alert';
     resolve?: (value: boolean) => void;
   }>({
     isOpen: false,
     title: '',
     message: '',
+    mode: 'confirm',
   });
 
   const confirm = (options: {
@@ -122,13 +132,32 @@ export function useConfirmModal() {
     message: string;
     confirmText?: string;
     cancelText?: string;
-    variant?: 'danger' | 'warning' | 'info';
+    variant?: 'danger' | 'warning' | 'info' | 'success';
   }): Promise<boolean> => {
     return new Promise((resolve) => {
       setState({
         ...options,
         isOpen: true,
+        mode: 'confirm',
         resolve,
+      });
+    });
+  };
+
+  const alert = (options: {
+    title: string;
+    message: string;
+    confirmText?: string;
+    variant?: 'info' | 'success' | 'warning';
+  }): Promise<void> => {
+    return new Promise((resolve) => {
+      setState({
+        ...options,
+        isOpen: true,
+        mode: 'alert',
+        resolve: () => {
+          resolve();
+        },
       });
     });
   };
@@ -151,10 +180,11 @@ export function useConfirmModal() {
       confirmText={state.confirmText}
       cancelText={state.cancelText}
       variant={state.variant}
+      mode={state.mode}
       onConfirm={handleConfirm}
       onCancel={handleCancel}
     />
   );
 
-  return { confirm, ConfirmModalComponent };
+  return { confirm, alert, ConfirmModalComponent };
 }

@@ -13,6 +13,7 @@ const STATUS_CONFIGS: StatusConfig[] = [
   { id: 'in_progress', label: 'In Progress', dotColor: 'bg-yellow-500' },
   { id: 'in_review', label: 'Review', dotColor: 'bg-purple-500' },
   { id: 'done', label: 'Done', dotColor: 'bg-green-500' },
+  { id: 'solved', label: 'Solved', dotColor: 'bg-teal-500' },
 ];
 
 interface TaskFilterTabsProps {

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Task } from '../api/client';
+import { TaskEventTimeline } from './TaskEventTimeline';
 
 interface TaskModalProps {
   task?: Task | null;
@@ -15,6 +16,7 @@ const statuses = [
   { value: 'in_progress', label: '🚧 In Progress' },
   { value: 'in_review', label: '👀 In Review' },
   { value: 'done', label: '✅ Done' },
+  { value: 'solved', label: '🔧 Solved' },
   { value: 'rejected', label: '❌ Rejected' },
 ];
 
@@ -99,7 +101,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
         priority,
         tags,
         deadline: deadlineValue,
-        rating: status === 'done' ? rating : null,
+        rating: (status === 'done' || status === 'solved') ? rating : null,
         rejection_reason: status === 'rejected' ? (rejectionReason.trim() || null) : null,
       });
       onClose();
@@ -249,8 +251,8 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
             />
           </div>
 
-          {/* Rating - only show for done tasks */}
-          {status === 'done' && (
+          {/* Rating - only show for done/solved tasks */}
+          {(status === 'done' || status === 'solved') && (
             <div>
               <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Quality Rating
@@ -316,6 +318,13 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
               <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                 Required when marking a task as rejected
               </p>
+            </div>
+          )}
+
+          {/* Task Event Timeline - only show for existing tasks */}
+          {isEdit && task && (
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4 mt-4">
+              <TaskEventTimeline taskId={task.id} />
             </div>
           )}
         </div>
