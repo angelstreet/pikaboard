@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import { api, Task, UsageSummary, InsightsData } from '../api/client';
 import ThemeToggle from './ThemeToggle';
 import { useConfirmModal } from './ConfirmModal';
+import ModelToggle from './ModelToggle';
+import RateLimitIndicator from './RateLimitIndicator';
 
 type ConnectionStatus = 'connected' | 'disconnected' | 'loading';
 type TimePeriod = 'today' | 'alltime';
@@ -308,8 +310,16 @@ export default function HeaderStatsBar() {
 
           </div>
 
-        {/* Status Indicator & Theme Toggle */}
+        {/* Status Indicator, Model Toggle & Theme Toggle */}
         <div className="flex items-center gap-2 sm:gap-4">
+          {/* Rate Limit Indicator - Hidden on mobile */}
+          <div className="hidden lg:block">
+            <RateLimitIndicator variant="compact" />
+          </div>
+          
+          {/* Model Toggle */}
+          <ModelToggle size="sm" variant="pill" />
+          
           <a
             href="/openclaw/"
             target="_blank"
