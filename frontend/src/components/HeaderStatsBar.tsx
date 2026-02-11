@@ -338,13 +338,10 @@ export default function HeaderStatsBar() {
                 console.error('Restart failed', e);
               }
             }}
-            className="p-1 text-gray-400 dark:text-gray-400 hover:text-orange-500 transition-colors hidden sm:block"
+            className="px-2 py-0.5 text-xs font-medium text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 transition-colors hidden sm:block"
             title="Restart OpenClaw Gateway"
           >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
-              <path d="M3 3v5h5" />
-            </svg>
+            restart
           </button>
           <ThemeToggle />
         </div>
