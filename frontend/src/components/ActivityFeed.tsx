@@ -30,7 +30,7 @@ const AGENT_EMOJIS: Record<string, string> = {
   mew: '✨',
   porygon: '🔷',
   lanturn: '🔦',
-  'pika-ops': '⚡🔧',
+  'pika-ops': '🧬',
 };
 
 // Extract agent name from session_key (e.g., "agent:psykokwak:subagent:uuid" -> "psykokwak")
@@ -55,8 +55,10 @@ function getAgentDisplayName(agentLabel?: string, sessionKey?: string): { emoji:
     return { emoji: '🤖', name: 'Agent', full: '🤖 Agent' };
   }
 
-  const emoji = AGENT_EMOJIS[agentId] || '🤖';
-  const name = agentId.charAt(0).toUpperCase() + agentId.slice(1);
+  // Human-friendly naming for ids that aren't meant to be shown raw.
+  const displayId = agentId === 'pika-ops' ? 'mewtwo' : agentId;
+  const emoji = AGENT_EMOJIS[agentId] || AGENT_EMOJIS[displayId] || '🤖';
+  const name = displayId.charAt(0).toUpperCase() + displayId.slice(1);
 
   return { emoji, name, full: `${emoji} ${name}` };
 }

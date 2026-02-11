@@ -3,10 +3,11 @@ import { CSS } from '@dnd-kit/utilities';
 import { Task } from '../api/client';
 
 interface TaskCardProps {
-  task: Task;
+  task: Task & { board_name?: string };
   onClick: (task: Task) => void;
   onArchive?: (task: Task) => void;
   isDragging?: boolean;
+  showBoardName?: boolean;
 }
 
 const priorityColors: Record<string, { border: string; badge: string; text: string }> = {
@@ -30,7 +31,7 @@ function getTagColor(tag: string): string {
   return tagColors[index % tagColors.length];
 }
 
-export function TaskCard({ task, onClick, onArchive, isDragging }: TaskCardProps) {
+export function TaskCard({ task, onClick, onArchive, isDragging, showBoardName }: TaskCardProps) {
   const {
     attributes,
     listeners,
@@ -108,6 +109,15 @@ export function TaskCard({ task, onClick, onArchive, isDragging }: TaskCardProps
               hour: '2-digit',
               minute: '2-digit',
             })}
+          </span>
+        </div>
+      )}
+      
+      {/* Board name - shown in Main view */}
+      {showBoardName && task.board_name && (
+        <div className="text-xs mt-1.5 flex items-center gap-1">
+          <span className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded font-medium">
+            {task.board_name}
           </span>
         </div>
       )}

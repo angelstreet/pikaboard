@@ -16,18 +16,6 @@ export interface TeamMember {
 
 export const TEAM_ROSTER: TeamMember[] = [
   {
-    id: 'pika',
-    name: 'Pika',
-    role: 'captain',
-    roleLabel: 'CPT',
-    function: 'Main Agent',
-    avatar: '⚡',
-    avatarImg: '/characters/pika/avatar.png',
-    color: '#FACC15', // yellow
-    boardId: 1, // Main
-    boards: [],
-  },
-  {
     id: 'main',
     name: 'Pika',
     role: 'captain',
@@ -40,7 +28,9 @@ export const TEAM_ROSTER: TeamMember[] = [
     boards: [],
   },
   {
-    id: 'mewtwo',
+    // NOTE: OpenClaw agent id is currently `pika-ops`, but we want to present it as Mewtwo in the UI.
+    // If/when the agent is renamed to `mewtwo`, update this id (and keep an alias in getTeamMember).
+    id: 'pika-ops',
     name: 'Mewtwo',
     role: 'specialist',
     roleLabel: 'OPS',
@@ -150,5 +140,9 @@ export const TEAM_ROSTER: TeamMember[] = [
 ];
 
 export function getTeamMember(id: string): TeamMember | undefined {
+  // Lightweight aliasing so the UI keeps working across agent renames.
+  const normalized = id.toLowerCase();
+  if (normalized === 'mewtwo') return TEAM_ROSTER.find(m => m.id === 'pika-ops');
+  if (normalized === 'pika') return TEAM_ROSTER.find(m => m.id === 'main');
   return TEAM_ROSTER.find(m => m.id === id);
 }

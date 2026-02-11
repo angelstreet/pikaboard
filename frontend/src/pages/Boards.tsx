@@ -40,6 +40,8 @@ function DroppableColumn({
   onArchive,
   onArchiveAll,
   activeId,
+  readOnly,
+  showBoardNames,
 }: {
   id: string;
   label: string;
@@ -49,6 +51,8 @@ function DroppableColumn({
   onArchive?: (task: Task) => void;
   onArchiveAll?: () => void;
   activeId: number | null;
+  readOnly?: boolean;
+  showBoardNames?: boolean;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   const taskIds = tasks.map((t) => t.id);
@@ -79,7 +83,7 @@ function DroppableColumn({
         </div>
       </div>
 
-      <SortableContext items={taskIds} strategy={verticalListSortingStrategy}>
+      <SortableContext items={readOnly ? [] : taskIds} strategy={verticalListSortingStrategy}>
         <div className="space-y-2 flex-1">
           {tasks.map((task) => (
             <TaskCard
@@ -87,12 +91,13 @@ function DroppableColumn({
               task={task}
               onClick={onTaskClick}
               onArchive={id === 'done' ? onArchive : undefined}
-              isDragging={task.id === activeId}
+              isDragging={!readOnly && task.id === activeId}
+              showBoardName={showBoardNames}
             />
           ))}
           {tasks.length === 0 && (
-            <div className="text-gray-400 dark:text-gray-500 text-sm text-center py-8 border-2 border-dashed border-gray-200 dark:border-gray-600 rounded-lg">
-              Drop tasks here
+            <div className={`text-gray-400 dark:text-gray-500 text-sm text-center py-8 border-2 border-dashed border-gray-200 dark:border-gray-600 rounded-lg ${readOnly ? 'bg-gray-50/50 dark:bg-gray-800/50' : ''}`}>
+              {readOnly ? 'No tasks' : 'Drop tasks here'}
             </div>
           )}
         </div>
@@ -154,9 +159,9 @@ export default function Boards() {
   // Load tasks when board changes
   useEffect(() => {
     if (currentBoard) {
-      loadTasks(currentBoard.id);
+      loadTasks(currentBoard.id, currentBoard.is_main);
     }
-  }, [currentBoard?.id]);
+  }, [currentBoard?.id, currentBoard?.is_main]);
 
   const loadBoards = async () => {
     try {
@@ -181,10 +186,14 @@ export default function Boards() {
     localStorage.setItem('pikaboard-last-board', String(board.id));
   };
 
-  const loadTasks = async (boardId: number) => {
+  const loadTasks = async (boardId: number, isMain: boolean = false) => {
     try {
       setLoading(true);
-      const tasksData = await api.getTasks({ board_id: boardId });
+      // Main board shows ALL tasks across all boards (no board_id filter)
+      // Other boards filter by their board_id
+      const tasksData = isMain 
+        ? await api.getTasks() // Get all tasks
+        : await api.getTasks({ board_id: boardId });
       setTasks(tasksData);
       setError(null);
     } catch (err) {
@@ -211,10 +220,18 @@ export default function Boards() {
   );
 
   const handleDragStart = (event: DragStartEvent) => {
+    // Disable drag on Main board (read-only view)
+    if (currentBoard?.is_main) return;
     setActiveId(event.active.id as number);
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
+    // Disable drag on Main board (read-only view)
+    if (currentBoard?.is_main) {
+      setActiveId(null);
+      return;
+    }
+    
     const { active, over } = event;
     setActiveId(null);
 
@@ -301,6 +318,16 @@ export default function Boards() {
   };
 
   const handleTaskClick = (task: Task) => {
+    // On Main board, show info and navigate to task's actual board
+    if (currentBoard?.is_main) {
+      const taskBoard = boards.find(b => b.id === task.board_id);
+      if (taskBoard && window.confirm(`This task belongs to "${taskBoard.name}" board. Switch to that board to edit?`)) {
+        selectBoard(taskBoard);
+        setEditingTask(task);
+        setTaskModalOpen(true);
+      }
+      return;
+    }
     setEditingTask(task);
     setTaskModalOpen(true);
   };
@@ -493,9 +520,9 @@ export default function Boards() {
         onFilterChange={setStatusFilter}
       />
 
-      {/* Kanban Board */}
+      {/* Kanban Board - Disabled on Main (read-only) */}
       <DndContext
-        sensors={sensors}
+        sensors={currentBoard?.is_main ? [] : sensors}
         collisionDetection={closestCorners}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
@@ -528,6 +555,8 @@ export default function Boards() {
                     onArchive={handleArchiveTask}
                     onArchiveAll={handleArchiveAllDone}
                     activeId={activeId}
+                    readOnly={currentBoard?.is_main}
+                    showBoardNames={currentBoard?.is_main}
                   />
                 </div>
               ))}

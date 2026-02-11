@@ -8,7 +8,7 @@ export const filesRouter = new Hono();
 // Agent emoji mapping
 const AGENT_EMOJIS: Record<string, string> = {
   pika: '⚡', bulbi: '🌱', tortoise: '🐢', sala: '🦎', evoli: '🦊',
-  psykokwak: '🦆', mew: '✨', porygon: '🔷', lanturn: '🔦', 'pika-ops': '⚡🔧',
+  psykokwak: '🦆', mew: '✨', porygon: '🔷', lanturn: '🔦', mewtwo: '🧬', 'pika-ops': '🧬',
 };
 
 // Discover agent workspaces dynamically
