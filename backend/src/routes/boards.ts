@@ -109,19 +109,34 @@ boardsRouter.delete('/:id', async (c) => {
 });
 
 // GET /api/boards/:id/tasks - Get tasks for a specific board
+// Special case: board_id=1 (Main) returns all tasks across all boards
 boardsRouter.get('/:id/tasks', async (c) => {
   const id = c.req.param('id');
   const status = c.req.query('status');
+  const boardId = parseInt(id);
 
   const boardResult = await db.execute({ sql: 'SELECT * FROM boards WHERE id = ?', args: [id] });
   if (boardResult.rows.length === 0) return c.json({ error: 'Board not found' }, 404);
   const board = boardResult.rows[0];
 
-  let query = 'SELECT * FROM tasks WHERE board_id = ?';
-  const params: (string | number)[] = [parseInt(id)];
+  // Main board (id=1) is a read-only aggregated view of all tasks
+  const isMainBoard = boardId === 1;
+  let query: string;
+  const params: (string | number)[] = [];
 
-  if (status) { query += ' AND status = ?'; params.push(status); }
-  query += ' ORDER BY position ASC, created_at DESC';
+  if (isMainBoard) {
+    // Main board: show all tasks across all boards (excluding archived)
+    query = 'SELECT t.*, b.name as board_name, b.icon as board_icon, b.color as board_color FROM tasks t LEFT JOIN boards b ON t.board_id = b.id WHERE (t.archived = 0 OR t.archived IS NULL)';
+  } else {
+    query = 'SELECT t.*, b.name as board_name, b.icon as board_icon, b.color as board_color FROM tasks t LEFT JOIN boards b ON t.board_id = b.id WHERE t.board_id = ?';
+    params.push(boardId);
+  }
+
+  if (status) {
+    query += isMainBoard ? ' AND t.status = ?' : ' AND t.status = ?';
+    params.push(status);
+  }
+  query += ' ORDER BY ' + (isMainBoard ? 't.board_id ASC, ' : '') + 't.position ASC, t.created_at DESC';
 
   const result = await db.execute({ sql: query, args: params });
 
@@ -130,5 +145,5 @@ boardsRouter.get('/:id/tasks', async (c) => {
     tags: t.tags ? JSON.parse(t.tags) : [],
   }));
 
-  return c.json({ tasks: parsed, board });
+  return c.json({ tasks: parsed, board: { ...board, is_main: isMainBoard } });
 });

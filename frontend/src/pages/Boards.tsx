@@ -312,11 +312,19 @@ export default function Boards() {
 
   const handleSaveTask = async (taskData: Partial<Task>) => {
     if (editingTask) {
-      // Update existing task
-      const updated = await api.updateTask(editingTask.id, taskData);
+      // Update existing task - ensure board_id isn't set to Main (id=1)
+      const updates = { ...taskData };
+      if (updates.board_id === 1) {
+        delete updates.board_id; // Don't allow moving to Main
+      }
+      const updated = await api.updateTask(editingTask.id, updates);
       setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
     } else {
-      // Create new task
+      // Create new task - block creation on Main board
+      if (currentBoard?.is_main || currentBoard?.id === 1) {
+        alert('Cannot create tasks on Main board. Please switch to a specific board first.');
+        return;
+      }
       const newTask = await api.createTask({
         ...taskData,
         board_id: currentBoard?.id,
@@ -444,17 +452,39 @@ export default function Boards() {
 
         <div className="flex items-center gap-2 flex-shrink-0">
           <TaskSearch onTaskClick={handleTaskClick} />
-          <button
-            onClick={handleCreateTask}
-            className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
-          >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            <span className="hidden sm:inline">New Task</span>
-          </button>
+          {currentBoard?.is_main ? (
+            <div className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 text-gray-500 rounded-lg text-sm cursor-not-allowed" title="Switch to a specific board to create tasks">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="hidden sm:inline">View Only</span>
+            </div>
+          ) : (
+            <button
+              onClick={handleCreateTask}
+              className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              <span className="hidden sm:inline">New Task</span>
+            </button>
+          )}
         </div>
       </div>
+
+      {/* Main Board Info Banner */}
+      {currentBoard?.is_main && (
+        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-3">
+          <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+          <div className="text-sm text-blue-800">
+            <p className="font-medium">Global View Mode</p>
+            <p className="text-blue-600">Main shows all tasks across every board. To create or edit tasks, switch to a specific board first.</p>
+          </div>
+        </div>
+      )}
 
       {/* Filter Tabs */}
       <TaskFilterTabs

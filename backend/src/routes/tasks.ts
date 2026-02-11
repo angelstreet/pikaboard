@@ -109,13 +109,19 @@ tasksRouter.post('/', async (c) => {
   if (body.priority && !validPriorities.includes(body.priority)) return c.json({ error: `Invalid priority` }, 400);
 
   let boardId: number | undefined = body.board_id;
-  if (boardId) {
-    const board = await db.execute({ sql: 'SELECT id FROM boards WHERE id = ?', args: [boardId] });
-    if (board.rows.length === 0) return c.json({ error: 'Board not found' }, 400);
-  } else {
-    const defaultBoard = await db.execute('SELECT id FROM boards ORDER BY position, id LIMIT 1');
-    boardId = defaultBoard.rows.length > 0 ? (defaultBoard.rows[0] as any).id : undefined;
+
+  // Require explicit board_id - Main board (id=1) is read-only
+  if (!boardId) {
+    return c.json({ error: 'board_id is required. Tasks must be assigned to a specific board, not Main.' }, 400);
   }
+
+  // Block assignment to Main board (id=1) - it's a read-only aggregated view
+  if (boardId === 1) {
+    return c.json({ error: 'Cannot create tasks on Main board. Please select a specific board (Apps, Ops, Ideas Lab, etc.).' }, 400);
+  }
+
+  const board = await db.execute({ sql: 'SELECT id FROM boards WHERE id = ?', args: [boardId] });
+  if (board.rows.length === 0) return c.json({ error: 'Board not found' }, 400);
 
   const maxPos = await db.execute({ sql: 'SELECT MAX(position) as max FROM tasks WHERE board_id = ? AND status = ?', args: [boardId!, body.status || 'inbox'] });
   const position = body.position !== undefined ? body.position : ((maxPos.rows[0] as any).max ?? -1) + 1;
@@ -162,9 +168,14 @@ tasksRouter.patch('/:id', async (c) => {
   if (body.priority !== undefined) { updates.push('priority = ?'); params.push(body.priority); }
   if (body.tags !== undefined) { updates.push('tags = ?'); params.push(normalizeTags(body.tags)); }
   if (body.board_id !== undefined) {
-    const board = await db.execute({ sql: 'SELECT id FROM boards WHERE id = ?', args: [body.board_id] });
+    // Block assignment to Main board (id=1) - it's a read-only aggregated view
+    const targetBoardId = Number(body.board_id);
+    if (targetBoardId === 1) {
+      return c.json({ error: 'Cannot assign tasks to Main board. Please select a specific board (Apps, Ops, Ideas Lab, etc.).' }, 400);
+    }
+    const board = await db.execute({ sql: 'SELECT id FROM boards WHERE id = ?', args: [targetBoardId] });
     if (board.rows.length === 0) return c.json({ error: 'Board not found' }, 400);
-    updates.push('board_id = ?'); params.push(body.board_id);
+    updates.push('board_id = ?'); params.push(targetBoardId);
   }
   if (body.position !== undefined) { updates.push('position = ?'); params.push(body.position); }
   if (body.deadline !== undefined) { updates.push('deadline = ?'); params.push(body.deadline); }

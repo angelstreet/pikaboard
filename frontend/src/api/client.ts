@@ -6,6 +6,7 @@ export interface Board {
   color: string;
   position: number;
   show_testing?: number;
+  is_main?: boolean;
   created_at: string;
   updated_at: string;
 }
