@@ -1,15 +1,5 @@
 import { useState, useEffect } from 'react';
-import { client } from '../api/client';
-import {
-  TrendingUp,
-  TrendingDown,
-  Search,
-  RefreshCw,
-  Globe,
-  Activity,
-  DollarSign,
-  BarChart3,
-} from 'lucide-react';
+import { api } from '../api/client';
 
 interface Coin {
   id: string;
@@ -40,13 +30,13 @@ export default function Crypto() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCoin, setSelectedCoin] = useState<Coin | null>(null);
-  const [currency, setCurrency] = useState('usd');
+  const [currency] = useState('usd');
   const [lastUpdated, setLastUpdated] = useState<string>('');
 
   const fetchPrices = async () => {
     setLoading(true);
     try {
-      const response = await client.get(`/crypto/prices?currency=${currency}&limit=50`);
+      const response = await api.get<{ coins: Coin[]; updatedAt: string }>(`/crypto/prices?currency=${currency}&limit=50`);
       setCoins(response.coins);
       setLastUpdated(response.updatedAt);
     } catch (error) {
@@ -58,7 +48,7 @@ export default function Crypto() {
 
   const fetchGlobalData = async () => {
     try {
-      const response = await client.get('/crypto/global');
+      const response = await api.get<GlobalData>('/crypto/global');
       setGlobalData(response);
     } catch (error) {
       console.error('Failed to fetch global data:', error);
@@ -143,8 +133,8 @@ export default function Crypto() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white flex items-center gap-2">
-            <DollarSign className="w-6 h-6 text-yellow-400" />
+            <h1 className="text-2xl font-bold text-white flex items-center gap-2">
+            <span className="text-yellow-400" aria-hidden="true">💲</span>
             Crypto Markets
           </h1>
           <p className="text-gray-400 text-sm mt-1">
@@ -157,7 +147,9 @@ export default function Crypto() {
             disabled={loading}
             className="flex items-center gap-2 px-4 py-2 bg-gray-800 hover:bg-gray-700 text-white rounded-lg transition-colors disabled:opacity-50"
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+            <svg className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h5M20 20v-5h-5M5.64 18.36A9 9 0 1020 12" />
+            </svg>
             Refresh
           </button>
         </div>
@@ -168,7 +160,7 @@ export default function Crypto() {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
             <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
-              <Globe className="w-4 h-4" />
+              <span aria-hidden="true">🌐</span>
               Market Cap
             </div>
             <div className="text-xl font-semibold text-white">
@@ -182,9 +174,9 @@ export default function Crypto() {
               }`}
             >
               {globalData.data.market_cap_change_percentage_24h_usd >= 0 ? (
-                <TrendingUp className="w-3 h-3" />
+                <span aria-hidden="true">↗</span>
               ) : (
-                <TrendingDown className="w-3 h-3" />
+                <span aria-hidden="true">↘</span>
               )}
               {globalData.data.market_cap_change_percentage_24h_usd.toFixed(2)}% (24h)
             </div>
@@ -192,7 +184,7 @@ export default function Crypto() {
 
           <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
             <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
-              <Activity className="w-4 h-4" />
+              <span aria-hidden="true">📊</span>
               24h Volume
             </div>
             <div className="text-xl font-semibold text-white">
@@ -202,7 +194,7 @@ export default function Crypto() {
 
           <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
             <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
-              <BarChart3 className="w-4 h-4" />
+              <span aria-hidden="true">🪙</span>
               Active Coins
             </div>
             <div className="text-xl font-semibold text-white">
@@ -212,7 +204,7 @@ export default function Crypto() {
 
           <div className="bg-gray-900 rounded-lg p-4 border border-gray-800">
             <div className="flex items-center gap-2 text-gray-400 text-sm mb-2">
-              <Globe className="w-4 h-4" />
+              <span aria-hidden="true">🏦</span>
               Markets
             </div>
             <div className="text-xl font-semibold text-white">
@@ -224,7 +216,7 @@ export default function Crypto() {
 
       {/* Search */}
       <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" aria-hidden="true">🔍</span>
         <input
           type="text"
           placeholder="Search coins..."
@@ -277,7 +269,9 @@ export default function Crypto() {
               {loading && coins.length === 0 ? (
                 <tr>
                   <td colSpan={8} className="py-12 text-center text-gray-500">
-                    <RefreshCw className="w-8 h-8 animate-spin mx-auto mb-2" />
+                    <svg className="w-8 h-8 animate-spin mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h5M20 20v-5h-5M5.64 18.36A9 9 0 1020 12" />
+                    </svg>
                     Loading prices...
                   </td>
                 </tr>
@@ -324,9 +318,9 @@ export default function Crypto() {
                         }`}
                       >
                         {coin.price_change_percentage_24h >= 0 ? (
-                          <TrendingUp className="w-4 h-4" />
+                          <span aria-hidden="true">↗</span>
                         ) : (
-                          <TrendingDown className="w-4 h-4" />
+                          <span aria-hidden="true">↘</span>
                         )}
                         {Math.abs(coin.price_change_percentage_24h || 0).toFixed(2)}%
                       </span>

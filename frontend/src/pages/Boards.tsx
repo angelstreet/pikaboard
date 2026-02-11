@@ -42,6 +42,7 @@ function DroppableColumn({
   activeId,
   readOnly,
   showBoardNames,
+  boardLookup,
 }: {
   id: string;
   label: string;
@@ -53,6 +54,7 @@ function DroppableColumn({
   activeId: number | null;
   readOnly?: boolean;
   showBoardNames?: boolean;
+  boardLookup?: Record<number, { name: string; icon: string; color: string }>;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   const taskIds = tasks.map((t) => t.id);
@@ -93,6 +95,7 @@ function DroppableColumn({
               onArchive={id === 'done' ? onArchive : undefined}
               isDragging={!readOnly && task.id === activeId}
               showBoardName={showBoardNames}
+              boardBadge={task.board_id != null ? boardLookup?.[task.board_id] : undefined}
             />
           ))}
           {tasks.length === 0 && (
@@ -143,6 +146,8 @@ export default function Boards() {
     type: 'alert' | 'confirm';
     resolve?: (value: boolean) => void;
   }>({ title: '', message: '', type: 'alert' });
+
+  const isGlobalView = currentBoard?.id === 1 || currentBoard?.is_main;
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -198,9 +203,8 @@ export default function Boards() {
   const loadTasks = async (boardId: number, isMain: boolean = false) => {
     try {
       setLoading(true);
-      // Main board shows ALL tasks across all boards (no board_id filter)
-      // Other boards filter by their board_id
-      const tasksData = isMain 
+      // Main board (id=1) is a global read-only view and loads all tasks.
+      const tasksData = (boardId === 1 || isMain)
         ? await api.getTasks() // Get all tasks
         : await api.getTasks({ board_id: boardId });
       setTasks(tasksData);
@@ -228,15 +232,23 @@ export default function Boards() {
     [visibleTasks]
   );
 
+  const boardLookup = useMemo(() => {
+    const lookup: Record<number, { name: string; icon: string; color: string }> = {};
+    boards.forEach((board) => {
+      lookup[board.id] = { name: board.name, icon: board.icon, color: board.color };
+    });
+    return lookup;
+  }, [boards]);
+
   const handleDragStart = (event: DragStartEvent) => {
     // Disable drag on Main board (read-only view)
-    if (currentBoard?.is_main) return;
+    if (isGlobalView) return;
     setActiveId(event.active.id as number);
   };
 
   const handleDragEnd = async (event: DragEndEvent) => {
     // Disable drag on Main board (read-only view)
-    if (currentBoard?.is_main) {
+    if (isGlobalView) {
       setActiveId(null);
       return;
     }
@@ -340,22 +352,13 @@ export default function Boards() {
   };
 
   const handleTaskClick = async (task: Task) => {
-    // On Main board, show info and navigate to task's actual board
-    if (currentBoard?.is_main) {
+    // On Main board, switch to task's actual board.
+    if (isGlobalView) {
       const taskBoard = boards.find(b => b.id === task.board_id);
       if (!taskBoard) return;
-      
-      const confirmed = await showInfoModal({
-        title: 'Switch Board?',
-        message: `This task belongs to "${taskBoard.name}" board. Switch to that board to edit?`,
-        type: 'confirm',
-      });
-      
-      if (confirmed) {
-        selectBoard(taskBoard);
-        setEditingTask(task);
-        setTaskModalOpen(true);
-      }
+      selectBoard(taskBoard);
+      setEditingTask(task);
+      setTaskModalOpen(true);
       return;
     }
     setEditingTask(task);
@@ -378,10 +381,10 @@ export default function Boards() {
       setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
     } else {
       // Create new task - block creation on Main board
-      if (currentBoard?.is_main || currentBoard?.id === 1) {
+      if (isGlobalView) {
         await showInfoModal({
-          title: 'Cannot Create Task',
-          message: 'Cannot create tasks on Main board. Please switch to a specific board first.',
+          title: 'View Only',
+          message: 'Global View is read-only. Switch to a specific board to create tasks.',
           type: 'alert',
         });
         return;
@@ -513,7 +516,7 @@ export default function Boards() {
 
         <div className="flex items-center gap-2 flex-shrink-0">
           <TaskSearch onTaskClick={handleTaskClick} />
-          {currentBoard?.is_main ? (
+          {isGlobalView ? (
             <div className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 text-gray-500 rounded-lg text-sm cursor-not-allowed" title="Switch to a specific board to create tasks">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -535,13 +538,13 @@ export default function Boards() {
       </div>
 
       {/* Main Board Info Banner */}
-      {currentBoard?.is_main && (
+      {isGlobalView && (
         <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-3">
           <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <div className="text-sm text-blue-800">
-            <p className="font-medium">Global View Mode</p>
+            <p className="font-medium">Global View</p>
             <p className="text-blue-600">Main shows all tasks across every board. To create or edit tasks, switch to a specific board first.</p>
           </div>
         </div>
@@ -556,7 +559,7 @@ export default function Boards() {
 
       {/* Kanban Board - Disabled on Main (read-only) */}
       <DndContext
-        sensors={currentBoard?.is_main ? [] : sensors}
+        sensors={isGlobalView ? [] : sensors}
         collisionDetection={closestCorners}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
@@ -589,8 +592,9 @@ export default function Boards() {
                     onArchive={handleArchiveTask}
                     onArchiveAll={handleArchiveAllDone}
                     activeId={activeId}
-                    readOnly={currentBoard?.is_main}
-                    showBoardNames={currentBoard?.is_main}
+                    readOnly={isGlobalView}
+                    showBoardNames={isGlobalView}
+                    boardLookup={boardLookup}
                   />
                 </div>
               ))}

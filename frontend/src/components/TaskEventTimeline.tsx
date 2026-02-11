@@ -254,9 +254,14 @@ export function TaskEventTimeline({ taskId }: TaskEventTimelineProps) {
 
         {/* Events */}
         <div className="space-y-3">
-          {events.map((event, index) => {
+          {events.map((event) => {
             const isExpanded = expandedEvents.has(event.id);
             const hasDetails = event.details && Object.keys(event.details).length > 0;
+            const fromValue = event.details?.from;
+            const toValue = event.details?.to;
+            const reasonValue = event.details?.reason;
+            const ratingValue = event.details?.rating;
+            const nameValue = event.details?.name;
             
             return (
               <div key={event.id} className="relative flex items-start gap-3 group">
@@ -295,40 +300,40 @@ export function TaskEventTimeline({ taskId }: TaskEventTimelineProps) {
                   {/* Details */}
                   {(isExpanded || !hasDetails) && event.details && (
                     <div className="mt-1.5 text-xs">
-                      {event.action === 'status_changed' && event.details.from && event.details.to && (
+                      {event.action === 'status_changed' && fromValue != null && toValue != null && (
                         <span className="inline-flex items-center gap-1.5">
-                          <span className={`px-2 py-0.5 rounded font-medium ${workflowStages[String(event.details.from)]?.color || 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'}`}>
-                            {workflowStages[String(event.details.from)]?.icon || '•'} {String(event.details.from)}
+                          <span className={`px-2 py-0.5 rounded font-medium ${workflowStages[String(fromValue)]?.color || 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'}`}>
+                            {workflowStages[String(fromValue)]?.icon || '•'} {String(fromValue)}
                           </span>
                           <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
                           </svg>
-                          <span className={`px-2 py-0.5 rounded font-medium ${workflowStages[String(event.details.to)]?.color || 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'}`}>
-                            {workflowStages[String(event.details.to)]?.icon || '•'} {String(event.details.to)}
+                          <span className={`px-2 py-0.5 rounded font-medium ${workflowStages[String(toValue)]?.color || 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300'}`}>
+                            {workflowStages[String(toValue)]?.icon || '•'} {String(toValue)}
                           </span>
                         </span>
                       )}
                       {event.action === 'assigned' && (
                         <span className="text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-800 px-2 py-1 rounded">
-                          {event.details.from ? `👤 ${String(event.details.from)}` : '👤 unassigned'} 
+                          {fromValue ? `👤 ${String(fromValue)}` : '👤 unassigned'} 
                           <span className="mx-1">→</span>
-                          {event.details.to ? `👤 ${String(event.details.to)}` : '👤 unassigned'}
+                          {toValue ? `👤 ${String(toValue)}` : '👤 unassigned'}
                         </span>
                       )}
-                      {event.action === 'rejected' && event.details.reason && (
+                      {event.action === 'rejected' && reasonValue != null && (
                         <div className="mt-1 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded text-red-700 dark:text-red-400">
-                          <span className="font-semibold">Rejection Reason:</span> {String(event.details.reason)}
+                          <span className="font-semibold">Rejection Reason:</span> {String(reasonValue)}
                         </div>
                       )}
-                      {event.action === 'rated' && event.details.rating && (
+                      {event.action === 'rated' && ratingValue != null && (
                         <span className="text-yellow-500 text-sm">
-                          {'★'.repeat(Number(event.details.rating))}
-                          {'☆'.repeat(5 - Number(event.details.rating))}
-                          <span className="text-gray-400 ml-1">({Number(event.details.rating)}/5)</span>
+                          {'★'.repeat(Number(ratingValue))}
+                          {'☆'.repeat(5 - Number(ratingValue))}
+                          <span className="text-gray-400 ml-1">({Number(ratingValue)}/5)</span>
                         </span>
                       )}
-                      {event.action === 'created' && event.details.name && (
-                        <span className="text-gray-500 italic">{String(event.details.name)}</span>
+                      {event.action === 'created' && nameValue != null && (
+                        <span className="text-gray-500 italic">{String(nameValue)}</span>
                       )}
                       
                       {/* Show raw details for other actions */}

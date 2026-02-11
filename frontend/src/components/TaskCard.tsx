@@ -8,6 +8,11 @@ interface TaskCardProps {
   onArchive?: (task: Task) => void;
   isDragging?: boolean;
   showBoardName?: boolean;
+  boardBadge?: {
+    name: string;
+    icon: string;
+    color: string;
+  };
 }
 
 const priorityColors: Record<string, { border: string; badge: string; text: string }> = {
@@ -31,7 +36,7 @@ function getTagColor(tag: string): string {
   return tagColors[index % tagColors.length];
 }
 
-export function TaskCard({ task, onClick, onArchive, isDragging, showBoardName }: TaskCardProps) {
+export function TaskCard({ task, onClick, onArchive, isDragging, showBoardName, boardBadge }: TaskCardProps) {
   const {
     attributes,
     listeners,
@@ -48,6 +53,16 @@ export function TaskCard({ task, onClick, onArchive, isDragging, showBoardName }
 
   const priority = priorityColors[task.priority] || priorityColors.medium;
   const dragging = isDragging || sortableIsDragging;
+  const boardBadgeColors: Record<string, string> = {
+    blue: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+    green: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
+    purple: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
+    orange: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300',
+    red: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+    pink: 'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300',
+    teal: 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300',
+    gray: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
+  };
 
   return (
     <div
@@ -114,10 +129,13 @@ export function TaskCard({ task, onClick, onArchive, isDragging, showBoardName }
       )}
       
       {/* Board name - shown in Main view */}
-      {showBoardName && task.board_name && (
+      {showBoardName && (boardBadge || task.board_name) && (
         <div className="text-xs mt-1.5 flex items-center gap-1">
-          <span className="px-1.5 py-0.5 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400 rounded font-medium">
-            {task.board_name}
+          <span className={`px-1.5 py-0.5 rounded font-medium inline-flex items-center gap-1 ${
+            boardBadge ? (boardBadgeColors[boardBadge.color] || boardBadgeColors.gray) : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
+          }`}>
+            {boardBadge?.icon && <span aria-hidden="true">{boardBadge.icon}</span>}
+            {boardBadge?.name || task.board_name}
           </span>
         </div>
       )}
