@@ -294,14 +294,15 @@ function normalizeBaseUrl(url: string): string {
 }
 
 function getDefaultApiBaseUrl(): string {
-  // Use root /api by default. In production, nginx usually exposes /api at root
-  // even when the UI is served under /pikaboard or /pikaboard-dev.
+  const base = (import.meta.env.BASE_URL || '/').replace(/\/+$/, '');
+  const scopedPrefix = base && base !== '/' ? base : '';
+  const scopedApiPath = `${scopedPrefix}/api`;
+
   if (typeof window !== 'undefined') {
-    return `${window.location.origin}/api`;
+    return `${window.location.origin}${scopedApiPath}`;
   }
 
-  // SSR/default fallback.
-  return '/api';
+  return scopedApiPath || '/api';
 }
 
 export const API_BASE_URL = normalizeBaseUrl(import.meta.env.VITE_API_BASE_URL || getDefaultApiBaseUrl());

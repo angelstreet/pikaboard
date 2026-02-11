@@ -13,7 +13,8 @@ const SERVICES: ServiceDef[] = [
   { name: 'OpenClaw Gateway', url: 'http://127.0.0.1:18789/openclaw/health', type: 'internal' },
   { name: 'Grafana', url: 'http://127.0.0.1:3000/api/health', type: 'internal' },
   { name: 'Kozy (Backend)', url: 'http://127.0.0.1:3002/', type: 'internal' },
-  { name: 'Kompta (Backend)', url: 'http://127.0.0.1:3003/', type: 'internal' },
+  // Kompta backend listens on 3004 and exposes health at /api/health.
+  { name: 'Kompta (Backend)', url: 'http://127.0.0.1:3004/api/health', type: 'internal' },
 ];
 
 async function checkService(service: ServiceDef): Promise<{ name: string; status: 'up' | 'down'; latencyMs: number; type: string }> {
