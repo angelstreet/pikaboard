@@ -29,7 +29,10 @@ export AGENT_NAME="<your-agent-name>"
 
 ```bash
 cd pikaboard
-./skills/pikaboard/scripts/setup-agent-board.sh
+MY_BOARD_ID="$(
+  ./skills/pikaboard/scripts/setup-agent-board.sh | sed -n 's/^MY_BOARD_ID=//p' | tail -n1
+)"
+export MY_BOARD_ID
 ```
 
 5. Validate:
@@ -55,8 +58,10 @@ Install and use `angelstreet/pikaboard` from ClawHub, end-to-end.
    export AGENT_NAME="<your-agent-name>"
 5) Auto-configure board:
    cd pikaboard
-   ./skills/pikaboard/scripts/setup-agent-board.sh
-   eval "$(./skills/pikaboard/scripts/setup-agent-board.sh | grep '^export MY_BOARD_ID=')"
+   MY_BOARD_ID="$(
+     ./skills/pikaboard/scripts/setup-agent-board.sh | sed -n 's/^MY_BOARD_ID=//p' | tail -n1
+   )"
+   export MY_BOARD_ID
 6) Verify:
    curl -s http://localhost:3001/health
    curl -s -H "Authorization: Bearer $PIKABOARD_TOKEN" "$PIKABOARD_API/boards"

@@ -111,14 +111,17 @@ Use the helper to map each agent to a board automatically:
 
 ```bash
 cd pikaboard
-./skills/pikaboard/scripts/setup-agent-board.sh
+MY_BOARD_ID="$(
+  ./skills/pikaboard/scripts/setup-agent-board.sh | sed -n 's/^MY_BOARD_ID=//p' | tail -n1
+)"
+export MY_BOARD_ID
 ```
 
 What it does:
 - Reads `PIKABOARD_API`, `PIKABOARD_TOKEN`, `AGENT_NAME`
 - Finds board by `BOARD_NAME` (default: `AGENT_NAME`)
 - Creates board if missing
-- Prints `export MY_BOARD_ID=<id>`
+- Prints `MY_BOARD_ID=<id>`
 - Verifies `GET /api/tasks?board_id=<id>&status=up_next`
 
 Optional:

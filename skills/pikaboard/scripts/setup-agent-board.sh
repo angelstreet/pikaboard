@@ -1,5 +1,5 @@
 #!/bin/bash
-# Resolve or create an agent board and export MY_BOARD_ID.
+# Resolve or create an agent board and print MY_BOARD_ID safely.
 
 set -euo pipefail
 
@@ -77,13 +77,19 @@ if [ -z "${BOARD_ID}" ]; then
   exit 1
 fi
 
+# Defend against command injection in downstream shell usage.
+if ! [[ "${BOARD_ID}" =~ ^[0-9]+$ ]]; then
+  echo "Unsafe BOARD_ID '${BOARD_ID}' (expected numeric id)."
+  exit 1
+fi
+
 echo "Resolved board '${BOARD_NAME}' -> id ${BOARD_ID}"
 echo "Verifying task access for board ${BOARD_ID}..."
 curl -fsS "${AUTH_HEADERS[@]}" \
   "${PIKABOARD_API}/tasks?board_id=${BOARD_ID}&status=up_next" >/dev/null
 
-EXPORT_LINE="export MY_BOARD_ID=${BOARD_ID}"
-echo "${EXPORT_LINE}"
+echo "MY_BOARD_ID=${BOARD_ID}"
+echo "Run: export MY_BOARD_ID=${BOARD_ID}"
 
 if [ -n "${BOARD_ENV_FILE}" ]; then
   mkdir -p "$(dirname "${BOARD_ENV_FILE}")"
