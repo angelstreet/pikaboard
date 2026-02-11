@@ -312,11 +312,11 @@ export default function Layout() {
                   location.pathname === item.path
                     ? 'bg-pika-600 text-white shadow-sm'
                     : 'text-gray-600 hover:bg-gray-200 hover:text-gray-900 dark:text-gray-300 dark:hover:bg-gray-600 dark:hover:text-white'
-                } ${index > 0 ? 'ml-1' : ''}`}
+                } ${index > 0 ? 'ml-1' : ''} ${item.hasBadge ? 'pr-9' : ''}`}
               >
                 {item.label}
                 {item.hasBadge && inboxCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold w-5 h-5 flex items-center justify-center rounded-full">
+                  <span className="pointer-events-none absolute top-0.5 right-1 bg-red-500 text-white text-xs font-bold min-w-5 h-5 px-1 flex items-center justify-center rounded-full leading-none">
                     {inboxCount > 9 ? '9+' : inboxCount}
                   </span>
                 )}

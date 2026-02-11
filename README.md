@@ -131,7 +131,7 @@ cd pikaboard
 cd backend
 npm install
 cp .env.example .env
-# Edit .env: set PIKABOARD_TOKEN
+# Edit .env: set PIKABOARD_API_TOKEN
 npm run dev  # → http://localhost:3001
 
 # Frontend (new terminal)
@@ -175,7 +175,8 @@ VITE_DEMO_MODE=true npm run dev
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `PIKABOARD_TOKEN` | Bearer token for API auth | (required) |
+| `PIKABOARD_API_TOKEN` | Bearer token for API auth | (required) |
+| `PIKABOARD_TOKEN` | Legacy fallback name for API token (deprecated) | — |
 | `DATABASE_PATH` | Local SQLite fallback path | `./data/pikaboard.db` |
 | `TURSO_DATABASE_URL` | Turso (libSQL) database URL | `file:{DATABASE_PATH}` |
 | `TURSO_AUTH_TOKEN` | Turso auth token (cloud only) | — |

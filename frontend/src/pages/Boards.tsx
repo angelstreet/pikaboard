@@ -201,7 +201,7 @@ export default function Boards() {
     localStorage.setItem('pikaboard-last-board', String(board.id));
   };
 
-  const loadTasks = async (boardId: number, isMain: boolean = false) => {
+  const loadTasks = useCallback(async (boardId: number, isMain: boolean = false) => {
     try {
       setLoading(true);
       // Main board (id=1) is a global read-only view and loads all tasks.
@@ -215,7 +215,16 @@ export default function Boards() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Auto-refresh kanban every 10s for the selected board.
+  useEffect(() => {
+    if (!currentBoard) return;
+    const interval = setInterval(() => {
+      void loadTasks(currentBoard.id, currentBoard.is_main);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [currentBoard?.id, currentBoard?.is_main, loadTasks]);
 
   // Filter done tasks to only show those completed within last 48 hours
   const visibleTasks = useMemo(() => {

@@ -3,12 +3,14 @@ import { verifyToken } from '@clerk/backend';
 
 export const authMiddleware = async (c: Context, next: Next) => {
   const authHeader = c.req.header('Authorization');
-  const apiToken = process.env.PIKABOARD_TOKEN;
+  const apiToken = process.env.PIKABOARD_API_TOKEN || process.env.PIKABOARD_TOKEN;
   const clerkSecretKey = process.env.CLERK_SECRET_KEY;
 
   // If neither auth method is configured, allow all requests
   if (!apiToken && !clerkSecretKey) {
-    console.warn('⚠️  No auth configured (PIKABOARD_TOKEN and CLERK_SECRET_KEY both unset)');
+    console.warn(
+      '⚠️  No auth configured (PIKABOARD_API_TOKEN/PIKABOARD_TOKEN and CLERK_SECRET_KEY all unset)'
+    );
     return next();
   }
 

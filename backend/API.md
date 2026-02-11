@@ -6,10 +6,11 @@ API prefix: `/api`
 
 ## Authentication
 
-All `/api/*` routes are protected by bearer auth **if** `PIKABOARD_TOKEN` is set in the backend environment.
+All `/api/*` routes are protected by bearer auth **if** `PIKABOARD_API_TOKEN` is set in the backend environment.
 
-- Header: `Authorization: Bearer <PIKABOARD_TOKEN>`
-- If `PIKABOARD_TOKEN` is **not** set, auth is effectively disabled (middleware allows requests through).
+- Header: `Authorization: Bearer <PIKABOARD_API_TOKEN>`
+- Legacy fallback: `PIKABOARD_TOKEN` is still accepted for backward compatibility.
+- If neither token variable is set, auth is effectively disabled (middleware allows requests through).
 
 `/health` is always public.
 
@@ -454,4 +455,3 @@ Response:
   "updatedAt": "2026-02-07T12:34:56.789Z"
 }
 ```
-

@@ -40,7 +40,7 @@ configRouter.get('/', (c) => {
   const homeDir = os.homedir();
   const workspacePath = process.env.OPENCLAW_WORKSPACE || path.join(homeDir, '.openclaw', 'workspace');
   const gatewayUrl = process.env.OPENCLAW_GATEWAY_URL || 'http://localhost:18789';
-  const apiToken = process.env.PIKABOARD_API_TOKEN || '';
+  const apiToken = process.env.PIKABOARD_API_TOKEN || process.env.PIKABOARD_TOKEN || '';
   const port = parseInt(process.env.PORT || '3001', 10);
 
   // Try to read version from package.json

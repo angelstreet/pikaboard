@@ -1,16 +1,29 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # Resolve or create an agent board and print MY_BOARD_ID safely.
 
 set -euo pipefail
 
-PIKABOARD_API="${PIKABOARD_API:-http://localhost:3001/api}"
+PIKABOARD_API_URL="${PIKABOARD_API_URL:-${PIKABOARD_API:-http://localhost:3001/api}}"
+PIKABOARD_API_URL="${PIKABOARD_API_URL%/}"
 AGENT_NAME="${AGENT_NAME:-}"
 BOARD_NAME="${BOARD_NAME:-${AGENT_NAME}}"
-PIKABOARD_TOKEN="${PIKABOARD_TOKEN:-}"
+PIKABOARD_API_TOKEN="${PIKABOARD_API_TOKEN:-${PIKABOARD_TOKEN:-}}"
 BOARD_ENV_FILE="${BOARD_ENV_FILE:-}"
+
+for cmd in curl node; do
+  if ! command -v "${cmd}" >/dev/null 2>&1; then
+    echo "Missing required command: ${cmd}"
+    exit 1
+  fi
+done
 
 if [ -z "${AGENT_NAME}" ]; then
   echo "AGENT_NAME is required (example: AGENT_NAME=bulbi)"
+  exit 1
+fi
+
+if [ -z "${PIKABOARD_API_TOKEN}" ]; then
+  echo "PIKABOARD_API_TOKEN is required."
   exit 1
 fi
 
@@ -19,13 +32,20 @@ if [ -z "${BOARD_NAME}" ]; then
   exit 1
 fi
 
-AUTH_HEADERS=()
-if [ -n "${PIKABOARD_TOKEN}" ]; then
-  AUTH_HEADERS=(-H "Authorization: Bearer ${PIKABOARD_TOKEN}")
-fi
+AUTH_HEADERS=(-H "Authorization: Bearer ${PIKABOARD_API_TOKEN}")
+CURL_OPTS=(
+  --fail
+  --silent
+  --show-error
+  --connect-timeout 5
+  --max-time 20
+  --retry 2
+  --retry-delay 1
+  --retry-all-errors
+)
 
-echo "Checking boards on ${PIKABOARD_API}..."
-BOARDS_JSON="$(curl -fsS "${AUTH_HEADERS[@]}" "${PIKABOARD_API}/boards")"
+echo "Checking boards on ${PIKABOARD_API_URL}..."
+BOARDS_JSON="$(curl "${CURL_OPTS[@]}" "${AUTH_HEADERS[@]}" "${PIKABOARD_API_URL}/boards")"
 
 BOARD_ID="$(
   printf '%s' "${BOARDS_JSON}" | node -e '
@@ -54,10 +74,10 @@ if [ -z "${BOARD_ID}" ]; then
   ' "${BOARD_NAME}")"
 
   CREATED_JSON="$(
-    curl -fsS -X POST "${AUTH_HEADERS[@]}" \
+    curl "${CURL_OPTS[@]}" -X POST "${AUTH_HEADERS[@]}" \
       -H "Content-Type: application/json" \
       -d "${CREATE_PAYLOAD}" \
-      "${PIKABOARD_API}/boards"
+      "${PIKABOARD_API_URL}/boards"
   )"
 
   BOARD_ID="$(
@@ -85,14 +105,15 @@ fi
 
 echo "Resolved board '${BOARD_NAME}' -> id ${BOARD_ID}"
 echo "Verifying task access for board ${BOARD_ID}..."
-curl -fsS "${AUTH_HEADERS[@]}" \
-  "${PIKABOARD_API}/tasks?board_id=${BOARD_ID}&status=up_next" >/dev/null
+curl "${CURL_OPTS[@]}" "${AUTH_HEADERS[@]}" \
+  "${PIKABOARD_API_URL}/tasks?board_id=${BOARD_ID}&status=up_next" >/dev/null
 
 echo "MY_BOARD_ID=${BOARD_ID}"
 echo "Run: export MY_BOARD_ID=${BOARD_ID}"
 
 if [ -n "${BOARD_ENV_FILE}" ]; then
   mkdir -p "$(dirname "${BOARD_ENV_FILE}")"
+  umask 077
   {
     echo "MY_BOARD_ID=${BOARD_ID}"
     echo "BOARD_NAME=${BOARD_NAME}"

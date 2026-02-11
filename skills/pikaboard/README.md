@@ -20,8 +20,8 @@ cd pikaboard/backend && npm start
 3. Set env vars:
 
 ```bash
-export PIKABOARD_API="http://localhost:3001/api"
-export PIKABOARD_TOKEN="<token-from-pikaboard/backend/.env>"
+export PIKABOARD_API_URL="http://localhost:3001/api"
+export PIKABOARD_API_TOKEN="<token-from-pikaboard/backend/.env>"
 export AGENT_NAME="<your-agent-name>"
 ```
 
@@ -39,8 +39,8 @@ export MY_BOARD_ID
 
 ```bash
 curl -s http://localhost:3001/health
-curl -s -H "Authorization: Bearer $PIKABOARD_TOKEN" "$PIKABOARD_API/boards"
-curl -s -H "Authorization: Bearer $PIKABOARD_TOKEN" "$PIKABOARD_API/tasks?board_id=$MY_BOARD_ID&status=up_next"
+curl -s -H "Authorization: Bearer $PIKABOARD_API_TOKEN" "$PIKABOARD_API_URL/boards"
+curl -s -H "Authorization: Bearer $PIKABOARD_API_TOKEN" "$PIKABOARD_API_URL/tasks?board_id=$MY_BOARD_ID&status=up_next"
 ```
 
 ## Ready-To-Send Agent Prompt
@@ -51,10 +51,10 @@ Install and use `angelstreet/pikaboard` from ClawHub, end-to-end.
 1) Install the skill (from ClawHub) and clone/build PikaBoard from GitHub.
 2) Start backend:
    cd pikaboard/backend && npm start
-3) Read token from backend env (`PIKABOARD_TOKEN` in `pikaboard/backend/.env`).
+3) Read token from backend env (`PIKABOARD_API_TOKEN` in `pikaboard/backend/.env`).
 4) Set runtime env:
-   export PIKABOARD_API="http://localhost:3001/api"
-   export PIKABOARD_TOKEN="<token>"
+   export PIKABOARD_API_URL="http://localhost:3001/api"
+   export PIKABOARD_API_TOKEN="<token>"
    export AGENT_NAME="<your-agent-name>"
 5) Auto-configure board:
    cd pikaboard
@@ -64,8 +64,8 @@ Install and use `angelstreet/pikaboard` from ClawHub, end-to-end.
    export MY_BOARD_ID
 6) Verify:
    curl -s http://localhost:3001/health
-   curl -s -H "Authorization: Bearer $PIKABOARD_TOKEN" "$PIKABOARD_API/boards"
-   curl -s -H "Authorization: Bearer $PIKABOARD_TOKEN" "$PIKABOARD_API/tasks?board_id=$MY_BOARD_ID&status=up_next"
+   curl -s -H "Authorization: Bearer $PIKABOARD_API_TOKEN" "$PIKABOARD_API_URL/boards"
+   curl -s -H "Authorization: Bearer $PIKABOARD_API_TOKEN" "$PIKABOARD_API_URL/tasks?board_id=$MY_BOARD_ID&status=up_next"
 
 Operate only on tasks from `board_id=$MY_BOARD_ID` unless explicitly told otherwise.
 ```
