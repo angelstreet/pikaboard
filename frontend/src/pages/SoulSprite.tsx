@@ -5,16 +5,53 @@ import { useConfirmModal } from '../components/ConfirmModal';
 
 const BASE = import.meta.env.BASE_URL || '/';
 
-// Theme options for character generation
-const THEMES = [
-  { id: 'cute', name: 'Cute', icon: '🌸', desc: 'Adorable kawaii style, soft colors' },
-  { id: 'cool', name: 'Cool', icon: '😎', desc: 'Sleek stylish design, modern aesthetic' },
-  { id: 'chibi', name: 'Chibi', icon: '🎨', desc: 'Big head, small body, super deformed' },
-  { id: 'realistic', name: 'Realistic', icon: '📸', desc: '3D render, detailed textures' },
-  { id: 'pixel', name: 'Pixel Art', icon: '👾', desc: 'Retro 16-bit style, crisp pixels' },
-] as const;
+interface CharacterOption {
+  name: string;
+  displayName: string;
+  description: string;
+}
 
-type Theme = typeof THEMES[number]['id'];
+interface ThemeGroup {
+  id: string;
+  name: string;
+  icon: string;
+  characters: CharacterOption[];
+}
+
+const THEMES: ThemeGroup[] = [
+  {
+    id: 'naruto',
+    name: 'Naruto',
+    icon: '🦊',
+    characters: [
+      { name: 'naruto', displayName: 'Naruto Uzumaki', description: 'Young energetic ninja with spiky blonde hair, whisker marks on cheeks, orange jumpsuit, Konoha headband, blue eyes, determined grin.' },
+      { name: 'sasuke', displayName: 'Sasuke Uchiha', description: 'Dark spiky hair, piercing red Sharingan eyes, blue high-collar shirt with Uchiha symbol, white arm guards and shorts, stoic expression.' },
+      { name: 'sakura', displayName: 'Sakura Haruno', description: 'Pink hair in a bob cut, green eyes, red sleeveless top with diamond pattern, black shorts, gloves, strong medical ninja.' },
+      { name: 'kakashi', displayName: 'Kakashi Hatake', description: 'Silver spiky hair, face mask covering mouth, slanted headband over left eye, green flak jacket, hands in pockets, copy ninja.' },
+    ]
+  },
+  {
+    id: 'pokemon',
+    name: 'Pokémon',
+    icon: '⚡',
+    characters: [
+      { name: 'pikachu', displayName: 'Pikachu', description: 'Small cute yellow mouse Pokémon with red cheeks, long black-tipped ears, brown stripes on back, zigzag tail, sparkling eyes.' },
+      { name: 'charizard', displayName: 'Charizard', description: 'Large orange dragon-like Pokémon with wings, cream underbelly, blazing flame tail, horns, fierce yellow eyes.' },
+      { name: 'bulbasaur', displayName: 'Bulbasaur', description: 'Small quadruped Pokémon with blue-green skin, large red eyes, bulb on back containing seeds, round snout.' },
+      { name: 'mewtwo', displayName: 'Mewtwo', description: 'Tall humanoid purple psychic Pokémon, long tail, tube on back, intense purple eyes, sleek muscular build.' },
+    ]
+  },
+  {
+    id: 'dragonball',
+    name: 'Dragon Ball',
+    icon: '🐉',
+    characters: [
+      { name: 'goku', displayName: 'Goku', description: 'Spiky black hair, orange gi with blue undershirt, blue wristbands, muscular build, cheerful determined expression.' },
+      { name: 'vegeta', displayName: 'Vegeta', description: 'Flame-shaped black hair, muscular Saiyan prince, blue bodysuit with white chest armor, red gloves and boots, arrogant smirk.' },
+      { name: 'gohan', displayName: 'Gohan', description: 'Spiky black hair, purple gi over blue undershirt, similar to Goku but younger scholarly look, hidden power.' },
+    ]
+  }
+];
 
 interface GeneratedCharacter {
   name: string;
@@ -44,9 +81,8 @@ export default function SoulSprite() {
   const [apiKey, setApiKey] = useState('');
   const [showApiKey, setShowApiKey] = useState(false);
   const [debugMode, setDebugMode] = useState(false);
-  const [characterName, setCharacterName] = useState('');
-  const [description, setDescription] = useState('');
-  const [theme, setTheme] = useState<Theme>('cute');
+  const [selectedThemeId, setSelectedThemeId] = useState('');
+  const [selectedCharacter, setSelectedCharacter] = useState<CharacterOption | null>(null);
   
   // UI state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -86,8 +122,8 @@ export default function SoulSprite() {
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!characterName.trim() || !description.trim()) {
-      toast.error('Please enter both character name and description');
+    if (!selectedCharacter) {
+      toast.error('Please select a theme and character');
       return;
     }
 
@@ -102,9 +138,9 @@ export default function SoulSprite() {
           'Authorization': `Bearer ${localStorage.getItem('pikaboard_token') || ''}`,
         },
         body: JSON.stringify({
-          name: characterName,
-          description,
-          theme,
+          name: selectedCharacter.name,
+          description: selectedCharacter.description,
+          theme: selectedThemeId,
           apiKey: apiKey || undefined,
           debug: debugMode,
         }),
@@ -123,8 +159,8 @@ export default function SoulSprite() {
       await loadCharacters();
       
       // Reset form
-      setCharacterName('');
-      setDescription('');
+      setSelectedThemeId('');
+      setSelectedCharacter(null);
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Generation failed';
       toast.error(message, { id: toastId });
@@ -266,85 +302,97 @@ export default function SoulSprite() {
           <form onSubmit={handleGenerate} className="space-y-4">
             <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 p-4">
               <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                ✨ Character Details
+                ✨ Select Character
               </h3>
 
-              {/* Character Name */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Character Name
-                </label>
-                <input
-                  type="text"
-                  value={characterName}
-                  onChange={(e) => setCharacterName(e.target.value)}
-                  placeholder="e.g., sparky, void_walker"
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm"
-                  required
-                />
-              </div>
-
               {/* Theme Selector */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  Visual Theme
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                  Theme
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                   {THEMES.map((t) => (
                     <button
                       key={t.id}
                       type="button"
-                      onClick={() => setTheme(t.id)}
-                      className={`p-3 rounded-lg border text-left transition-all ${
-                        theme === t.id
-                          ? 'border-yellow-500 bg-yellow-500/10 dark:bg-yellow-500/20'
-                          : 'border-gray-200 dark:border-gray-700 hover:border-yellow-500/50'
+                      onClick={() => {
+                        setSelectedThemeId(t.id);
+                        setSelectedCharacter(null);
+                      }}
+                      className={`p-4 rounded-xl border-2 text-center transition-all shadow-sm hover:shadow-md ${
+                        selectedThemeId === t.id
+                          ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/30 ring-2 ring-yellow-500/50'
+                          : 'border-gray-200 dark:border-gray-700 hover:border-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'
                       }`}
                     >
-                      <div className="text-lg mb-1">{t.icon}</div>
-                      <div className="text-xs font-medium text-gray-900 dark:text-white">
+                      <div className="text-3xl mb-2 mx-auto">{t.icon}</div>
+                      <div className="font-bold text-gray-900 dark:text-white text-base">
                         {t.name}
-                      </div>
-                      <div className="text-[10px] text-gray-500 dark:text-gray-400">
-                        {t.desc}
                       </div>
                     </button>
                   ))}
                 </div>
               </div>
 
-              {/* Description */}
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                  Description
-                </label>
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Describe your character: appearance, colors, style, personality..."
-                  rows={4}
-                  className="w-full px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white text-sm resize-none"
-                  required
-                />
-                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Example: "A small round yellow electric creature with red cheeks, pointy ears with black tips"
-                </p>
-              </div>
+              {/* Character List */}
+              {selectedThemeId && (
+                <div className="mb-6">
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">
+                    Pick Character
+                  </label>
+                  <div className="max-h-64 overflow-y-auto border border-gray-200 dark:border-gray-700 rounded-xl p-4 bg-gradient-to-b from-gray-50 to-white dark:from-gray-800/50 dark:to-gray-900/50">
+                    {THEMES.find((t) => t.id === selectedThemeId)?.characters.map((char) => (
+                      <button
+                        key={char.name}
+                        type="button"
+                        onClick={() => setSelectedCharacter(char)}
+                        className={`w-full p-4 mb-3 last:mb-0 rounded-lg border text-left transition-all shadow-sm hover:shadow-md ${
+                          selectedCharacter?.name === char.name
+                            ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/30 ring-2 ring-yellow-500/50'
+                            : 'border-gray-200 dark:border-gray-700 hover:border-yellow-400 hover:bg-yellow-50 dark:hover:bg-yellow-900/20'
+                        }`}
+                      >
+                        <div className="font-bold text-lg text-gray-900 dark:text-white mb-1">
+                          {char.displayName}
+                        </div>
+                        <div className="text-sm font-mono text-gray-500 dark:text-gray-400 mb-2">
+                          @{char.name}
+                        </div>
+                        <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed line-clamp-3">
+                          {char.description}
+                        </p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Selected Preview */}
+              {selectedCharacter && (
+                <div className="mb-6 p-6 rounded-2xl bg-gradient-to-r from-emerald-50 to-green-50 dark:from-emerald-900/30 dark:to-green-900/30 border-2 border-emerald-200 dark:border-emerald-700 shadow-lg">
+                  <h4 className="font-bold text-xl text-gray-900 dark:text-white mb-3 flex items-center gap-2">
+                    ✅ Ready to Generate: {selectedCharacter.displayName}
+                  </h4>
+                  <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                    {selectedCharacter.description}
+                  </p>
+                </div>
+              )}
 
               {/* Generate Button */}
               <button
                 type="submit"
-                disabled={isGenerating}
-                className="w-full py-3 px-4 rounded-lg bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-semibold hover:from-yellow-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+                disabled={!selectedCharacter || isGenerating}
+                className="w-full py-4 px-6 rounded-2xl bg-gradient-to-r from-yellow-500 to-orange-500 text-white font-bold text-lg hover:from-yellow-600 hover:to-orange-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-3 shadow-xl hover:shadow-2xl"
               >
                 {isGenerating ? (
                   <>
-                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white" />
-                    Generating...
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white" />
+                    Generating Sprites...
                   </>
                 ) : (
                   <>
-                    ✨ Generate Character
+                    ✨ Generate {selectedCharacter?.displayName || 'Character'} Sprites
                   </>
                 )}
               </button>
@@ -353,38 +401,35 @@ export default function SoulSprite() {
 
           {/* Quick Tips */}
           <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-blue-50 dark:bg-blue-900/20 p-4">
-            <h4 className="font-medium text-blue-900 dark:text-blue-300 mb-2 text-sm">
-              💡 Generation Tips
+            <h4 className="font-semibold text-blue-900 dark:text-blue-300 mb-3 text-sm flex items-center gap-2">
+              💡 Quick Tips
             </h4>
-            <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1 list-disc list-inside">
-              <li>Be specific about colors and shapes</li>
-              <li>Mention body type (round, tall, slim)</li>
-              <li>Include distinctive features (wings, horns, accessories)</li>
-              <li>Generation takes 30-60 seconds per character</li>
+            <ul className="text-xs text-blue-800 dark:text-blue-200 space-y-1.5 list-disc list-inside grid grid-cols-2 gap-x-4">
+              <li>Click theme, then character</li>
+              <li>Preview shows exact description used</li>
+              <li>Generation: 30-90s</li>
+              <li>Download ZIP with all sprites</li>
             </ul>
           </div>
         </div>
 
-        {/* Right Column - Preview & Gallery */}
+        {/* Right Column - Preview & Gallery - unchanged */}
         <div className="space-y-6">
-          {/* Live Preview */}
           {(generatedCharacter || existingCharacters.length > 0) && (
             <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50 p-4">
               <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
                 👁️ Live Preview
               </h3>
-
               {generatedCharacter ? (
                 <div className="space-y-4">
-                  {/* Avatar Preview */}
                   <div className="flex items-center gap-4">
                     <div className="w-20 h-20 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
                       <img
-                        src={`${BASE}characters/${generatedCharacter.name}/avatar.png`}
+                        src={\`${BASE}characters/\${generatedCharacter.name}/avatar.png\`}
                         alt={generatedCharacter.displayName}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = `${BASE}characters/pika/avatar.png`;
+                          (e.target as HTMLImageElement).src = \`${BASE}characters/pika/avatar.png\`;
                         }}
                       />
                     </div>
@@ -400,28 +445,18 @@ export default function SoulSprite() {
                       </div>
                     </div>
                   </div>
-
-                  {/* Sprite Animation Preview */}
                   <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex gap-2">
                         <button
                           onClick={() => setPreviewAnimation('idle')}
-                          className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                            previewAnimation === 'idle'
-                              ? 'bg-yellow-500 text-white'
-                              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
-                          }`}
+                          className={\`px-3 py-1 rounded text-xs font-medium transition-colors \${previewAnimation === 'idle' ? 'bg-yellow-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}\`}
                         >
                           Idle
                         </button>
                         <button
                           onClick={() => setPreviewAnimation('walk')}
-                          className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                            previewAnimation === 'walk'
-                              ? 'bg-yellow-500 text-white'
-                              : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
-                          }`}
+                          className={\`px-3 py-1 rounded text-xs font-medium transition-colors \${previewAnimation === 'walk' ? 'bg-yellow-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}\`}
                         >
                           Walk
                         </button>
@@ -436,7 +471,6 @@ export default function SoulSprite() {
                         ))}
                       </select>
                     </div>
-
                     <div className="h-48 bg-gray-100 dark:bg-gray-900 rounded-lg flex items-center justify-center">
                       <SpriteAnimator
                         agent={generatedCharacter.name}
@@ -445,8 +479,6 @@ export default function SoulSprite() {
                         size={128}
                       />
                     </div>
-
-                    {/* Actions */}
                     <div className="flex gap-2 mt-4">
                       <button
                         onClick={() => handleDownload(generatedCharacter.name)}
@@ -505,16 +537,12 @@ export default function SoulSprite() {
                         });
                       }
                     }}
-                    className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                      generatedCharacter?.name === char.name
-                        ? 'border-yellow-500 bg-yellow-500/10 dark:bg-yellow-500/20'
-                        : 'border-gray-200 dark:border-gray-700 hover:border-yellow-500/50 bg-gray-50 dark:bg-gray-700/50'
-                    }`}
+                    className={\`p-3 rounded-lg border cursor-pointer transition-all \${generatedCharacter?.name === char.name ? 'border-yellow-500 bg-yellow-500/10 dark:bg-yellow-500/20' : 'border-gray-200 dark:border-gray-700 hover:border-yellow-500/50 bg-gray-50 dark:bg-gray-700/50'}\`}
                   >
                     <div className="w-full aspect-square rounded-lg bg-gray-100 dark:bg-gray-700 mb-2 overflow-hidden">
                       {char.hasAvatar ? (
                         <img
-                          src={`${BASE}characters/${char.name}/avatar.png`}
+                          src={\`${BASE}characters/\${char.name}/avatar.png\`}
                           alt={char.name}
                           className="w-full h-full object-cover"
                           onError={(e) => {
