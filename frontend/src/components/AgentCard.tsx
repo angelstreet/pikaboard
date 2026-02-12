@@ -106,9 +106,9 @@ export function AgentCard({ agent, onClick }: AgentCardProps) {
         setDirection('S');
       }}
       className={`
-        relative overflow-hidden
+        relative overflow-hidden min-h-[220px] flex flex-col
         bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700
-        p-4 cursor-pointer hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600
+        pt-6 pb-8 px-4 cursor-pointer hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600
         transition-all duration-200
         ${agent.status === 'offline' ? 'opacity-75' : ''}
       `}
@@ -207,8 +207,8 @@ export function AgentCard({ agent, onClick }: AgentCardProps) {
       {/* Sprite Avatar */}
       {showSprite && (
         <div
-          className="absolute bottom-1 right-1 pointer-events-none"
-          style={{ transform: 'scale(0.6)', transformOrigin: 'bottom right' }}
+          className="absolute bottom-0 right-0 pointer-events-none"
+          style={{ transform: 'scale(0.5)', transformOrigin: 'bottom right' }}
         >
           <SpriteAnimator
             agent={spriteName}
