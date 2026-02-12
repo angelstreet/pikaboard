@@ -217,6 +217,13 @@ agentsRouter.get('/', async (c) => {
       const agentPath = join(agentsDir, dir.name);
       const configPath = join(agentPath, 'config.json');
       const soulPath = join(agentPath, 'SOUL.md');
+      const hasConfig = existsSync(configPath);
+      const hasSoul = existsSync(soulPath);
+
+      // Ignore placeholder/empty folders that are not real agents.
+      if (!hasConfig && !hasSoul) {
+        continue;
+      }
 
       // Read config.json if exists
       let config: AgentConfig = {};

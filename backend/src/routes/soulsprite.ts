@@ -2,15 +2,17 @@ import { Hono } from 'hono';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'fs';
-import { join } from 'path';
+import { join, resolve } from 'path';
 import { createWriteStream } from 'fs';
 import archiver from 'archiver';
 
 const execAsync = promisify(exec);
 
 // Character output base path (relative to project root)
-const CHARACTERS_PATH = join(process.cwd(), '..', 'frontend', 'public', 'characters');
-const SKILL_PATH = join(process.env.HOME || '~', '.openclaw', 'workspace', 'skills', 'character-gen');
+const CHARACTERS_PATH = join(process.env.HOME || '~', '.openclaw', 'workspace', 'shared', 'projects', 'soulsprite', 'frontend', 'public', 'characters');
+const PIKABOARD_CHARACTERS_PATH = join(process.cwd(), '..', 'frontend', 'public', 'characters');
+const ALLOWED_BASES = [CHARACTERS_PATH, PIKABOARD_CHARACTERS_PATH];
+const SKILL_PATH = join(process.env.HOME || '~', '.openclaw', 'workspace', 'skills', 'soulsprite');
 
 interface GenerateRequest {
   name: string;
@@ -58,7 +60,18 @@ soulspriteRouter.post('/generate', async (c) => {
 
     // Sanitize name for filesystem
     const sanitizedName = name.toLowerCase().replace(/[^a-z0-9_-]/g, '_');
-    const characterDir = join(CHARACTERS_PATH, sanitizedName);
+    const requestedBase = body.outputPath?.trim();
+    let targetBase = CHARACTERS_PATH;
+
+    if (requestedBase) {
+      const resolved = resolve(requestedBase);
+      if (!ALLOWED_BASES.some((base) => resolved.startsWith(base))) {
+        return c.json({ error: 'Output path not allowed' }, 400);
+      }
+      targetBase = resolved;
+    }
+
+    const characterDir = join(targetBase, sanitizedName);
     const spritesDir = join(characterDir, 'sprites');
 
     // Check if character already exists
@@ -90,76 +103,59 @@ soulspriteRouter.post('/generate', async (c) => {
     // Run the character generation script
     const scriptPath = join(SKILL_PATH, 'scripts', 'soul_to_iso.py');
     const tempOutputDir = join(characterDir, 'temp_gen');
-    
+    const generatedDir = join(tempOutputDir, sanitizedName);
+
     mkdirSync(tempOutputDir, { recursive: true });
 
     if (debug) {
       console.log(`[SoulSprite] Generating character: ${sanitizedName}`);
       console.log(`[SoulSprite] Description: ${fullDescription}`);
-      console.log(`[SoulSprite] Output: ${characterDir}`);
+      console.log(`[SoulSprite] Output: ${tempOutputDir}`);
     }
 
-    // Execute generation using the character-gen skill
     let generationSuccess = false;
-    
+
     try {
       if (existsSync(scriptPath)) {
-        // Run the Python generation script
-        const pythonCmd = `cd ${SKILL_PATH} && python3 scripts/soul_to_iso.py --desc "${fullDescription.replace(/"/g, '\\"')}" --name "${sanitizedName}" --output "${characterDir}"`;
-        
+        const pythonCmd = `cd ${SKILL_PATH} && python3 scripts/soul_to_iso.py --desc "${fullDescription.replace(/"/g, '\\"')}" --name "${sanitizedName}" --output "${tempOutputDir}"`;
+
         if (debug) {
           console.log(`[SoulSprite] Executing: ${pythonCmd}`);
         }
 
-        const { stdout, stderr } = await execAsync(pythonCmd, { env, timeout: 120000 });
-        
+        const { stdout, stderr } = await execAsync(pythonCmd, { env, timeout: 180000 });
+
         if (debug) {
           console.log('[SoulSprite] stdout:', stdout);
           if (stderr) console.log('[SoulSprite] stderr:', stderr);
         }
 
-        generationSuccess = true;
+        generationSuccess = existsSync(generatedDir);
       } else {
         console.warn('[SoulSprite] Python script not found, using fallback');
       }
     } catch (execError) {
       console.error('[SoulSprite] Generation script failed:', execError);
-      // Continue with fallback
     }
 
-    // Process generated files or use fallback
-    const generatedDir = join(characterDir, sanitizedName);
-    
-    if (generationSuccess && existsSync(generatedDir)) {
-      // Move generated files to proper locations
-      // The script creates {name}/ directory with outputs
-      
-      // Copy spritesheets
-      const sizes = [64, 128];
-      for (const size of sizes) {
-        const sourceSheet = join(generatedDir, `spritesheet_idle_${size}.png`);
-        if (existsSync(sourceSheet)) {
-          // For now, use the 128px version for both idle and walk (placeholder)
-          if (size === 128) {
-            writeFileSync(join(spritesDir, 'idle.png'), readFileSync(sourceSheet));
-            writeFileSync(join(spritesDir, 'walk.png'), readFileSync(sourceSheet));
-          }
-        }
+    if (generationSuccess) {
+      const idle128 = join(generatedDir, 'spritesheet_idle_128.png');
+      const walk128 = join(generatedDir, 'spritesheet_idle_128.png'); // placeholder for walk until we generate walk separately
+      const avatarFull = join(generatedDir, 'spritesheet_idle_full.png');
+
+      if (existsSync(idle128)) {
+        writeFileSync(join(spritesDir, 'idle.png'), readFileSync(idle128));
+      }
+      if (existsSync(walk128)) {
+        writeFileSync(join(spritesDir, 'walk.png'), readFileSync(walk128));
+      }
+      if (existsSync(avatarFull)) {
+        writeFileSync(join(characterDir, 'avatar.png'), readFileSync(avatarFull));
       }
 
-      // Copy full resolution as avatar
-      const fullSheet = join(generatedDir, 'spritesheet_idle_full.png');
-      if (existsSync(fullSheet)) {
-        // Extract first frame for avatar (512x512)
-        // For now, copy full sheet - frontend can crop
-        writeFileSync(join(characterDir, 'avatar.png'), readFileSync(fullSheet));
-      }
-
-      // Cleanup generated temp directory
       const { rm } = await import('fs/promises');
-      await rm(generatedDir, { recursive: true, force: true });
+      await rm(tempOutputDir, { recursive: true, force: true });
     } else {
-      // Fallback: Copy from existing character
       const sourceChar = 'pika';
       const sourceAvatar = join(CHARACTERS_PATH, sourceChar, 'avatar.png');
       const sourceIdle = join(CHARACTERS_PATH, sourceChar, 'sprites', 'idle.png');

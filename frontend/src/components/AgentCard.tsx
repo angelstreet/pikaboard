@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 import { Agent } from '../api/client';
-import SpriteAnimator, { Direction, useSpriteInfo } from './SpriteAnimator';
+import SpriteAnimator, { Direction, Animation, useSpriteInfo } from './SpriteAnimator';
 import AgentAvatar from './AgentAvatar';
 
 interface AgentCardProps {
@@ -207,7 +207,7 @@ export function AgentCard({ agent, onClick }: AgentCardProps) {
         >
           <SpriteAnimator
             agent={spriteName}
-            animation="idle"
+            animation={isHovered ? 'walk' : 'idle' as Animation}
             direction={direction}
             directions={directions}
           />

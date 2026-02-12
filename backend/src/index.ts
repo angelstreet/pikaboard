@@ -43,6 +43,7 @@ app.use('/widgets/*', serveStatic({ root: './public' }));
 
 // Health check (no auth)
 app.get('/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
+app.get('/api/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
 
 // Protected routes
 app.use('/api/*', authMiddleware);

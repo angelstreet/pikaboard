@@ -5,7 +5,7 @@
   - captain/orchestrator
   - creates tasks in `inbox`
   - keeps workload flowing across boards
-- `mewtwo` (alias `pika-ops`):
+- `lanturn`:
   - ops QA coordinator
   - assigns or rejects tasks from `inbox`
   - owns `in_review` gate and decides `done` vs return to `in_progress`
