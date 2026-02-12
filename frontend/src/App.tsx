@@ -4,6 +4,7 @@ import { Toaster } from 'react-hot-toast';
 import { useAuth, useUser, SignIn } from '@clerk/clerk-react';
 import { dark as clerkDark } from '@clerk/themes';
 import Layout from './components/Layout';
+import AuthGuard from './components/AuthGuard';
 import DashboardHome from './pages/DashboardHome';
 import Boards from './pages/Boards';
 import Agents from './pages/Agents';
@@ -127,7 +128,13 @@ function App() {
       </ClerkGate>
     );
   }
-  return <AppContent />;
+
+  // When Clerk is not configured (local/dev), require the API token via AuthGuard.
+  return (
+    <AuthGuard>
+      <AppContent />
+    </AuthGuard>
+  );
 }
 
 export default App;
