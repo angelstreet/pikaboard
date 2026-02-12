@@ -56,6 +56,11 @@ export function TaskCard({ task, onClick, onArchive, isDragging, readOnly, showB
 
   const priority = priorityColors[task.priority] || priorityColors.medium;
   const dragging = isDragging || sortableIsDragging;
+
+  const now = Date.now();
+  const updatedAt = task.updated_at ? new Date(task.updated_at).getTime() : 0;
+  const minutesStalled = Math.floor((now - updatedAt) / 60000);
+  const isStalled = (task.status === 'up_next' || task.status === 'in_progress') && minutesStalled > 10;
   const boardBadgeColors: Record<string, string> = {
     blue: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
     green: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
@@ -102,6 +107,11 @@ export function TaskCard({ task, onClick, onArchive, isDragging, readOnly, showB
           {task.priority !== 'medium' && (
             <span className={`px-1.5 py-0.5 text-xs rounded font-medium ${priority.badge}`}>
               {priority.text}
+            </span>
+          )}
+          {isStalled && (
+            <span className="px-1.5 py-0.5 text-xs rounded-full font-medium bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300" title={`Stalled for ${minutesStalled} minutes`}>
+              Stalled {minutesStalled}min
             </span>
           )}
         </div>
