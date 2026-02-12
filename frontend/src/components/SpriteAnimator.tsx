@@ -59,16 +59,39 @@ interface SpriteAnimatorProps {
  */
 export function useSpriteInfo(agent: string, animation: Animation = 'idle') {
   const [directions, setDirections] = useState<4 | 8>(8);
-  const sheet = `${BASE}characters/${agent}/${animation}.png`;
+
+  const candidates = [
+    `${BASE}characters/${agent}/${animation}.png`,
+    `${BASE}characters/${agent}/sprites/${animation}.png`,
+  ];
 
   useEffect(() => {
+    let cancelled = false;
+    let idx = 0;
     const img = new window.Image();
+
+    const load = (src: string) => {
+      img.src = src;
+    };
+
     img.onload = () => {
+      if (cancelled) return;
       const rows = Math.round(img.naturalHeight / CELL);
       setDirections(rows <= 4 ? 4 : 8);
     };
-    img.src = sheet;
-  }, [sheet]);
+
+    img.onerror = () => {
+      if (cancelled) return;
+      idx += 1;
+      if (idx < candidates.length) load(candidates[idx]);
+    };
+
+    load(candidates[0]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [agent, animation]);
 
   return { directions };
 }
@@ -115,7 +138,40 @@ export default function SpriteAnimator({
     }
   }, [fill]);
 
-  const sheet = `${BASE}characters/${agent}/${animation}.png`;
+  const [sheet, setSheet] = useState(`${BASE}characters/${agent}/${animation}.png`);
+
+  // Fallback to v2 location if the legacy path is missing.
+  useEffect(() => {
+    const candidates = [
+      `${BASE}characters/${agent}/${animation}.png`,
+      `${BASE}characters/${agent}/sprites/${animation}.png`,
+    ];
+
+    let cancelled = false;
+    let idx = 0;
+    const img = new window.Image();
+
+    const load = (src: string) => {
+      setSheet(src);
+      img.src = src;
+    };
+
+    img.onload = () => {
+      // nothing else to do (sheet already set)
+    };
+
+    img.onerror = () => {
+      if (cancelled) return;
+      idx += 1;
+      if (idx < candidates.length) load(candidates[idx]);
+    };
+
+    load(candidates[0]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [agent, animation]);
   const dirIndex = directions === 4 ? DIR_INDEX_4 : DIR_INDEX_8;
   const row = dirIndex[direction] ?? 0;
 

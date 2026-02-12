@@ -64,13 +64,37 @@ function angleToDirection8(angle: number): Direction {
 
 function useSpriteExists(agent: string): boolean {
   const [exists, setExists] = useState(false);
+
   useEffect(() => {
     const base = import.meta.env.BASE_URL || '/';
+    const candidates = [
+      `${base}characters/${agent}/idle.png`,
+      `${base}characters/${agent}/sprites/idle.png`,
+    ];
+
+    let cancelled = false;
+    let idx = 0;
+
     const img = new window.Image();
-    img.onload = () => setExists(true);
-    img.onerror = () => setExists(false);
-    img.src = `${base}characters/${agent}/idle.png`;
+    const tryNext = () => {
+      if (cancelled) return;
+      idx += 1;
+      if (idx >= candidates.length) {
+        setExists(false);
+        return;
+      }
+      img.src = candidates[idx];
+    };
+
+    img.onload = () => !cancelled && setExists(true);
+    img.onerror = tryNext;
+    img.src = candidates[0];
+
+    return () => {
+      cancelled = true;
+    };
   }, [agent]);
+
   return exists;
 }
 
