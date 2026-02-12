@@ -78,6 +78,7 @@ export function AgentCard({ agent, onClick }: AgentCardProps) {
   const status = statusConfig[agent.status] || statusConfig.offline;
   const cardRef = useRef<HTMLDivElement>(null);
   const [direction, setDirection] = useState<Direction>('S');
+  const [isHovered, setIsHovered] = useState(false);
   const spriteName = agentSpriteNames[agent.id.toLowerCase()];
   const spriteExists = useSpriteExists(spriteName || '');
   const { directions } = useSpriteInfo(spriteName || '', 'idle');
@@ -98,8 +99,12 @@ export function AgentCard({ agent, onClick }: AgentCardProps) {
     <div
       ref={cardRef}
       onClick={() => onClick?.(agent)}
+      onMouseEnter={() => setIsHovered(true)}
       onMouseMove={handleMouseMove}
-      onMouseLeave={() => setDirection('S')}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        setDirection('S');
+      }}
       className={`
         relative overflow-hidden
         bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700
