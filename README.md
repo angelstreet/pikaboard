@@ -37,6 +37,7 @@ Real-time status for your entire AI team:
 - **WORKING** — Agent has active sub-agents running
 - **IDLE** — Online but no active tasks
 - **OFFLINE** — No recent heartbeat
+- Animated sprites (idle/walk cycles) in AgentCard
 - Sub-agent count badges, session logs, token usage stats
 
 ### 📥 Unified Inbox
@@ -275,6 +276,7 @@ PikaBoard is designed to work with [OpenClaw](https://github.com/openclaw/opencl
 - `GET /api/activity` — Activity feed
 - `GET /api/library/skills` — Installed skills
 - `GET /api/library/plugins` — Channel plugins
+- `GET /api/health` — Health check endpoint
 - `GET /api/services/health` — Service health status
 
 ---
