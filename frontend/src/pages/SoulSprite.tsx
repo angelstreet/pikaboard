@@ -425,11 +425,11 @@ export default function SoulSprite() {
                   <div className="flex items-center gap-4">
                     <div className="w-20 h-20 rounded-xl bg-gray-100 dark:bg-gray-700 flex items-center justify-center overflow-hidden">
                       <img
-                        src={\`${BASE}characters/\${generatedCharacter.name}/avatar.png\`}
+                        src={`${BASE}characters/${generatedCharacter.name}/avatar.png`}
                         alt={generatedCharacter.displayName}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).src = \`${BASE}characters/pika/avatar.png\`;
+                          (e.target as HTMLImageElement).src = `${BASE}characters/pika/avatar.png`;
                         }}
                       />
                     </div>
@@ -450,13 +450,13 @@ export default function SoulSprite() {
                       <div className="flex gap-2">
                         <button
                           onClick={() => setPreviewAnimation('idle')}
-                          className={\`px-3 py-1 rounded text-xs font-medium transition-colors \${previewAnimation === 'idle' ? 'bg-yellow-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}\`}
+                          className={`px-3 py-1 rounded text-xs font-medium transition-colors ${previewAnimation === 'idle' ? 'bg-yellow-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}
                         >
                           Idle
                         </button>
                         <button
                           onClick={() => setPreviewAnimation('walk')}
-                          className={\`px-3 py-1 rounded text-xs font-medium transition-colors \${previewAnimation === 'walk' ? 'bg-yellow-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}\`}
+                          className={`px-3 py-1 rounded text-xs font-medium transition-colors ${previewAnimation === 'walk' ? 'bg-yellow-500 text-white' : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300'}`}
                         >
                           Walk
                         </button>
@@ -537,12 +537,12 @@ export default function SoulSprite() {
                         });
                       }
                     }}
-                    className={\`p-3 rounded-lg border cursor-pointer transition-all \${generatedCharacter?.name === char.name ? 'border-yellow-500 bg-yellow-500/10 dark:bg-yellow-500/20' : 'border-gray-200 dark:border-gray-700 hover:border-yellow-500/50 bg-gray-50 dark:bg-gray-700/50'}\`}
+                    className={`p-3 rounded-lg border cursor-pointer transition-all ${generatedCharacter?.name === char.name ? 'border-yellow-500 bg-yellow-500/10 dark:bg-yellow-500/20' : 'border-gray-200 dark:border-gray-700 hover:border-yellow-500/50 bg-gray-50 dark:bg-gray-700/50'}`}
                   >
                     <div className="w-full aspect-square rounded-lg bg-gray-100 dark:bg-gray-700 mb-2 overflow-hidden">
                       {char.hasAvatar ? (
                         <img
-                          src={\`${BASE}characters/\${char.name}/avatar.png\`}
+                          src={`${BASE}characters/${char.name}/avatar.png`}
                           alt={char.name}
                           className="w-full h-full object-cover"
                           onError={(e) => {

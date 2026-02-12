@@ -111,7 +111,7 @@ export function TaskCard({ task, onClick, onArchive, isDragging, readOnly, showB
           )}
           {isStalled && (
             <span className="px-1.5 py-0.5 text-xs rounded-full font-medium bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300" title={`Stalled for ${minutesStalled} minutes`}>
-              Stalled >10m
+              Stalled 10m+
             </span>
           )}
         </div>
@@ -153,7 +153,7 @@ export function TaskCard({ task, onClick, onArchive, isDragging, readOnly, showB
         </div>
       )}
 
-      {task.tags && (Array.isArray(task.tags) ? task.tags.length > 0 : task.tags.length > 0) && (
+      {task.tags && (
         <div className="flex gap-1 mt-4 sm:mt-3 flex-wrap">
           {(Array.isArray(task.tags) ? task.tags : task.tags.split(',').map((t: string) => t.trim()).filter(Boolean)).map((tag: string) => (
             <span
