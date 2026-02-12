@@ -98,7 +98,7 @@ export function TaskCard({ task, onClick, onArchive, isDragging, readOnly, showB
             );
           })()}
         </h4>
-        <div className="flex items-center gap-1 flex-shrink-0">
+        <div className="flex items-center gap-1 flex-shrink-0 w-24">
           {task.assignee && (
             <span className="w-5 h-5 rounded-full bg-blue-500 text-white text-[10px] font-bold flex items-center justify-center uppercase" title={task.assignee}>
               {task.assignee.charAt(0)}
@@ -111,7 +111,7 @@ export function TaskCard({ task, onClick, onArchive, isDragging, readOnly, showB
           )}
           {isStalled && (
             <span className="px-1.5 py-0.5 text-xs rounded-full font-medium bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300" title={`Stalled for ${minutesStalled} minutes`}>
-              Stalled {minutesStalled}min
+              Stalled >10m
             </span>
           )}
         </div>
