@@ -144,7 +144,7 @@ export function TaskCard({ task, onClick, onArchive, isDragging, readOnly, showB
       )}
 
       {task.tags && (Array.isArray(task.tags) ? task.tags.length > 0 : task.tags.length > 0) && (
-        <div className="flex gap-1 mt-2 flex-wrap">
+        <div className="flex gap-1 mt-3 flex-wrap">
           {(Array.isArray(task.tags) ? task.tags : task.tags.split(',').map((t: string) => t.trim()).filter(Boolean)).map((tag: string) => (
             <span
               key={tag}

@@ -14,6 +14,7 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { useDroppable } from '@dnd-kit/core';
+import toast from 'react-hot-toast';
 import { api, Task, Board } from '../api/client';
 import { TaskCard, TaskCardOverlay } from '../components/TaskCard';
 import { TaskModal } from '../components/TaskModal';
@@ -22,6 +23,7 @@ import { BoardSelector } from '../components/BoardSelector';
 import { TaskFilterTabs } from '../components/TaskFilterTabs';
 import TaskSearch from '../components/TaskSearch';
 import { useConfirmModal } from '../components/ConfirmModal';
+import { TEAM_ROSTER } from '../config/team';
 
 const COLUMNS: { id: Task['status']; label: string; color: string }[] = [
   { id: 'inbox', label: '📥 Inbox', color: 'bg-gray-100 dark:bg-gray-800' },
@@ -30,6 +32,17 @@ const COLUMNS: { id: Task['status']; label: string; color: string }[] = [
   { id: 'in_review', label: '👀 In Review', color: 'bg-purple-50 dark:bg-purple-950/40' },
   { id: 'done', label: '✅ Done', color: 'bg-green-50 dark:bg-green-950/40' },
 ];
+
+const STATUS_TOAST_COLORS: Record<Task['status'], { bg: string; border: string; text: string }> = {
+  inbox: { bg: '#F3F4F6', border: '#9CA3AF', text: '#374151' },
+  up_next: { bg: '#E0E7FF', border: '#6366F1', text: '#3730A3' },
+  in_progress: { bg: '#DBEAFE', border: '#3B82F6', text: '#1E3A8A' },
+  testing: { bg: '#EDE9FE', border: '#8B5CF6', text: '#5B21B6' },
+  in_review: { bg: '#FFEDD5', border: '#F97316', text: '#9A3412' },
+  done: { bg: '#DCFCE7', border: '#22C55E', text: '#166534' },
+  solved: { bg: '#DCFCE7', border: '#22C55E', text: '#166534' },
+  rejected: { bg: '#FEE2E2', border: '#EF4444', text: '#991B1B' },
+};
 
 function DroppableColumn({
   id,
@@ -158,6 +171,43 @@ export default function Boards() {
     })
   );
 
+  const getAgentIdForTask = useCallback((task: Task) => {
+    const owner = TEAM_ROSTER.find((member) => member.boardId === task.board_id);
+    return owner?.id || 'unknown';
+  }, []);
+
+  const showStatusToast = useCallback((task: Task, status: Task['status']) => {
+    // Keep mobile uncluttered for now.
+    if (window.innerWidth < 640) return;
+
+    const colors = STATUS_TOAST_COLORS[status] || STATUS_TOAST_COLORS.inbox;
+    const agentId = getAgentIdForTask(task);
+    const message = `#${task.id} ${task.name} (${status}-${agentId})`;
+
+    toast.custom(
+      (t) => (
+        <div
+          className={`status-toast ${t.visible ? 'status-toast--enter' : 'status-toast--leave'} max-w-[520px] rounded-lg border px-3 py-2 text-sm font-medium shadow-lg`}
+          style={{
+            backgroundColor: colors.bg,
+            borderColor: colors.border,
+            color: colors.text,
+          }}
+          onClick={() => toast.dismiss(t.id)}
+          role="status"
+          aria-live="polite"
+        >
+          {message}
+        </div>
+      ),
+      {
+        duration: 3500,
+        position: 'top-right',
+        style: { marginTop: '88px' },
+      }
+    );
+  }, [getAgentIdForTask]);
+
   // Notify TeamRoster of selected board
   useEffect(() => {
     window.dispatchEvent(new CustomEvent('board-selected', { detail: { boardId: currentBoard?.id ?? null } }));
@@ -222,7 +272,7 @@ export default function Boards() {
     if (!currentBoard) return;
     const interval = setInterval(() => {
       void loadTasks(currentBoard.id, currentBoard.is_main);
-    }, 10000);
+    }, 30000);
     return () => clearInterval(interval);
   }, [currentBoard?.id, currentBoard?.is_main, loadTasks]);
 
@@ -302,12 +352,14 @@ export default function Boards() {
 
     try {
       await api.updateTask(taskId, { status: targetStatus });
+      showStatusToast(task, targetStatus);
     } catch (err) {
       // Revert on error
       setTasks((prev) =>
         prev.map((t) => (t.id === taskId ? { ...t, status: task.status } : t))
       );
       console.error('Failed to update task status:', err);
+      toast.error('Status update failed. Reverted.');
     }
   };
 
@@ -331,6 +383,7 @@ export default function Boards() {
         status: 'rejected',
         rejection_reason: rejectionReason.trim(),
       });
+      showStatusToast(pendingRejectionTask, 'rejected');
       setRejectionModalOpen(false);
       setPendingRejectionTask(null);
       setRejectionReason('');
@@ -388,6 +441,9 @@ export default function Boards() {
       }
       const updated = await api.updateTask(editingTask.id, updates);
       setTasks((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
+      if (updated.status !== editingTask.status) {
+        showStatusToast(updated, updated.status);
+      }
     } else {
       // Create new task - block creation on Main board
       if (isGlobalView) {
@@ -521,18 +577,19 @@ export default function Boards() {
             onCreateBoard={handleCreateBoard}
             onEditBoard={handleEditBoard}
           />
+          {isGlobalView && (
+            <div className="flex items-center gap-1.5 px-2.5 py-1.5 bg-gray-100 text-gray-500 rounded-lg text-xs sm:text-sm cursor-default whitespace-nowrap" title="Main is a read-only global board">
+              <svg className="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span>View Only</span>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-2 flex-shrink-0">
           <TaskSearch onTaskClick={handleTaskClick} />
-          {isGlobalView ? (
-            <div className="flex items-center gap-1.5 px-3 py-2 bg-gray-100 text-gray-500 rounded-lg text-sm cursor-not-allowed" title="Switch to a specific board to create tasks">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span className="hidden sm:inline">View Only</span>
-            </div>
-          ) : (
+          {!isGlobalView && (
             <button
               onClick={handleCreateTask}
               className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm"
@@ -545,19 +602,6 @@ export default function Boards() {
           )}
         </div>
       </div>
-
-      {/* Main Board Info Banner */}
-      {isGlobalView && (
-        <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg flex items-start gap-3">
-          <svg className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <div className="text-sm text-blue-800">
-            <p className="font-medium">Global View</p>
-            <p className="text-blue-600">Main shows all tasks across every board. To create or edit tasks, switch to a specific board first.</p>
-          </div>
-        </div>
-      )}
 
       {/* Filter Tabs */}
       <TaskFilterTabs

@@ -47,3 +47,33 @@ body {
 .animate-slide-up {
   animation: slide-up 0.5s ease-out;
 }
+
+@keyframes toast-rtl-enter {
+  from {
+    opacity: 0;
+    transform: translateX(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes toast-rtl-leave {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-24px);
+  }
+}
+
+.status-toast--enter {
+  animation: toast-rtl-enter 0.2s ease-out;
+}
+
+.status-toast--leave {
+  animation: toast-rtl-leave 0.18s ease-in forwards;
+}

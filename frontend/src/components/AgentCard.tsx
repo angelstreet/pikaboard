@@ -42,7 +42,10 @@ const agentSpriteNames: Record<string, string> = {
   evoli: 'evoli',
   psykokwak: 'psykokwak',
   sala: 'sala',
-  tortue: 'tortue',
+  tortoise: 'tortoise',
+  mew: 'mew',
+  porygon: 'porygon',
+  lanturn: 'lanturn',
   main: 'pika',
 };
 

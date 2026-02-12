@@ -73,6 +73,16 @@ function getQuotesFrequency(): number {
   } catch { return 45; }
 }
 
+type QuoteFontSize = 'small' | 'medium' | 'large';
+
+function getQuotesFontSize(): QuoteFontSize {
+  try {
+    const val = localStorage.getItem('pikaboard_quotes_font_size');
+    if (val === 'medium' || val === 'large' || val === 'small') return val;
+    return 'small';
+  } catch { return 'small'; }
+}
+
 // Module-level singleton guard: only one QuoteWidget instance can own timers
 let activeInstanceId = 0;
 
@@ -81,13 +91,17 @@ export function QuoteWidget() {
   const [visible, setVisible] = useState(false);
   const [exiting, setExiting] = useState(false);
   const [enabled, setEnabled] = useState(isQuotesEnabled);
+  const [fontSize, setFontSize] = useState<QuoteFontSize>(getQuotesFontSize);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const exitTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const instanceIdRef = useRef(0);
 
   // Re-check enabled state when settings change (custom event from Settings page)
   useEffect(() => {
-    const onSettingsChanged = () => setEnabled(isQuotesEnabled());
+    const onSettingsChanged = () => {
+      setEnabled(isQuotesEnabled());
+      setFontSize(getQuotesFontSize());
+    };
     window.addEventListener('quotes-settings-changed', onSettingsChanged);
     return () => window.removeEventListener('quotes-settings-changed', onSettingsChanged);
   }, []);
@@ -168,6 +182,19 @@ export function QuoteWidget() {
 
   if (!enabled || !visible) return null;
 
+  const quoteTextClass =
+    fontSize === 'large'
+      ? 'text-[22px]'
+      : fontSize === 'medium'
+        ? 'text-[18px]'
+        : 'text-[14px]';
+  const authorTextClass =
+    fontSize === 'large'
+      ? 'text-xs'
+      : fontSize === 'medium'
+        ? 'text-[11px]'
+        : 'text-[10px]';
+
   return (
     <div
       className={`
@@ -186,14 +213,14 @@ export function QuoteWidget() {
       >
         ×
       </button>
-      <p className="text-xs text-gray-700 dark:text-gray-300 italic leading-relaxed pr-3">
+      <p className={`${quoteTextClass} text-gray-700 dark:text-gray-300 italic leading-relaxed pr-3`}>
         "{quote.text.split(/(?<=\.)\s+/).map((sentence, i, arr) => (
           <span key={i}>
             {sentence}{i < arr.length - 1 && <br />}
           </span>
         ))}"
       </p>
-      <p className="text-[10px] text-purple-600 dark:text-purple-400 mt-1 text-right">
+      <p className={`${authorTextClass} text-purple-600 dark:text-purple-400 mt-1 text-right`}>
         — {quote.author}
       </p>
     </div>

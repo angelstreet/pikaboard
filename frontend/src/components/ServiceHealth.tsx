@@ -16,7 +16,7 @@ interface HealthResponse {
 export default function ServiceHealth() {
   const [data, setData] = useState<HealthResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
 
   const fetchHealth = async () => {
     try {

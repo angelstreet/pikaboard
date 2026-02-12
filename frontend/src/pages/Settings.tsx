@@ -54,7 +54,7 @@ function TokenDisplay({ masked }: { masked: string }) {
 // Model Settings Component
 function ModelSettings() {
   const { config, loading, error, currentModel, switchToModel } = useModel();
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
 
   return (
     <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
@@ -203,8 +203,8 @@ export default function Settings() {
   const [config, setConfig] = useState<WorkspaceConfig | null>(cachedConfig);
   const [loading, setLoading] = useState(!cachedConfig);
   const [error, setError] = useState<string | null>(null);
-  const [configExpanded, setConfigExpanded] = useState(true);
-  const [prefsExpanded, setPrefsExpanded] = useState(true);
+  const [configExpanded, setConfigExpanded] = useState(false);
+  const [prefsExpanded, setPrefsExpanded] = useState(false);
   const [quotesEnabled, setQuotesEnabled] = useState(() => {
     try { return localStorage.getItem('pikaboard_quotes_enabled') === 'true'; }
     catch { return false; }
@@ -216,6 +216,13 @@ export default function Settings() {
   const [quotesFrequency, setQuotesFrequency] = useState(() => {
     try { return parseInt(localStorage.getItem('pikaboard_quotes_frequency') || '45', 10); }
     catch { return 45; }
+  });
+  const [quotesFontSize, setQuotesFontSize] = useState<'small' | 'medium' | 'large'>(() => {
+    try {
+      const saved = localStorage.getItem('pikaboard_quotes_font_size');
+      if (saved === 'medium' || saved === 'large' || saved === 'small') return saved;
+      return 'small';
+    } catch { return 'small'; }
   });
 
   useEffect(() => {
@@ -417,6 +424,26 @@ export default function Settings() {
                     <option value={60}>Every 1 min</option>
                     <option value={90}>Every 1.5 min</option>
                     <option value={120}>Every 2 min</option>
+                  </select>
+                </div>
+                <div className="flex items-center justify-between pl-3">
+                  <div>
+                    <span className="text-sm text-gray-900 dark:text-white">Font Size</span>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Quote text size</p>
+                  </div>
+                  <select
+                    value={quotesFontSize}
+                    onChange={(e) => {
+                      const val = e.target.value as 'small' | 'medium' | 'large';
+                      setQuotesFontSize(val);
+                      localStorage.setItem('pikaboard_quotes_font_size', val);
+                      window.dispatchEvent(new CustomEvent('quotes-settings-changed'));
+                    }}
+                    className="text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-white px-3 py-1.5 focus:ring-2 focus:ring-pika-500 focus:border-pika-500"
+                  >
+                    <option value="small">Small</option>
+                    <option value="medium">Medium</option>
+                    <option value="large">Large</option>
                   </select>
                 </div>
               </div>
