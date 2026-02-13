@@ -161,18 +161,18 @@ filesRouter.get('/', (c) => {
       }
     }
     
-    // For individual agent dirs, also check workspace/agents for logs
+    // For individual agent dirs, also check canonical agents logs path
     const agentsBase = join(homedir(), '.openclaw/agents');
     if (expanded.startsWith(agentsBase) && expanded !== agentsBase) {
       const agentName = relative(agentsBase, expanded).split('/')[0];
       if (agentName && !agentName.includes('/')) {
-        const workspaceLogsPath = join(homedir(), '.openclaw/workspace/agents', agentName, 'logs');
-        if (existsSync(workspaceLogsPath) && !files.some(f => f.name === 'logs')) {
+        const agentLogsPath = join(homedir(), '.openclaw/agents', agentName, 'logs');
+        if (existsSync(agentLogsPath) && !files.some(f => f.name === 'logs')) {
           try {
-            const logsStat = statSync(workspaceLogsPath);
+            const logsStat = statSync(agentLogsPath);
             files.push({
               name: 'logs',
-              path: workspaceLogsPath.replace(homedir(), '~'),
+              path: agentLogsPath.replace(homedir(), '~'),
               type: 'directory',
               modified: logsStat.mtime.toISOString(),
             });
