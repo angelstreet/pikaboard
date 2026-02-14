@@ -185,7 +185,7 @@ export function BoardModal({ board, isOpen, onClose, onSave, onDelete, boardCoun
                       className="rounded"
                     />
                     <label htmlFor="deleteTasks" className="text-sm text-gray-600">
-                      Also delete all tasks
+                      Delete tasks
                     </label>
                   </div>
                   <div className="flex items-center gap-2">
