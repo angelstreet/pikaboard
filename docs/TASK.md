@@ -102,6 +102,7 @@ Users see a blank page and have to refresh.
 - `low` - Nice-to-have, future enhancements
 
 **Tags:**
+- App: `App:pikaboard`, `App:kozy`, `App:soulworld`
 - Technical: `backend`, `frontend`, `database`, `api`
 - Type: `bug`, `feature`, `refactor`, `docs`, `test`
 - Domain: `auth`, `payments`, `notifications`, etc.
@@ -285,10 +286,11 @@ Then re-run pre-review-check.sh and update evidence.
 - **Format:** Array of strings
 - **Max recommended:** 3-5 tags per task
 - **Common tags:**
-  - Technical: `backend`, `frontend`, `database`, `api`, `ui`, `ux`
-  - Type: `bug`, `feature`, `refactor`, `docs`, `test`, `ops`
-  - Status: `stale`, `blocked`, `waiting`
-  - Domain: `auth`, `payments`, `notifications`, `dashboard`
+  - **App:** `App:pikaboard`, `App:kozy`, `App:soulworld` (which app this task belongs to)
+  - **Technical:** `backend`, `frontend`, `database`, `api`, `ui`, `ux`
+  - **Type:** `bug`, `feature`, `refactor`, `docs`, `test`, `ops`
+  - **Status:** `stale`, `blocked`, `waiting`
+  - **Domain:** `auth`, `payments`, `notifications`, `dashboard`
 
 ### Board ID
 - Which project board this belongs to
