@@ -185,7 +185,7 @@ export function BoardModal({ board, isOpen, onClose, onSave, onDelete, boardCoun
                       className="rounded"
                     />
                     <label htmlFor="deleteTasks" className="text-sm text-gray-600">
-                      Delete tasks
+                      tasks
                     </label>
                   </div>
                   <div className="flex items-center gap-2">
@@ -209,7 +209,7 @@ export function BoardModal({ board, isOpen, onClose, onSave, onDelete, boardCoun
                   onClick={() => setShowDeleteConfirm(true)}
                   className="text-red-600 hover:text-red-700 text-sm"
                 >
-                  Delete board
+                  Delete
                 </button>
               )}
             </div>
