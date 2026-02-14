@@ -152,6 +152,7 @@ export interface Agent {
   personality: string | null;
   domain: string | null;
   boardId: number | null;
+  emoji: string | null;
   kpis: {
     tasksCompleted: number;
     tasksActive: number;

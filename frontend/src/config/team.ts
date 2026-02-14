@@ -1,5 +1,5 @@
 // Pokemon Team - Agent Roster Configuration
-// These are the persistent team members, not run instances
+// UI defaults for team members - actual roster fetched dynamically from API
 
 export interface TeamMember {
   id: string;
@@ -14,6 +14,139 @@ export interface TeamMember {
   boards?: string[]; // Board names (legacy, for display)
 }
 
+interface UIDefaults {
+  name: string;
+  role: 'captain' | 'specialist';
+  roleLabel: string;
+  function: string;
+  avatarImg: string;
+  color: string;
+  boardId?: number;
+  boards?: string[];
+}
+
+// UI defaults for each agent - colors, avatars, roles, etc.
+const AGENT_UI_DEFAULTS: Record<string, UIDefaults> = {
+  main: {
+    name: 'Pika',
+    role: 'captain',
+    roleLabel: 'CPT',
+    function: 'Main Agent',
+    avatarImg: '/characters/pika/avatar.png',
+    color: '#FACC15', // yellow
+    boardId: 1,
+    boards: [],
+  },
+  bulbi: {
+    name: 'Bulbi',
+    role: 'specialist',
+    roleLabel: 'SPC',
+    function: 'PikaBoard Dev',
+    avatarImg: '/characters/bulbi/avatar.png',
+    color: '#22C55E', // green
+    boardId: 6,
+    boards: ['pikaboard'],
+  },
+  tortoise: {
+    name: 'Tortoise',
+    role: 'specialist',
+    roleLabel: 'SPC',
+    function: 'Personal Assistant',
+    avatarImg: '/characters/tortoise/avatar.png',
+    color: '#3B82F6', // blue
+    boardId: 2,
+    boards: ['personal'],
+  },
+  sala: {
+    name: 'Sala',
+    role: 'specialist',
+    roleLabel: 'SPC',
+    function: 'Work Projects',
+    avatarImg: '/characters/sala/avatar.png',
+    color: '#EF4444', // red
+    boardId: 3,
+    boards: ['work'],
+  },
+  evoli: {
+    name: 'Evoli',
+    role: 'specialist',
+    roleLabel: 'SPC',
+    function: 'VirtualPyTest Dev',
+    avatarImg: '/characters/evoli/avatar.png',
+    color: '#A855F7', // purple
+    boardId: 4,
+    boards: ['virtualpytest'],
+  },
+  psycho: {
+    name: 'Psykokwak',
+    role: 'specialist',
+    roleLabel: 'SPC',
+    function: 'EZPlanning Dev',
+    avatarImg: '/characters/psykokwak/avatar.png',
+    color: '#F97316', // orange
+    boardId: 5,
+    boards: ['ezplanning'],
+  },
+  mew: {
+    name: 'Mew',
+    role: 'specialist',
+    roleLabel: 'SPC',
+    function: 'Ideas & Product',
+    avatarImg: '/characters/mew/avatar.png',
+    color: '#EC4899', // pink
+    boardId: 7,
+    boards: ['ideas'],
+  },
+  porygon: {
+    name: 'Porygon',
+    role: 'specialist',
+    roleLabel: 'SPC',
+    function: 'Ops & Infra',
+    avatarImg: '/characters/porygon/avatar.png',
+    color: '#06B6D4', // cyan
+    boardId: 12,
+    boards: ['ops'],
+  },
+  lanturn: {
+    name: 'Lanturn',
+    role: 'specialist',
+    roleLabel: 'QA',
+    function: 'Operations & QA',
+    avatarImg: '/characters/lanturn/avatar.png',
+    color: '#0EA5E9', // sky blue
+    boardId: undefined,
+    boards: [],
+  },
+};
+
+// Build TeamMember from API data + UI defaults
+export function buildTeamMember(agentId: string, emoji: string): TeamMember {
+  const defaults = AGENT_UI_DEFAULTS[agentId] || {
+    name: agentId.charAt(0).toUpperCase() + agentId.slice(1),
+    role: 'specialist' as const,
+    roleLabel: 'SPC',
+    function: 'Agent',
+    avatarImg: '/characters/default/avatar.png',
+    color: '#6B7280', // gray
+    boardId: undefined,
+    boards: [],
+  };
+
+  return {
+    id: agentId,
+    name: defaults.name,
+    role: defaults.role,
+    roleLabel: defaults.roleLabel,
+    function: defaults.function,
+    avatar: emoji,
+    avatarImg: defaults.avatarImg,
+    color: defaults.color,
+    boardId: defaults.boardId,
+    boards: defaults.boards,
+  };
+}
+
+// Legacy hardcoded roster - DEPRECATED, use API instead
 export const TEAM_ROSTER: TeamMember[] = [
   {
     id: 'main',

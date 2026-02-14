@@ -135,15 +135,8 @@ function AgentDetailView({
   const [showSoul, setShowSoul] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
 
-  const agentEmojis: Record<string, string> = {
-    bulbi: '🌱',
-    evoli: '🦊',
-    psykokwak: '🦆',
-    sala: '🔥',
-    tortue: '🐢',
-    pika: '⚡',
-  };
-  const emoji = agentEmojis[agent.id.toLowerCase()] || '🤖';
+  // Use emoji from API (read from openclaw.json), fallback to default
+  const emoji = agent.emoji || '🤖';
 
   return (
     <div className="divide-y divide-gray-200 dark:divide-gray-700">

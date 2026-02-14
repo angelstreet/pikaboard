@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { TEAM_ROSTER, TeamMember } from '../config/team';
+import { TeamMember, buildTeamMember } from '../config/team';
 import { api } from '../api/client';
 import AgentAvatar from './AgentAvatar';
 
@@ -23,6 +23,25 @@ export default function TeamRoster({ collapsed, onToggle }: TeamRosterProps) {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeBoardId, setActiveBoardId] = useState<number | null>(null);
+  const [teamRoster, setTeamRoster] = useState<TeamMember[]>([]);
+
+  // Fetch team roster from API
+  useEffect(() => {
+    const fetchRoster = async () => {
+      try {
+        const response = await fetch('/api/agents/roster');
+        const data = await response.json();
+        const roster = (data.roster || []).map((agent: { id: string; emoji: string }) =>
+          buildTeamMember(agent.id, agent.emoji)
+        );
+        setTeamRoster(roster);
+      } catch (err) {
+        console.error('Failed to fetch team roster:', err);
+        setTeamRoster([]);
+      }
+    };
+    fetchRoster();
+  }, []);
 
   // Listen for board selection from Boards page
   useEffect(() => {
@@ -46,7 +65,7 @@ export default function TeamRoster({ collapsed, onToggle }: TeamRosterProps) {
         const statusMap = new Map<string, AgentStatus>();
 
         // Initialize all team members with status from API
-        for (const member of TEAM_ROSTER) {
+        for (const member of teamRoster) {
           const agentInfo = agentsData.find((a: { id: string; status?: string; activeSubAgents?: number; pendingApproval?: boolean }) => 
             a.id.toLowerCase() === member.id.toLowerCase()
           );
@@ -69,7 +88,7 @@ export default function TeamRoster({ collapsed, onToggle }: TeamRosterProps) {
         
         for (const task of inProgressTasks) {
           // Find which agent owns this board
-          const member = TEAM_ROSTER.find(m => m.boardId === task.board_id);
+          const member = teamRoster.find(m => m.boardId === task.board_id);
           if (member) {
             const existing = statusMap.get(member.id);
             // Working overrides blocked
@@ -91,10 +110,16 @@ export default function TeamRoster({ collapsed, onToggle }: TeamRosterProps) {
       }
     };
 
+    // Only fetch statuses if teamRoster is loaded
+    if (teamRoster.length === 0) {
+      setLoading(false);
+      return;
+    }
+
     fetchStatuses();
     const poller = setInterval(fetchStatuses, 10000);
     return () => clearInterval(poller);
-  }, []);
+  }, [teamRoster]);
 
   const getStatusBadge = (status: AgentStatus['status']) => {
     switch (status) {
@@ -149,7 +174,7 @@ export default function TeamRoster({ collapsed, onToggle }: TeamRosterProps) {
           )}
         </button>
         <div className="flex-1 overflow-y-auto py-2">
-          {TEAM_ROSTER.map((member) => {
+          {teamRoster.map((member) => {
             const status = statuses.get(member.id);
             const isBoardOwner = activeBoardId != null && member.boardId === activeBoardId;
             return (
@@ -186,7 +211,7 @@ export default function TeamRoster({ collapsed, onToggle }: TeamRosterProps) {
           <span className="text-lg">👥</span>
           <span className="font-semibold text-gray-900 dark:text-white">Team</span>
           <span className="px-1.5 py-0.5 text-xs bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400 rounded-full">
-            {TEAM_ROSTER.length}
+            {teamRoster.length}
           </span>
           {workingCount > 0 && (
             <span className="px-1.5 py-0.5 text-xs bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300 rounded-full">
@@ -213,7 +238,7 @@ export default function TeamRoster({ collapsed, onToggle }: TeamRosterProps) {
           </div>
         ) : (
           <div className="divide-y divide-gray-100 dark:divide-gray-700">
-            {TEAM_ROSTER.map((member) => {
+            {teamRoster.map((member) => {
               const status = statuses.get(member.id);
               const isSelected = selectedAgent === member.id;
               const isBoardOwner = activeBoardId != null && member.boardId === activeBoardId;

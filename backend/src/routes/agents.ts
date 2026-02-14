@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { readdir, readFile, stat } from 'fs/promises';
-import { createReadStream, existsSync } from 'fs';
+import { createReadStream, existsSync, readFileSync } from 'fs';
 import { createInterface } from 'readline';
 import { join, delimiter } from 'path';
 import { homedir } from 'os';
@@ -33,6 +33,7 @@ interface Agent {
   personality: string | null;
   domain: string | null;
   boardId: number | null;
+  emoji: string | null;
   kpis: {
     tasksCompleted: number;
     tasksActive: number;
@@ -46,6 +47,20 @@ interface Agent {
   activeSubAgents: number;
   pendingApproval: boolean;
   inProgressTasks: number;
+}
+
+// Helper: Get emoji from openclaw.json for an agent
+function getAgentEmoji(agentId: string): string | null {
+  try {
+    const openclawConfigPath = join(homedir(), '.openclaw', 'openclaw.json');
+    const configContent = readFileSync(openclawConfigPath, 'utf-8');
+    const config = JSON.parse(configContent);
+    const agentsList = config?.agents?.list || [];
+    const agent = agentsList.find((a: any) => a.id === agentId);
+    return agent?.identity?.emoji || null;
+  } catch {
+    return null;
+  }
 }
 
 function normalizePaths(input?: string): string[] {
@@ -346,6 +361,7 @@ agentsRouter.get('/', async (c) => {
         personality: soulData.personality,
         domain: soulData.domain,
         boardId: config.board_id || soulData.boardId,
+        emoji: getAgentEmoji(agentId),
         kpis: {
           tasksCompleted: config.kpis?.tasksCompleted || 0,
           tasksActive: config.kpis?.tasksActive || 0,
@@ -788,6 +804,7 @@ agentsRouter.get('/:id', async (c) => {
       personality: soulData.personality,
       domain: soulData.domain,
       boardId: config.board_id || soulData.boardId,
+      emoji: getAgentEmoji(id),
       kpis: {
         tasksCompleted: config.kpis?.tasksCompleted || 0,
         tasksActive: config.kpis?.tasksActive || 0,

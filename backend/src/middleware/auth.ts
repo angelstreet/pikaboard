@@ -1,7 +1,14 @@
 import { Context, Next } from 'hono';
 import { verifyToken } from '@clerk/backend';
 
+// Public endpoints that skip auth
+const PUBLIC_PATHS = ['/api/apps', '/api/health'];
+
 export const authMiddleware = async (c: Context, next: Next) => {
+  if (PUBLIC_PATHS.some((p) => c.req.path === p || c.req.path.startsWith(p + '/'))) {
+    return next();
+  }
+
   const authHeader = c.req.header('Authorization');
   const apiToken = process.env.PIKABOARD_API_TOKEN || process.env.PIKABOARD_TOKEN;
   const clerkSecretKey = process.env.CLERK_SECRET_KEY;

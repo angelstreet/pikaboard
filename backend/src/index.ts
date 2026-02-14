@@ -26,6 +26,7 @@ import { servicesRouter } from './routes/services.js';
 import { soulspriteRouter } from './routes/soulsprite.js';
 import { cryptoRouter } from './routes/crypto.js';
 import modelRouter from './routes/model.js';
+import { appsRouter } from './routes/apps.js';
 import { initDatabase } from './db/index.js';
 
 config();
@@ -44,6 +45,37 @@ app.use('/widgets/*', serveStatic({ root: './public' }));
 // Health check (no auth)
 app.get('/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
 app.get('/api/health', (c) => c.json({ status: 'ok', timestamp: new Date().toISOString() }));
+app.get('/test-roster', (c) => c.json({ test: 'roster test endpoint works!' }));
+
+// Special roster endpoint (registered early to avoid /:id route conflict)
+app.get('/api/agents/roster', async (c) => {
+  console.log('🎯 ROSTER ENDPOINT HIT!');
+  const { homedir } = await import('os');
+  const { readFile } = await import('fs/promises');
+  const { join } = await import('path');
+
+  const openclawConfigPath = join(homedir(), '.openclaw', 'openclaw.json');
+
+  try {
+    const configContent = await readFile(openclawConfigPath, 'utf-8');
+    const config = JSON.parse(configContent);
+    const agentsList = config?.agents?.list || [];
+
+    const roster = agentsList.map((agent: any) => ({
+      id: agent.id,
+      emoji: agent.identity?.emoji || '🤖',
+      workspace: agent.workspace,
+    }));
+
+    return c.json({ roster });
+  } catch (err) {
+    console.error('Failed to read openclaw config:', err);
+    return c.json({ roster: [], error: 'Failed to read openclaw config' });
+  }
+});
+
+// Public routes (no auth required)
+app.route('/api/apps', appsRouter);
 
 // Protected routes
 app.use('/api/*', authMiddleware);
