@@ -249,6 +249,7 @@ const moreNavItems = [
   { path: '/usage', label: '💳 Usage', title: 'Usage' },
   { path: '/crypto', label: '💰 Crypto', title: 'Crypto' },
   { path: '/settings', label: '⚙️ Settings', title: 'Settings' },
+  { path: '#logout', label: '🚪 Logout', title: 'Logout' },
 ];
 
 // primaryNavItems + moreNavItems used directly in components
@@ -267,14 +268,19 @@ export default function Layout() {
   // Enable task completion notifications
   useTaskNotifications();
 
-  // Fetch inbox count for badge
+  // Fetch inbox count for badge (only actionable tasks: approvals, questions, blockers, issues)
   useEffect(() => {
     const fetchInboxCount = async () => {
       try {
         const inboxTasks = await api.getTasks({ status: 'inbox' });
         const actionable = inboxTasks.filter((t: { name: string }) => {
           const upper = t.name.toUpperCase();
-          return upper.startsWith('[APPROVAL]') || upper.startsWith('[QUESTION]') || upper.startsWith('[BLOCKER]');
+          return (
+            upper.startsWith('[APPROVAL]') ||
+            upper.startsWith('[QUESTION]') ||
+            upper.startsWith('[BLOCKER]') ||
+            upper.startsWith('[ISSUE]')
+          );
         });
         setInboxCount(actionable.length);
       } catch {
@@ -339,17 +345,30 @@ export default function Layout() {
               </button>
               <div className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all z-50">
                 {moreNavItems.map((item) => (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    className={`block px-4 py-2 text-sm transition-colors first:rounded-t-lg last:rounded-b-lg ${
-                      location.pathname === item.path
-                        ? 'bg-pika-50 text-pika-700 dark:bg-pika-900/50 dark:text-pika-300'
-                        : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'
-                    }`}
-                  >
-                    {item.label}
-                  </Link>
+                  item.path === '#logout' ? (
+                    <button
+                      key={item.path}
+                      onClick={() => {
+                        localStorage.removeItem('pikaboard_token');
+                        window.location.reload();
+                      }}
+                      className="w-full text-left block px-4 py-2 text-sm transition-colors last:rounded-b-lg text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
+                    >
+                      {item.label}
+                    </button>
+                  ) : (
+                    <Link
+                      key={item.path}
+                      to={item.path}
+                      className={`block px-4 py-2 text-sm transition-colors first:rounded-t-lg ${
+                        location.pathname === item.path
+                          ? 'bg-pika-50 text-pika-700 dark:bg-pika-900/50 dark:text-pika-300'
+                          : 'text-gray-700 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      {item.label}
+                    </Link>
+                  )
                 ))}
               </div>
             </div>

@@ -20,6 +20,7 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
     { path: '/chat', icon: '💬', label: 'Chat' },
     { path: '/apps', icon: '🚀', label: 'Apps' },
     { path: '/settings', icon: '⚙️', label: 'Settings' },
+    { path: '#logout', icon: '🚪', label: 'Logout' },
   ];
 
   return (
@@ -44,15 +45,29 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
         
         <nav className="p-2">
           {menuItems.map((item) => (
-            <Link
-              key={item.path}
-              to={item.path}
-              onClick={onClose}
-              className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
-            >
-              <span className="text-xl">{item.icon}</span>
-              <span>{item.label}</span>
-            </Link>
+            item.path === '#logout' ? (
+              <button
+                key={item.path}
+                onClick={() => {
+                  localStorage.removeItem('pikaboard_token');
+                  window.location.reload();
+                }}
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+              >
+                <span className="text-xl">{item.icon}</span>
+                <span>{item.label}</span>
+              </button>
+            ) : (
+              <Link
+                key={item.path}
+                to={item.path}
+                onClick={onClose}
+                className="flex items-center gap-3 px-4 py-3 rounded-lg text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+              >
+                <span className="text-xl">{item.icon}</span>
+                <span>{item.label}</span>
+              </Link>
+            )
           ))}
         </nav>
       </div>

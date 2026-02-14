@@ -175,16 +175,5 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     );
   }
 
-  return (
-    <div>
-      {/* Logout button in corner */}
-      <button
-        onClick={handleLogout}
-        className="fixed top-4 right-4 text-xs text-gray-400 hover:text-gray-600"
-      >
-        Logout
-      </button>
-      {children}
-    </div>
-  );
+  return <>{children}</>;
 }

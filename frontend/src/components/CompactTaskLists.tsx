@@ -5,6 +5,7 @@ import { api, Task } from '../api/client';
 type TaskWithBoard = Task & { board_name?: string; board_icon?: string };
 
 const SECTIONS = [
+  { key: 'inbox', label: 'Inbox', emoji: '📥' },
   { key: 'up_next', label: 'Up Next', emoji: '📋' },
   { key: 'in_progress', label: 'In Progress', emoji: '⚡' },
   { key: 'in_review', label: 'In Review', emoji: '👀' },
@@ -28,7 +29,7 @@ function age(dateStr: string): string {
 }
 
 function Section({ label, emoji, tasks }: { status: string; label: string; emoji: string; tasks: TaskWithBoard[] }) {
-  const [open, setOpen] = useState(true);
+  const [open, setOpen] = useState(false);
   const navigate = useNavigate();
 
   return (

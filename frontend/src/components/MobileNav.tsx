@@ -10,12 +10,21 @@ export default function MobileNav({ onMenuClick }: MobileNavProps) {
   const location = useLocation();
   const [inboxCount, setInboxCount] = useState(0);
   
-  // Fetch inbox count
+  // Fetch inbox count (only actionable tasks: approvals, questions, blockers, issues)
   useEffect(() => {
     const loadInboxCount = async () => {
       try {
         const tasks = await api.getTasks({ status: 'inbox' });
-        setInboxCount(tasks.length);
+        const actionable = tasks.filter((t: { name: string }) => {
+          const upper = t.name.toUpperCase();
+          return (
+            upper.startsWith('[APPROVAL]') ||
+            upper.startsWith('[QUESTION]') ||
+            upper.startsWith('[BLOCKER]') ||
+            upper.startsWith('[ISSUE]')
+          );
+        });
+        setInboxCount(actionable.length);
       } catch {
         // Ignore errors
       }

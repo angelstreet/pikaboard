@@ -63,15 +63,12 @@ export default function ModelToggle({
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   const modelIds = useMemo(() => {
-    const fromChain = unique([
-      config?.config?.primary || '',
-      ...(config?.config?.fallbacks || []),
-    ]);
-
-    if (fromChain.length > 0) {
-      return fromChain;
+    // Show ALL available models from config.models
+    if (config?.models) {
+      return Object.keys(config.models);
     }
 
+    // Fallback if no config loaded
     return unique([
       'anthropic/claude-opus-4-6',
       'openai-codex/gpt-5.3-codex',

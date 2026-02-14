@@ -6,7 +6,7 @@ type FilterType = 'all' | 'agents' | 'tasks';
 interface ActivityMetadata {
   agent_label?: string;
   session_key?: string;
-  status?: 'running' | 'completed' | 'failed';
+  status?: 'running' | 'completed' | 'failed' | string;
   duration_sec?: number;
   tokens_total?: number;
   task_summary?: string;
@@ -17,6 +17,9 @@ interface ActivityMetadata {
   run_id?: string;
   started_at?: string;
   ended_at?: string;
+  actor?: string;
+  assignee?: string;
+  task_status?: string;
 }
 
 // Agent emoji mapping
@@ -99,30 +102,59 @@ function formatTaskRef(metadata?: ActivityMetadata): string {
   return id ? ` (#${id})` : '';
 }
 
+// Strip redundant status prefixes from task summaries
+function stripStatusPrefix(summary: string): string {
+  return summary.replace(/^(Completed|Failed|Working on|Running):\s*/i, '');
+}
+
 // Build a human-readable message for agent_activity entries instead of showing raw UUIDs
-function formatAgentMessage(message: string, metadata?: ActivityMetadata): string {
+// When showBadge is true, we omit the agent name and status prefix from the message to avoid duplication
+function formatAgentMessage(message: string, metadata?: ActivityMetadata, showBadge: boolean = false): string {
   if (!metadata) return message;
 
   const agent = getAgentDisplayName(metadata.agent_label, metadata.session_key);
   const taskRef = formatTaskRef(metadata);
 
   if (metadata.status === 'completed') {
-    const parts = [`${agent.name} completed`];
-    if (metadata.task_summary) parts[0] = `${agent.name} completed: ${metadata.task_summary}`;
-    if (taskRef) parts[0] += taskRef;
-    if (metadata.duration_sec !== undefined) parts.push(`in ${formatDuration(metadata.duration_sec)}`);
-    if (metadata.tokens_total && metadata.tokens_total > 0) parts.push(`(${formatTokens(metadata.tokens_total)} tokens)`);
-    return parts.join(' ');
+    // With badge: just show summary + duration/tokens (strip "Completed:" prefix)
+    // Without badge: include agent name and "completed"
+    if (showBadge) {
+      const parts: string[] = [];
+      if (metadata.task_summary) {
+        const cleanSummary = stripStatusPrefix(metadata.task_summary);
+        parts.push(`${cleanSummary}${taskRef}`);
+      }
+      if (metadata.duration_sec !== undefined) parts.push(`in ${formatDuration(metadata.duration_sec)}`);
+      if (metadata.tokens_total && metadata.tokens_total > 0) parts.push(`(${formatTokens(metadata.tokens_total)} tokens)`);
+      return parts.join(' ') || 'Task completed';
+    } else {
+      const parts = [`${agent.name} completed`];
+      if (metadata.task_summary) parts[0] = `${agent.name} completed: ${metadata.task_summary}`;
+      if (taskRef) parts[0] += taskRef;
+      if (metadata.duration_sec !== undefined) parts.push(`in ${formatDuration(metadata.duration_sec)}`);
+      if (metadata.tokens_total && metadata.tokens_total > 0) parts.push(`(${formatTokens(metadata.tokens_total)} tokens)`);
+      return parts.join(' ');
+    }
   }
 
   if (metadata.status === 'running') {
-    if (metadata.task_summary) return `${agent.name} working on: ${metadata.task_summary}${taskRef}`;
-    return `${agent.name} is running`;
+    // With badge: just show summary (strip "Working on:" prefix)
+    // Without badge: include agent name and "working on"
+    if (metadata.task_summary) {
+      const cleanSummary = showBadge ? stripStatusPrefix(metadata.task_summary) : metadata.task_summary;
+      return showBadge ? `${cleanSummary}${taskRef}` : `${agent.name} working on: ${cleanSummary}${taskRef}`;
+    }
+    return showBadge ? 'Running task' : `${agent.name} is running`;
   }
 
   if (metadata.status === 'failed') {
-    if (metadata.task_summary) return `${agent.name} failed: ${metadata.task_summary}${taskRef}`;
-    return `${agent.name} failed`;
+    // With badge: just show summary (strip "Failed:" prefix)
+    // Without badge: include agent name and "failed"
+    if (metadata.task_summary) {
+      const cleanSummary = showBadge ? stripStatusPrefix(metadata.task_summary) : metadata.task_summary;
+      return showBadge ? `${cleanSummary}${taskRef}` : `${agent.name} failed: ${cleanSummary}${taskRef}`;
+    }
+    return showBadge ? 'Task failed' : `${agent.name} failed`;
   }
 
   // Fallback: replace UUID patterns in the original message with agent name
@@ -168,12 +200,12 @@ function getActivityColor(type: string, metadata?: ActivityMetadata): string {
   }
 }
 
-function ActivityItem({ 
-  activity, 
-  expanded, 
-  onToggle 
-}: { 
-  activity: Activity; 
+function ActivityItem({
+  activity,
+  expanded,
+  onToggle
+}: {
+  activity: Activity;
   expanded: boolean;
   onToggle: () => void;
 }) {
@@ -181,13 +213,51 @@ function ActivityItem({
   const icon = getActivityIcon(activity.type, metadata ?? undefined);
   const colorClass = getActivityColor(activity.type, metadata ?? undefined);
   const timeAgo = getTimeAgo(new Date(activity.created_at));
-  
+
   const isAgent = activity.type === 'agent_activity';
+  const isTask = activity.type.startsWith('task_');
   const isRunning = metadata?.status === 'running';
+
+  // Get agent display for agent activities
   const agentDisplay = getAgentDisplayName(metadata?.agent_label, metadata?.session_key);
-  
+
+  // Get actor for task activities (who performed the action)
+  const taskActor = metadata?.actor || metadata?.assignee;
+  const taskActorDisplay = taskActor ? getAgentDisplayName(taskActor, undefined) : null;
+
+  // Status badge styling - works for both agent and task statuses
+  const getStatusBadge = (status?: string, isTaskStatus = false) => {
+    if (!status) return null;
+
+    // Agent statuses
+    const agentBadges = {
+      running: { label: 'In Progress', color: 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300' },
+      completed: { label: 'Completed', color: 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300' },
+      failed: { label: 'Failed', color: 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300' },
+    };
+
+    // Task statuses
+    const taskBadges = {
+      inbox: { label: 'Inbox', color: 'bg-gray-100 dark:bg-gray-900/50 text-gray-700 dark:text-gray-300' },
+      up_next: { label: 'Up Next', color: 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300' },
+      in_progress: { label: 'In Progress', color: 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300' },
+      in_review: { label: 'In Review', color: 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300' },
+      done: { label: 'Done', color: 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300' },
+      rejected: { label: 'Rejected', color: 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300' },
+    };
+
+    const badges = isTaskStatus ? taskBadges : agentBadges;
+    const badge = badges[status as keyof typeof badges];
+    if (!badge) return null;
+    return (
+      <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full ${badge.color}`}>
+        {badge.label}
+      </span>
+    );
+  };
+
   return (
-    <div 
+    <div
       className={`border-l-4 rounded-r-lg px-3 py-2 cursor-pointer transition-all hover:shadow-sm ${colorClass} max-w-full overflow-hidden`}
       onClick={onToggle}
     >
@@ -196,14 +266,27 @@ function ActivityItem({
         <div className="flex-1 min-w-0 overflow-hidden">
           <div className="flex items-start justify-between gap-2 max-w-full">
             <div className="flex-1 min-w-0 overflow-hidden">
+              {/* Agent activity badges */}
               {isAgent && metadata?.agent_label && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full mb-1">
-                  <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" style={{ display: isRunning ? 'inline-block' : 'none' }}></span>
-                  {agentDisplay.full}
-                </span>
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full">
+                    <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" style={{ display: isRunning ? 'inline-block' : 'none' }}></span>
+                    {agentDisplay.full}
+                  </span>
+                  {getStatusBadge(metadata?.status, false)}
+                </div>
+              )}
+              {/* Task activity badges */}
+              {isTask && taskActorDisplay && (
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full">
+                    {taskActorDisplay.full}
+                  </span>
+                  {metadata?.task_status && getStatusBadge(metadata.task_status, true)}
+                </div>
               )}
               <p className="text-sm text-gray-700 dark:text-gray-300 break-words">
-                {isAgent ? formatAgentMessage(activity.message, metadata ?? undefined) : activity.message}
+                {isAgent ? formatAgentMessage(activity.message, metadata ?? undefined, !!metadata?.agent_label) : activity.message}
               </p>
             </div>
             <div className="flex flex-col items-end gap-1 flex-shrink-0">
@@ -257,24 +340,29 @@ export default function ActivityFeed() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
 
-  const loadActivity = useCallback(async () => {
+  const loadActivity = useCallback(async (isInitial = false) => {
     try {
+      if (isInitial) setLoading(true);
       // Always fetch all activity types to maintain consistent counts
       const data = await api.getActivity({ limit: 100 });
-      setAllActivity(data);
+      // Smooth update without unmounting - only update if data actually changed
+      setAllActivity(prev => {
+        const prevIds = prev.map(a => a.id).join(',');
+        const newIds = data.map(a => a.id).join(',');
+        return prevIds === newIds ? prev : data;
+      });
       setError(null);
       setLastRefresh(new Date());
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load activity');
     } finally {
-      setLoading(false);
+      if (isInitial) setLoading(false);
     }
   }, []);
 
   // Initial load
   useEffect(() => {
-    if (!allActivity.length) setLoading(true);
-    loadActivity();
+    loadActivity(true);
   }, [loadActivity]);
 
   // Filter the displayed activity based on selected filter
@@ -285,12 +373,12 @@ export default function ActivityFeed() {
     return true;
   }).slice(0, 20);
 
-  // Auto-refresh every 30 seconds
+  // Auto-refresh every 10 seconds (pass false to not show loading spinner)
   useEffect(() => {
     const interval = setInterval(() => {
-      loadActivity();
-    }, 30000);
-    
+      loadActivity(false);
+    }, 10000);
+
     return () => clearInterval(interval);
   }, [loadActivity]);
 
@@ -325,7 +413,7 @@ export default function ActivityFeed() {
           )}
         </div>
         <span className="text-xs text-gray-500 dark:text-gray-400" title={`Last refreshed: ${lastRefresh.toLocaleTimeString()}`}>
-          Auto-refresh: 30s
+          Auto-refresh: 10s
         </span>
       </div>
 
@@ -364,7 +452,7 @@ export default function ActivityFeed() {
             <p className="text-4xl mb-2">⚠️</p>
             <p>{error}</p>
             <button
-              onClick={loadActivity}
+              onClick={() => loadActivity(true)}
               className="mt-2 text-sm text-blue-600 dark:text-blue-400 hover:underline"
             >
               Retry

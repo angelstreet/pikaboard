@@ -272,7 +272,7 @@ export default function Boards() {
     if (!currentBoard) return;
     const interval = setInterval(() => {
       void loadTasks(currentBoard.id, currentBoard.is_main);
-    }, 30000);
+    }, 10000);
     return () => clearInterval(interval);
   }, [currentBoard?.id, currentBoard?.is_main, loadTasks]);
 

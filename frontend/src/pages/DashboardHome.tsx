@@ -87,6 +87,8 @@ export default function DashboardHome() {
 
   useEffect(() => {
     loadDashboard();
+    const interval = setInterval(loadDashboard, 10000);
+    return () => clearInterval(interval);
   }, []);
 
   const loadDashboard = async () => {
@@ -188,27 +190,6 @@ export default function DashboardHome() {
 
       {/* Activity Feed */}
       <ActivityFeed />
-
-      {/* Quick Summary */}
-      <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
-        <div className="flex items-center gap-4">
-          <span className="text-4xl">📊</span>
-          <div>
-            <h3 className="font-semibold text-gray-900 dark:text-white">Weekly Summary</h3>
-            <p className="text-sm text-gray-600 dark:text-gray-300">
-              You completed <span className="font-bold text-green-600 dark:text-green-400">{stats?.weekly.completed || 0}</span> tasks this week.
-              {' '}
-              {stats?.current.overdue ? (
-                <span className="text-red-600 dark:text-red-400">
-                  <span className="font-bold">{stats.current.overdue}</span> tasks are overdue.
-                </span>
-              ) : (
-                <span className="text-green-600 dark:text-green-400">You're all caught up on deadlines! 🎉</span>
-              )}
-            </p>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }
