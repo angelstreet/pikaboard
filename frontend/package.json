@@ -30,6 +30,7 @@
     "three": "^0.170.0"
   },
   "devDependencies": {
+    "@types/commander": "^2.12.0",
     "@types/node": "^25.2.0",
     "@types/react": "^18.3.18",
     "@types/react-dom": "^18.3.5",
@@ -40,6 +41,7 @@
     "postcss": "^8.5.1",
     "puppeteer": "^24.37.2",
     "tailwindcss": "^3.4.17",
+    "tsx": "^4.21.0",
     "typescript": "^5.7.3",
     "vite": "^6.0.7"
   },
