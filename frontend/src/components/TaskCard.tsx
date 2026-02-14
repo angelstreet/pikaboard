@@ -5,7 +5,6 @@ import { Task } from '../api/client';
 interface TaskCardProps {
   task: Task & { board_name?: string };
   onClick: (task: Task) => void;
-  onArchive?: (task: Task) => void;
   isDragging?: boolean;
   readOnly?: boolean;
   showBoardName?: boolean;
@@ -23,21 +22,83 @@ const priorityColors: Record<string, { border: string; badge: string; text: stri
   low: { border: 'border-l-gray-400', badge: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400', text: 'Low' },
 };
 
-const tagColors = [
-  'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300',
-  'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300',
-  'bg-pink-100 text-pink-700 dark:bg-pink-900 dark:text-pink-300',
-  'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300',
-  'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300',
-  'bg-teal-100 text-teal-700 dark:bg-teal-900 dark:text-teal-300',
-];
-
-function getTagColor(tag: string): string {
-  const index = tag.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  return tagColors[index % tagColors.length];
+function getDotColor(priority: string): string {
+  const colors: Record<string, string> = {
+    urgent: 'bg-red-500',
+    high: 'bg-orange-500',
+    medium: 'bg-blue-500',
+    low: 'bg-gray-500',
+  };
+  return colors[priority] || 'bg-gray-500';
 }
 
-export function TaskCard({ task, onClick, onArchive, isDragging, readOnly, showBoardName, boardBadge }: TaskCardProps) {
+function relativeTime(dateStr: string | null, isDeadline = false): string {
+  if (!dateStr) return '';
+  const date = new Date(dateStr);
+  const now = Date.now();
+  const diffMs = date.getTime() - now;
+  const absMins = Math.abs(diffMs) / 60000;
+  let prefix = '';
+  if (isDeadline) {
+    prefix = diffMs > 0 ? 'due in ' : '';
+  }
+  const mins = Math.max(1, Math.round(absMins));
+  const hours = Math.max(1, Math.round(absMins / 60));
+  const days = Math.max(1, Math.round(absMins / 1440));
+  const unit = absMins < 60 ? `${mins}m` : absMins < 1440 ? `${hours}h` : `${days}d`;
+  const overdue = isDeadline && diffMs < 0 ? ' late' : '';
+  return `${prefix}${unit}${overdue}`;
+}
+
+const priorityDotColors: Record<string, string> = {
+  urgent: 'bg-red-500',
+  high: 'bg-orange-500',
+  medium: 'bg-blue-400',
+  low: 'bg-gray-400',
+};
+
+const boardBadgeColors: Record<string, string> = {
+  blue: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
+  green: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
+  purple: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
+  orange: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300',
+  red: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
+  pink: 'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300',
+  teal: 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300',
+  gray: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
+};
+
+function getRelativeDeadline(deadline: string | null, status: string): { text: string; isOverdue: boolean } | null {
+  if (!deadline) return null;
+  const targetTime = new Date(deadline).getTime();
+  const nowTime = Date.now();
+  const diffMs = targetTime - nowTime;
+  const absMs = Math.abs(diffMs);
+  let amount = 0;
+  let unit = '';
+  if (absMs < 60000) {
+    amount = Math.ceil(absMs / 1000);
+    unit = 's';
+  } else if (absMs < 3600000) {
+    amount = Math.ceil(absMs / 60000);
+    unit = 'm';
+  } else if (absMs < 86400000) {
+    amount = Math.ceil(absMs / 3600000);
+    unit = 'h';
+  } else if (absMs < 604800000) {
+    amount = Math.ceil(absMs / 86400000);
+    unit = 'd';
+  } else {
+    amount = Math.ceil(absMs / 604800000);
+    unit = 'w';
+  }
+  const relTime = `${amount}${unit}`;
+  const text = diffMs > 0 ? `due in ${relTime}` : `${relTime} ago`;
+  const isOverdue = diffMs < 0 && !['done', 'solved'].includes(status);
+  return { text, isOverdue };
+}
+
+export function TaskCard({ task, onClick, onArchive: _onArchive, isDragging, readOnly, showBoardName, boardBadge }: TaskCardProps) {
   const {
     attributes,
     listeners,
@@ -56,21 +117,7 @@ export function TaskCard({ task, onClick, onArchive, isDragging, readOnly, showB
 
   const priority = priorityColors[task.priority] || priorityColors.medium;
   const dragging = isDragging || sortableIsDragging;
-
-  const now = Date.now();
-  const updatedAt = task.updated_at ? new Date(task.updated_at).getTime() : 0;
-  const minutesStalled = Math.floor((now - updatedAt) / 60000);
-  const isStalled = (task.status === 'up_next' || task.status === 'in_progress') && minutesStalled > 10;
-  const boardBadgeColors: Record<string, string> = {
-    blue: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
-    green: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
-    purple: 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-300',
-    orange: 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300',
-    red: 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300',
-    pink: 'bg-pink-100 text-pink-700 dark:bg-pink-900/40 dark:text-pink-300',
-    teal: 'bg-teal-100 text-teal-700 dark:bg-teal-900/40 dark:text-teal-300',
-    gray: 'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300',
-  };
+  const deadlineInfo = getRelativeDeadline(task.deadline, task.status);
 
   return (
     <div
@@ -86,7 +133,7 @@ export function TaskCard({ task, onClick, onArchive, isDragging, readOnly, showB
       `}
     >
       <div className="flex items-start justify-between gap-2">
-        <h4 className="font-medium text-sm text-gray-900 dark:text-gray-100 flex-1">
+        <h4 className="font-medium text-sm text-gray-900 dark:text-gray-100 flex-1 min-w-0 pr-2">
           <span className="text-gray-400 dark:text-gray-500">#{task.id}</span> {task.name}
           {(() => {
             const parsedTags = Array.isArray(task.tags) ? task.tags : (task.tags ? String(task.tags).split(',').map((t: string) => t.trim()) : []);
@@ -98,105 +145,35 @@ export function TaskCard({ task, onClick, onArchive, isDragging, readOnly, showB
             );
           })()}
         </h4>
-        <div className="flex items-center gap-1 flex-shrink-0 w-24">
+        <div className="flex items-center gap-1 flex-shrink-0">
           {task.assignee && (
-            <span className="w-5 h-5 rounded-full bg-blue-500 text-white text-[10px] font-bold flex items-center justify-center uppercase" title={task.assignee}>
+            <span className="w-5 h-5 rounded-full bg-blue-500 text-white text-[10px] font-bold flex items-center justify-center uppercase flex-shrink-0" title={task.assignee}>
               {task.assignee.charAt(0)}
             </span>
           )}
-          {task.priority !== 'medium' && (
-            <span className={`px-1.5 py-0.5 text-xs rounded font-medium ${priority.badge}`}>
-              {priority.text}
-            </span>
-          )}
-          {isStalled && (
-            <span className="px-1.5 py-0.5 text-xs rounded-full font-medium bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300" title={`Stalled for ${minutesStalled} minutes`}>
-              Stalled 10m+
-            </span>
-          )}
+          <span 
+            className={`w-2 h-2 rounded-full ${priorityDotColors[task.priority] || priorityDotColors.medium} flex-shrink-0`} 
+            title={priority.text}
+          />
         </div>
       </div>
       
-      {task.description && (
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
-          {task.description}
-        </p>
-      )}
-      
-      {task.deadline && (
-        <div className={`text-xs mt-2 flex items-center gap-1 ${
-          new Date(task.deadline) < new Date() && task.status !== 'done'
-            ? 'text-red-600 dark:text-red-400 font-medium'
-            : 'text-gray-500 dark:text-gray-400'
-        }`}>
-          <span>{new Date(task.deadline) < new Date() && task.status !== 'done' ? '⚠️' : '📅'}</span>
-          <span>
-            {new Date(task.deadline).toLocaleDateString('en-US', {
-              month: 'short',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
-            })}
-          </span>
+      {deadlineInfo && (
+        <div className={`text-xs mt-1 flex items-center gap-1 ${deadlineInfo.isOverdue ? 'text-red-600 dark:text-red-400 font-medium' : 'text-gray-500 dark:text-gray-400'}`}>
+          <span>{deadlineInfo.isOverdue ? '⚠️' : '📅'}</span>
+          <span>{deadlineInfo.text}</span>
         </div>
       )}
       
       {/* Board name - shown in Main view */}
       {showBoardName && (boardBadge || task.board_name) && (
-        <div className="text-xs mt-1.5 flex items-center gap-1">
+        <div className="text-xs mt-1 flex items-center gap-1">
           <span className={`px-1.5 py-0.5 rounded font-medium inline-flex items-center gap-1 ${
             boardBadge ? (boardBadgeColors[boardBadge.color] || boardBadgeColors.gray) : 'bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-400'
           }`}>
             {boardBadge?.icon && <span aria-hidden="true">{boardBadge.icon}</span>}
             {boardBadge?.name || task.board_name}
           </span>
-        </div>
-      )}
-
-      {task.tags && (
-        <div className="flex gap-1 mt-4 sm:mt-3 flex-wrap">
-          {(Array.isArray(task.tags) ? task.tags : task.tags.split(',').map((t: string) => t.trim()).filter(Boolean)).map((tag: string) => (
-            <span
-              key={tag}
-              className={`px-1.5 py-0.5 text-xs rounded font-medium ${getTagColor(tag)}`}
-            >
-              {tag}
-            </span>
-          ))}
-        </div>
-      )}
-
-      {/* Rating display for done/solved tasks */}
-      {(task.status === 'done' || task.status === 'solved') && (
-        <div className="flex items-center justify-between gap-1 mt-2">
-          <div className="flex items-center gap-1">
-            {task.rating ? (
-              <div className="flex items-center gap-0.5" title={`Rated ${task.rating}/5`}>
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <span
-                    key={star}
-                    className={`text-xs ${star <= task.rating! ? 'text-yellow-400' : 'text-gray-300 dark:text-gray-600'}`}
-                  >
-                    ★
-                  </span>
-                ))}
-              </div>
-            ) : (
-              <span className="text-xs text-gray-400 dark:text-gray-500 italic">Not rated</span>
-            )}
-          </div>
-          {onArchive && (
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onArchive(task);
-              }}
-              className="px-2 py-0.5 text-xs bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-              title="Archive task"
-            >
-              📦 Archive
-            </button>
-          )}
         </div>
       )}
 
@@ -228,18 +205,15 @@ export function TaskCardOverlay({ task }: { task: Task }) {
         <h4 className="font-medium text-sm text-gray-900 dark:text-gray-100 flex-1">
           <span className="text-gray-400 dark:text-gray-500">#{task.id}</span> {task.name}
         </h4>
-        {task.priority !== 'medium' && (
-          <span className={`px-1.5 py-0.5 text-xs rounded font-medium ${priority.badge}`}>
-            {priority.text}
-          </span>
-        )}
+        <div className="flex items-center gap-1">
+          {task.assignee && (
+            <span className="w-5 h-5 rounded-full bg-blue-500 text-white text-[10px] font-bold flex items-center justify-center uppercase" title={task.assignee}>
+              {task.assignee.charAt(0)}
+            </span>
+          )}
+          <span className={`w-2 h-2 rounded-full ${priorityDotColors[task.priority] || priorityDotColors.medium}`} title={priority.text} />
+        </div>
       </div>
-      
-      {task.description && (
-        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">
-          {task.description}
-        </p>
-      )}
     </div>
   );
 }
