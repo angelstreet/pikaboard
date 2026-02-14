@@ -221,6 +221,22 @@ location /pikaboard/api/ {
 
 ---
 
+## 🧪 Testing & Scripts
+
+### Screenshot Proofs
+Generate mobile/desktop screenshots for task review proofs:
+
+```bash
+npx tsx scripts/screenshot-proof.ts --url http://localhost:5173/pikaboard-dev/ --task 649 --viewport both --output ./proofs/
+```
+
+**Viewports:**
+- `desktop`: 1280x800
+- `mobile`: 375x812 (iPhone 14)
+- `both`: Both (default)
+
+**Output:** `proofs/task-{id}-{viewport}.png`
+
 ## 🧪 Testing
 
 ```bash

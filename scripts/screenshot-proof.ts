@@ -25,7 +25,7 @@ program
     const page = await browser.newPage();
 
     await page.goto(`${opts.url}/board/6`, { waitUntil: 'networkidle0' });
-    await page.waitForTimeout(3000);
+    await new Promise(r => setTimeout(r, 3000));
 
     const viewports = (opts.viewport || 'both').toLowerCase().split(',').map(v => v.trim()).filter(Boolean);
     const vpConfigs = {
@@ -42,14 +42,13 @@ program
         let suffix = vpName;
         if (opts.task) {
           try {
-            // Find and click task card containing #taskId
-            const taskCards = await page.$$('.cursor-pointer'); // Task cards have cursor-pointer
+            const taskCards = await page.$$('.cursor-pointer');
             for (const card of taskCards) {
               const text = await card.evaluate(el => el.textContent || '');
               if (text.includes(`#${opts.task}`)) {
                 await card.click();
-                await page.waitForSelector('.fixed.inset-0, [role="dialog"], .modal', { timeout: 5000 });
-                await page.waitForTimeout(2000);
+                await page.waitForSelector('.fixed.inset-0', { timeout: 5000 });
+                await new Promise(r => setTimeout(r, 2000));
                 suffix = `${vpName}-modal`;
                 break;
               }
@@ -71,7 +70,7 @@ program
     console.log('Screenshots created:', screenshots.join(', '));
 
     if (opts.slack) {
-      console.log(`Slack upload to ${opts.slack} skipped - set SLACK_TOKEN env var and implement upload.`);
+      console.log(`Slack upload to ${opts.slack} skipped - set SLACK_TOKEN env var for upload.`);
     }
   });
 
