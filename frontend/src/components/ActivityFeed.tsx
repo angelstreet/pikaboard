@@ -107,6 +107,11 @@ function stripStatusPrefix(summary: string): string {
   return summary.replace(/^(Completed|Failed|Working on|Running):\s*/i, '');
 }
 
+// Strip action prefixes from task activity messages
+function stripTaskPrefix(message: string): string {
+  return message.replace(/^(Created|Completed|Updated|Deleted|Moved)\s+task:\s*/i, '');
+}
+
 // Build a human-readable message for agent_activity entries instead of showing raw UUIDs
 // When showBadge is true, we omit the agent name and status prefix from the message to avoid duplication
 function formatAgentMessage(message: string, metadata?: ActivityMetadata, showBadge: boolean = false): string {
@@ -190,7 +195,7 @@ function getActivityColor(type: string, metadata?: ActivityMetadata): string {
       default: return 'border-l-gray-300 bg-gray-50 dark:bg-gray-800';
     }
   }
-  
+
   switch (type) {
     case 'task_created': return 'border-l-purple-500 bg-purple-50 dark:bg-purple-950/30';
     case 'task_completed': return 'border-l-green-500 bg-green-50 dark:bg-green-950/30';
@@ -198,6 +203,34 @@ function getActivityColor(type: string, metadata?: ActivityMetadata): string {
     case 'task_deleted': return 'border-l-red-500 bg-red-50 dark:bg-red-950/30';
     default: return 'border-l-gray-300 bg-gray-50 dark:bg-gray-800';
   }
+}
+
+// Get action badge for task activities
+function getTaskActionBadge(type: string): { label: string; color: string } | null {
+  const badges = {
+    task_created: {
+      label: 'Created',
+      color: 'bg-purple-100 dark:bg-purple-900/50 text-purple-700 dark:text-purple-300'
+    },
+    task_completed: {
+      label: 'Completed',
+      color: 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300'
+    },
+    task_updated: {
+      label: 'Updated',
+      color: 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300'
+    },
+    task_deleted: {
+      label: 'Deleted',
+      color: 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300'
+    },
+    task_moved: {
+      label: 'Moved',
+      color: 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300'
+    },
+  };
+
+  return badges[type as keyof typeof badges] || null;
 }
 
 function ActivityItem({
@@ -225,19 +258,22 @@ function ActivityItem({
   const taskActor = metadata?.actor || metadata?.assignee;
   const taskActorDisplay = taskActor ? getAgentDisplayName(taskActor, undefined) : null;
 
+  // Get action badge for task activities
+  const taskActionBadge = isTask ? getTaskActionBadge(activity.type) : null;
+
   // Status badge styling - works for both agent and task statuses
   const getStatusBadge = (status?: string, isTaskStatus = false) => {
     if (!status) return null;
 
     // Agent statuses
-    const agentBadges = {
+    const agentBadges: Record<string, { label: string; color: string }> = {
       running: { label: 'In Progress', color: 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300' },
       completed: { label: 'Completed', color: 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300' },
       failed: { label: 'Failed', color: 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300' },
     };
 
     // Task statuses
-    const taskBadges = {
+    const taskBadges: Record<string, { label: string; color: string }> = {
       inbox: { label: 'Inbox', color: 'bg-gray-100 dark:bg-gray-900/50 text-gray-700 dark:text-gray-300' },
       up_next: { label: 'Up Next', color: 'bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300' },
       in_progress: { label: 'In Progress', color: 'bg-yellow-100 dark:bg-yellow-900/50 text-yellow-700 dark:text-yellow-300' },
@@ -247,7 +283,7 @@ function ActivityItem({
     };
 
     const badges = isTaskStatus ? taskBadges : agentBadges;
-    const badge = badges[status as keyof typeof badges];
+    const badge = badges[status];
     if (!badge) return null;
     return (
       <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full ${badge.color}`}>
@@ -282,11 +318,20 @@ function ActivityItem({
                   <span className="inline-flex items-center gap-1 px-2 py-0.5 text-xs font-medium bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-full">
                     {taskActorDisplay.full}
                   </span>
+                  {taskActionBadge && (
+                    <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded-full ${taskActionBadge.color}`}>
+                      {taskActionBadge.label}
+                    </span>
+                  )}
                   {metadata?.task_status && getStatusBadge(metadata.task_status, true)}
                 </div>
               )}
               <p className="text-sm text-gray-700 dark:text-gray-300 break-words">
-                {isAgent ? formatAgentMessage(activity.message, metadata ?? undefined, !!metadata?.agent_label) : activity.message}
+                {isAgent
+                  ? formatAgentMessage(activity.message, metadata ?? undefined, !!metadata?.agent_label)
+                  : isTask
+                    ? stripTaskPrefix(activity.message)
+                    : activity.message}
               </p>
             </div>
             <div className="flex flex-col items-end gap-1 flex-shrink-0">
