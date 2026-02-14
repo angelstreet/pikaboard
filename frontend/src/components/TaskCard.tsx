@@ -127,8 +127,8 @@ export function TaskCard({ task, onClick, onArchive: _onArchive, isDragging, rea
       {...(!readOnly ? listeners : {})}
       onClick={() => onClick(task)}
       className={`
-        bg-white dark:bg-gray-800 rounded-lg shadow-sm p-3 border-l-4 ${priority.border}
-        cursor-pointer hover:shadow-md transition-shadow
+        bg-white dark:bg-gray-800 rounded-lg shadow-sm dark:shadow-lg border border-gray-200/50 dark:border-gray-700/50 p-3 border-l-4 ${priority.border}
+        cursor-pointer hover:shadow-lg dark:hover:shadow-2xl transition-shadow
         ${dragging ? 'opacity-50 shadow-lg ring-2 ring-blue-400' : ''}
       `}
     >
@@ -197,7 +197,7 @@ export function TaskCardOverlay({ task }: { task: Task }) {
   return (
     <div
       className={`
-        bg-white dark:bg-gray-800 rounded-lg shadow-lg p-3 border-l-4 ${priority.border}
+        bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200/50 dark:border-gray-700/50 p-3 border-l-4 ${priority.border}
         ring-2 ring-blue-400 rotate-2 scale-105
       `}
     >
