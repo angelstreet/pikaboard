@@ -13,6 +13,7 @@ interface TaskCardProps {
     icon: string;
     color: string;
   };
+  onArchive?: (task: Task) => void;
 }
 
 const priorityColors: Record<string, { border: string; badge: string; text: string }> = {
@@ -98,7 +99,7 @@ function getRelativeDeadline(deadline: string | null, status: string): { text: s
   return { text, isOverdue };
 }
 
-export function TaskCard({ task, onClick, onArchive: _onArchive, isDragging, readOnly, showBoardName, boardBadge }: TaskCardProps) {
+export function TaskCard({ task, onClick, isDragging, readOnly, showBoardName, boardBadge }: TaskCardProps) {
   const {
     attributes,
     listeners,

@@ -3,13 +3,14 @@ import { api, Task } from '../api/client';
 
 type InboxTask = Task & { board_name?: string };
 
-type InboxSection = 'approval' | 'question' | 'blocker' | 'issue' | 'other';
+type InboxSection = 'approval' | 'question' | 'blocker' | 'rejected' | 'issue' | 'other';
 
 function getSection(name: string): InboxSection {
   const upper = name.toUpperCase();
-  if (upper.startsWith('[APPROVAL]') || upper.startsWith('[APPROVED]') || upper.startsWith('[DENIED]')) return 'approval';
+  if (upper.startsWith('[APPROVAL]') || upper.startsWith('[APPROVED]')) return 'approval';
   if (upper.startsWith('[QUESTION]') || upper.startsWith('[ANSWERED]')) return 'question';
   if (upper.startsWith('[BLOCKER]') || upper.startsWith('[UNBLOCKED]')) return 'blocker';
+  if (upper.startsWith('[REJECTED]') || upper.startsWith('[DENIED]')) return 'rejected';
   if (upper.startsWith('[ISSUE]') || upper.startsWith('[RESOLVED]')) return 'issue';
   return 'other';
 }
@@ -20,7 +21,7 @@ function isActionable(name: string): boolean {
 }
 
 function stripPrefix(name: string): string {
-  return name.replace(/^\[(APPROVAL|APPROVED|DENIED|QUESTION|ANSWERED|BLOCKER|UNBLOCKED|ISSUE|RESOLVED)\]\s*/i, '');
+  return name.replace(/^\[(APPROVAL|APPROVED|DENIED|QUESTION|ANSWERED|BLOCKER|UNBLOCKED|ISSUE|RESOLVED|REJECTED)\]\s*/i, '');
 }
 
 export default function Inbox() {
@@ -34,12 +35,15 @@ export default function Inbox() {
   const [approvalsOpen, setApprovalsOpen] = useState(true);
   const [questionsOpen, setQuestionsOpen] = useState(true);
   const [blockersOpen, setBlockersOpen] = useState(true);
+  const [rejectedOpen, setRejectedOpen] = useState(true);
+  const [activeTab, setActiveTab] = useState<'all' | 'flagged'>('flagged');
   const [issuesOpen, setIssuesOpen] = useState(true);
   const [otherOpen, setOtherOpen] = useState(true);
 
   const approvalsTouched = useRef(false);
   const questionsTouched = useRef(false);
   const blockersTouched = useRef(false);
+  const rejectedTouched = useRef(false);
   const issuesTouched = useRef(false);
   const otherTouched = useRef(false);
 
@@ -65,9 +69,10 @@ export default function Inbox() {
   const approvals = useMemo(() => tasks.filter(t => getSection(t.name) === 'approval' && isActionable(t.name)), [tasks]);
   const questions = useMemo(() => tasks.filter(t => getSection(t.name) === 'question' && isActionable(t.name)), [tasks]);
   const blockers = useMemo(() => tasks.filter(t => getSection(t.name) === 'blocker' && isActionable(t.name)), [tasks]);
+  const rejected = useMemo(() => tasks.filter(t => getSection(t.name) === 'rejected'), [tasks]);
   const issues = useMemo(() => tasks.filter(t => getSection(t.name) === 'issue' && isActionable(t.name)), [tasks]);
   const historyTasks = useMemo(() => {
-    const handled = new Set([...approvals, ...questions, ...blockers, ...issues].map(t => t.id));
+    const handled = new Set([...approvals, ...questions, ...blockers, ...rejected, ...issues].map(t => t.id));
     return tasks.filter(t => !handled.has(t.id))
       .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
       .slice(0, 5);
@@ -78,9 +83,11 @@ export default function Inbox() {
   useEffect(() => { if (!questionsTouched.current) setQuestionsOpen(questions.length > 0); }, [questions.length]);
   useEffect(() => { if (!blockersTouched.current) setBlockersOpen(blockers.length > 0); }, [blockers.length]);
   useEffect(() => { if (!issuesTouched.current) setIssuesOpen(issues.length > 0); }, [issues.length]);
+  useEffect(() => { if (!rejectedTouched.current) setRejectedOpen(rejected.length > 0); }, [rejected.length]);
   useEffect(() => { if (!otherTouched.current) setOtherOpen(historyTasks.length > 0); }, [historyTasks.length]);
 
-  const totalItems = approvals.length + questions.length + blockers.length + issues.length;
+  const totalItems = approvals.length + questions.length + blockers.length + rejected.length + issues.length;
+  const flaggedCount = approvals.length + questions.length + blockers.length + rejected.length;
 
   const getAgentEmoji = (name: string): string => {
     const emojis: Record<string, string> = { pika: '⚡', bulbi: '🌱', tortoise: '🐢', sala: '🦎', evoli: '🦊', psykokwak: '🦆', mew: '✨' };
@@ -288,14 +295,14 @@ export default function Inbox() {
         <div>
           <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
             📥 Inbox
-            {totalItems > 0 && (
+            {(activeTab === 'all' ? totalItems : flaggedCount) > 0 && (
               <span className="bg-red-500 text-white text-xs sm:text-sm font-medium px-2 py-0.5 rounded-full">
-                {totalItems}
+                {activeTab === 'all' ? totalItems : flaggedCount}
               </span>
             )}
           </h1>
           <p className="text-gray-600 dark:text-gray-400 mt-1 text-sm hidden sm:block">
-            Review agent approvals, questions, and blockers
+            {activeTab === 'all' ? 'Review agent approvals, questions, blockers, rejected, issues, history' : 'Dedicated tab: ONLY flagged (approval/blocker/rejected/questions)'}
           </p>
         </div>
       </div>

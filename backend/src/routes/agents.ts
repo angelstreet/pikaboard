@@ -2,7 +2,7 @@ import { Hono } from 'hono';
 import { readdir, readFile, stat } from 'fs/promises';
 import { createReadStream, existsSync } from 'fs';
 import { createInterface } from 'readline';
-import { join } from 'path';
+import { join, delimiter } from 'path';
 import { homedir } from 'os';
 import { db } from '../db/index.js';
 
@@ -46,6 +46,32 @@ interface Agent {
   activeSubAgents: number;
   pendingApproval: boolean;
   inProgressTasks: number;
+}
+
+function normalizePaths(input?: string): string[] {
+  if (!input) return [];
+  return input
+    .split(delimiter)
+    .map((p) => p.trim())
+    .filter(Boolean);
+}
+
+function getAgentRoots(): string[] {
+  const paths = new Set<string>();
+  const envPaths = [
+    ...(process.env.OPENCLAW_AGENTS_PATH ? normalizePaths(process.env.OPENCLAW_AGENTS_PATH) : []),
+    ...(process.env.OPENCLAW_AGENTS_PATHS ? normalizePaths(process.env.OPENCLAW_AGENTS_PATHS) : []),
+  ];
+
+  envPaths.forEach((p) => paths.add(p));
+
+  const workspacePath = join(homedir(), '.openclaw', 'workspace', 'agents');
+  const defaultPath = join(homedir(), '.openclaw', 'agents');
+
+  paths.add(workspacePath);
+  paths.add(defaultPath);
+
+  return Array.from(paths).filter((p) => existsSync(p));
 }
 
 // Get active sub-agent count for an agent
@@ -209,29 +235,57 @@ agentsRouter.get('/', async (c) => {
   const agentsDir = join(homedir(), '.openclaw', 'agents');
   const agents: Agent[] = [];
 
+  // Helper to find agent config files (checks both old and new locations)
+  async function findAgentFiles(agentId: string) {
+    // Old location: ~/.openclaw/agents/{id}/
+    const oldPath = join(homedir(), '.openclaw', 'agents', agentId);
+    // New location: ~/.openclaw/workspace-{id}/
+    // Special case: "main" agent uses workspace-pika-main
+    const workspaceName = agentId === 'main' ? 'workspace-pika-main' : `workspace-${agentId}`;
+    const newPath = join(homedir(), '.openclaw', workspaceName);
+    
+    const oldConfig = join(oldPath, 'config.json');
+    const oldSoul = join(oldPath, 'SOUL.md');
+    const newConfig = join(newPath, 'config.json');
+    const newSoul = join(newPath, 'SOUL.md');
+    
+    const oldConfigExists = existsSync(oldConfig);
+    const oldSoulExists = existsSync(oldSoul);
+    const newConfigExists = existsSync(newConfig);
+    const newSoulExists = existsSync(newSoul);
+    
+    return {
+      configPath: oldConfigExists ? oldConfig : (newConfigExists ? newConfig : null),
+      soulPath: oldSoulExists ? oldSoul : (newSoulExists ? newSoul : null),
+      hasConfig: oldConfigExists || newConfigExists,
+      hasSoul: oldSoulExists || newSoulExists,
+      // Use workspace path as primary if SOUL.md exists there, otherwise fallback
+      primaryPath: newSoulExists ? newPath : (oldSoulExists ? oldPath : newPath),
+    };
+  }
+
   try {
     const entries = await readdir(agentsDir, { withFileTypes: true });
     const dirs = entries.filter((e) => e.isDirectory());
 
     for (const dir of dirs) {
-      const agentPath = join(agentsDir, dir.name);
-      const configPath = join(agentPath, 'config.json');
-      const soulPath = join(agentPath, 'SOUL.md');
-      const hasConfig = existsSync(configPath);
-      const hasSoul = existsSync(soulPath);
+      const agentId = dir.name;
+      const files = await findAgentFiles(agentId);
 
       // Ignore placeholder/empty folders that are not real agents.
-      if (!hasConfig && !hasSoul) {
+      if (!files.hasConfig && !files.hasSoul) {
         continue;
       }
 
       // Read config.json if exists
       let config: AgentConfig = {};
-      try {
-        const configContent = await readFile(configPath, 'utf-8');
-        config = JSON.parse(configContent);
-      } catch {
-        // No config file, use defaults
+      if (files.configPath) {
+        try {
+          const configContent = await readFile(files.configPath, 'utf-8');
+          config = JSON.parse(configContent);
+        } catch {
+          // No config file, use defaults
+        }
       }
 
       // Read SOUL.md
@@ -242,18 +296,20 @@ agentsRouter.get('/', async (c) => {
         boardId: null as number | null,
         skills: [] as string[],
       };
-      try {
-        const soulContent = await readFile(soulPath, 'utf-8');
-        soulData = parseSoulMd(soulContent);
-      } catch {
-        // No SOUL.md
+      if (files.soulPath) {
+        try {
+          const soulContent = await readFile(files.soulPath, 'utf-8');
+          soulData = parseSoulMd(soulContent);
+        } catch {
+          // No SOUL.md
+        }
       }
 
       // Determine boardId first (needed for status check)
       const boardId = config.board_id || soulData.boardId;
 
-      // Get runtime status (checks DB for in_progress tasks)
-      const statusInfo = await getAgentStatus(agentPath, boardId);
+      // Get runtime status (checks DB for in_progress tasks) - use workspace path if available
+      const statusInfo = await getAgentStatus(files.primaryPath, boardId);
       
       // Get active sub-agent count
       const activeSubAgents = await getActiveSubAgentCount(dir.name);
@@ -281,8 +337,8 @@ agentsRouter.get('/', async (c) => {
 
       // Merge all data
       const agent: Agent = {
-        id: dir.name,
-        name: config.name || dir.name.charAt(0).toUpperCase() + dir.name.slice(1),
+        id: agentId,
+        name: config.name || agentId.charAt(0).toUpperCase() + agentId.slice(1),
         role: config.role || soulData.domain || 'Agent',
         status: finalStatus,
         currentTask: statusInfo.currentTask,
@@ -299,7 +355,7 @@ agentsRouter.get('/', async (c) => {
         plugins: config.plugins || [],
         recentActivity: [],
         lastSeen: statusInfo.lastSeen,
-        configPath: agentPath,
+        configPath: files.primaryPath,
         activeSubAgents,
         pendingApproval,
         inProgressTasks,
@@ -341,8 +397,10 @@ async function parseAgentSessions(agentId: string): Promise<{
     lastActiveAt: null as string | null,
   };
 
-  // Read from OpenClaw sessions.json for this agent
-  const sessionsPath = join(homedir(), '.openclaw', 'agents', agentId, 'sessions', 'sessions.json');
+  // Read from OpenClaw sessions.json for this agent (check both old and new paths)
+  const oldSessionsPath = join(homedir(), '.openclaw', 'agents', agentId, 'sessions', 'sessions.json');
+  const workspaceSessionsPath = join(homedir(), '.openclaw', `workspace-${agentId}`, 'sessions', 'sessions.json');
+  const sessionsPath = existsSync(workspaceSessionsPath) ? workspaceSessionsPath : oldSessionsPath;
   try {
     const content = await readFile(sessionsPath, 'utf-8');
     const sessions = JSON.parse(content);
@@ -383,14 +441,20 @@ function formatDuration(ms: number): string {
 // GET /api/agents/:id/stats - Get agent statistics (must be before /:id)
 agentsRouter.get('/:id/stats', async (c) => {
   const id = c.req.param('id');
-  const agentPath = join(homedir(), '.openclaw', 'agents', id);
+  const oldPath = join(homedir(), '.openclaw', 'agents', id);
+  const workspacePath = join(homedir(), '.openclaw', `workspace-${id}`);
+  
+  // Use the path that exists
+  const agentPath = existsSync(workspacePath) ? workspacePath : oldPath;
+  
+  // Check if agent exists in either location
+  const dirExists = existsSync(oldPath) || existsSync(workspacePath);
+  if (!dirExists) {
+    return c.json({ error: 'Agent not found' }, 404);
+  }
 
   try {
     const dirStat = await stat(agentPath);
-    if (!dirStat.isDirectory()) {
-      return c.json({ error: 'Agent not found' }, 404);
-    }
-
     const createdAt = dirStat.birthtime || dirStat.ctime;
     const logStats = await parseAgentSessions(id);
 
@@ -468,15 +532,24 @@ agentsRouter.get('/:id/logs', async (c) => {
   const id = c.req.param('id');
   const linesParam = c.req.query('lines');
   const lines = parseInt(linesParam || '100', 10);
-  const agentPath = join(homedir(), '.openclaw', 'agents', id);
+  
+  const oldPath = join(homedir(), '.openclaw', 'agents', id);
+  const workspacePath = join(homedir(), '.openclaw', `workspace-${id}`);
+  
+  // Use the path that exists
+  const agentPath = existsSync(workspacePath) ? workspacePath : oldPath;
+  
+  // Check if agent exists in either location
+  const dirExists = existsSync(oldPath) || existsSync(workspacePath);
+  if (!dirExists) {
+    return c.json({ error: 'Agent not found' }, 404);
+  }
 
   try {
-    const dirStat = await stat(agentPath);
-    if (!dirStat.isDirectory()) {
-      return c.json({ error: 'Agent not found' }, 404);
-    }
-
-    const sessionsDir = join(agentPath, 'sessions');
+    // Check both paths for sessions directory (may be in old location even if workspace exists)
+    const oldSessionsDir = join(oldPath, 'sessions');
+    const workspaceSessionsDir = join(workspacePath, 'sessions');
+    const sessionsDir = existsSync(workspaceSessionsDir) ? workspaceSessionsDir : oldSessionsDir;
     const logs: LogEntry[] = [];
 
     try {
@@ -595,17 +668,39 @@ agentsRouter.get('/:id/logs', async (c) => {
 // GET /api/agents/:id - Get single agent details
 agentsRouter.get('/:id', async (c) => {
   const id = c.req.param('id');
-  const agentPath = join(homedir(), '.openclaw', 'agents', id);
+  
+  // Check both old and new locations
+  const oldPath = join(homedir(), '.openclaw', 'agents', id);
+  const workspacePath = join(homedir(), '.openclaw', `workspace-${id}`);
+  
+  // Determine which path to use
+  let agentPath = oldPath;
+  let configPath = join(oldPath, 'config.json');
+  let soulPath = join(oldPath, 'SOUL.md');
+  
+  // Check if files exist in workspace path
+  const workspaceConfigPath = join(workspacePath, 'config.json');
+  const workspaceSoulPath = join(workspacePath, 'SOUL.md');
+  
+  const oldConfigExists = existsSync(configPath);
+  const oldSoulExists = existsSync(soulPath);
+  const workspaceConfigExists = existsSync(workspaceConfigPath);
+  const workspaceSoulExists = existsSync(workspaceSoulPath);
+  
+  // Use workspace path if it has the files, otherwise fall back to old path
+  if (workspaceConfigExists || workspaceSoulExists) {
+    agentPath = workspacePath;
+    configPath = workspaceConfigPath;
+    soulPath = workspaceSoulPath;
+  }
+  
+  // Check if agent exists in either location
+  const dirExists = existsSync(oldPath) || existsSync(workspacePath);
+  if (!dirExists) {
+    return c.json({ error: 'Agent not found' }, 404);
+  }
 
   try {
-    const dirStat = await stat(agentPath);
-    if (!dirStat.isDirectory()) {
-      return c.json({ error: 'Agent not found' }, 404);
-    }
-
-    const configPath = join(agentPath, 'config.json');
-    const soulPath = join(agentPath, 'SOUL.md');
-
     // Read config.json
     let config: AgentConfig = {};
     try {

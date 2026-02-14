@@ -60,7 +60,7 @@ soulspriteRouter.post('/generate', async (c) => {
 
     // Sanitize name for filesystem
     const sanitizedName = name.toLowerCase().replace(/[^a-z0-9_-]/g, '_');
-    const requestedBase = body.outputPath?.trim();
+    const requestedBase = (body as any).outputPath?.trim();
     let targetBase = CHARACTERS_PATH;
 
     if (requestedBase) {

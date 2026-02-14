@@ -186,43 +186,8 @@ export default function DashboardHome() {
       {/* Compact Task Lists */}
       <CompactTaskLists />
 
-      {/* Main Content Grid */}
-      <div className="grid md:grid-cols-2 gap-6 max-w-full">
-        {/* Focus List */}
-        <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 max-w-full overflow-hidden">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-gray-900 dark:text-white">🎯 Focus List</h3>
-            <span className="text-xs text-gray-500 dark:text-gray-400">Top priorities</span>
-          </div>
-          <div className="space-y-2 max-w-full">
-            {stats?.focus && stats.focus.length > 0 ? (
-              stats.focus.map((task) => (
-                <FocusTaskItem
-                  key={task.id}
-                  task={task}
-                  onClick={() => handleTaskClick(task.id)}
-                />
-              ))
-            ) : (
-              <div className="text-center py-8 text-gray-400 dark:text-gray-500">
-                <p className="text-4xl mb-2">🎉</p>
-                <p>All caught up! No urgent tasks.</p>
-              </div>
-            )}
-          </div>
-          {stats?.focus && stats.focus.length > 0 && (
-            <button
-              onClick={() => navigate('/boards')}
-              className="w-full mt-4 py-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 font-medium"
-            >
-              View all tasks →
-            </button>
-          )}
-        </div>
-
-        {/* Activity Feed */}
-        <ActivityFeed />
-      </div>
+      {/* Activity Feed */}
+      <ActivityFeed />
 
       {/* Quick Summary */}
       <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
