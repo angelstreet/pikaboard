@@ -57,7 +57,7 @@ function useComingSoonAlert() {
 export default function Apps() {
   const [apps, setApps] = useState<AppInfo[]>([]);
   const [loading, setLoading] = useState(true);
-  const { mode, toggleMode, isProductionuction } = useEnvironment();
+  const { mode, toggleMode, isProduction } = useEnvironment();
   const { showComingSoon, ComingSoonModal } = useComingSoonAlert();
 
   useEffect(() => {
