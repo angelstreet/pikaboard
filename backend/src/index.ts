@@ -106,7 +106,7 @@ app.route('/api/crypto', cryptoRouter);
 if (process.env.NODE_ENV !== 'test') {
   initDatabase();
 
-  const port = parseInt(process.env.PORT || '3001', 10);
+  const port = parseInt(process.env.PORT || '5001', 10);
   console.log(`🚀 PikaBoard API running on http://localhost:${port}`);
 
   serve({

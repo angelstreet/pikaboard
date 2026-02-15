@@ -8,7 +8,7 @@ program
   .name('screenshot-proof')
   .description('Screenshot proofs for PikaBoard UI changes')
   .version('1.0.0')
-  .option('-u, --url <url>', 'Base URL', 'http://localhost:5173/pikaboard-dev/')
+  .option('-u, --url <url>', 'Base URL', 'http://localhost:5001/pikaboard-dev/')
   .option('-t, --task <id>', 'Task ID to open modal for proof')
   .option('-v, --viewport <viewports>', 'comma-separated: desktop,mobile,both', 'both')
   .option('-o, --output <dir>', 'Output directory', './proofs/')

@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useEnvironment } from '../contexts/EnvironmentContext';
 
 interface AppInfo {
   name: string;
@@ -56,11 +57,7 @@ function useComingSoonAlert() {
 export default function Apps() {
   const [apps, setApps] = useState<AppInfo[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isProd, setIsProd] = useState(() => {
-    // Load preference from localStorage
-    const saved = localStorage.getItem('apps-env-mode');
-    return saved === 'prod';
-  });
+  const { mode, toggleMode, isProductionuction } = useEnvironment();
   const { showComingSoon, ComingSoonModal } = useComingSoonAlert();
 
   useEffect(() => {
@@ -72,12 +69,6 @@ export default function Apps() {
       })
       .catch(() => setLoading(false));
   }, []);
-
-  const toggleEnv = () => {
-    const newMode = !isProd;
-    setIsProd(newMode);
-    localStorage.setItem('apps-env-mode', newMode ? 'prod' : 'local');
-  };
 
   const currentAppName = (() => {
     const pathname = window.location.pathname;
@@ -112,17 +103,17 @@ export default function Apps() {
         <div className="flex items-center gap-3">
           {/* Environment Toggle */}
           <button
-            onClick={toggleEnv}
+            onClick={toggleMode}
             className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all duration-200
               bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600
               hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-sm"
           >
-            <span className={`transition-opacity ${isProd ? 'opacity-100' : 'opacity-40'}`}>🌐</span>
+            <span className={`transition-opacity ${isProduction ? 'opacity-100' : 'opacity-40'}`}>🌐</span>
             <span className="text-gray-700 dark:text-gray-300">
-              {isProd ? 'Production' : 'Local'}
+              {isProduction ? 'Production' : 'Local'}
             </span>
-            <div className={`w-8 h-4 rounded-full relative transition-colors ${isProd ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
-              <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${isProd ? 'translate-x-4' : 'translate-x-0.5'}`} />
+            <div className={`w-8 h-4 rounded-full relative transition-colors ${isProduction ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
+              <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${isProduction ? 'translate-x-4' : 'translate-x-0.5'}`} />
             </div>
           </button>
           <span className="text-xs text-gray-400">{apps.length} apps</span>
@@ -132,33 +123,33 @@ export default function Apps() {
         {apps.map((app) => {
           const isCurrent = app.name === currentAppName;
           const isComingSoon = app.status === 'coming soon';
-          const targetUrl = isProd ? app.vercelUrl : app.localUrl;
-          const isExternal = isProd && app.vercelUrl;
+          const targetUrl = isProduction ? app.vercelUrl : app.localUrl;
+          const isExternal = isProduction && app.vercelUrl;
 
           return (
             <a
               key={app.slug}
               href={isComingSoon ? undefined : targetUrl || undefined}
-              target={isExternal || (!isComingSoon && !isCurrent && isProd) ? '_blank' : undefined}
+              target={isExternal || (!isComingSoon && !isCurrent && isProduction) ? '_blank' : undefined}
               rel="noopener noreferrer"
-              onClick={isCurrent && !isProd ? (e) => e.preventDefault() : isComingSoon ? showComingSoon : undefined}
+              onClick={isCurrent && !isProduction ? (e) => e.preventDefault() : isComingSoon ? showComingSoon : undefined}
               className={`group relative flex flex-col rounded-lg border p-3 transition-all duration-200
-                ${isCurrent && !isProd
+                ${isCurrent && !isProduction
                   ? 'border-yellow-500/50 bg-yellow-500/5 dark:bg-yellow-500/10 cursor-default'
                   : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50'}
-                ${!isComingSoon && !(isCurrent && !isProd)
+                ${!isComingSoon && !(isCurrent && !isProduction)
                   ? 'hover:scale-[1.02] hover:shadow-lg hover:shadow-yellow-500/10 hover:border-yellow-500/40 cursor-pointer'
                   : ''}
                 ${isComingSoon ? 'opacity-85 cursor-pointer' : ''}
                 ${!targetUrl && !isComingSoon ? 'opacity-60 cursor-not-allowed' : ''}
               `}
             >
-              {isCurrent && !isProd && (
+              {isCurrent && !isProduction && (
                 <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 bg-yellow-500/90 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
                   ✓ Here
                 </div>
               )}
-              {isProd && !app.vercelUrl && app.status !== 'coming soon' && (
+              {isProduction && !app.vercelUrl && app.status !== 'coming soon' && (
                 <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 bg-gray-500/90 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
                   No prod
                 </div>
@@ -170,10 +161,10 @@ export default function Apps() {
               <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 line-clamp-2 flex-1">{app.desc}</p>
               <div className="flex items-center gap-1.5 flex-wrap">
                 <span className={`inline-block text-[10px] px-1.5 py-0.5 rounded-full border ${statusColors[app.status]}`}>
-                  {isCurrent && !isProd ? 'current' : app.status}
+                  {isCurrent && !isProduction ? 'current' : app.status}
                 </span>
-                {isProd && <span className="text-[10px] text-blue-600 dark:text-blue-400" title="Production mode">🌐</span>}
-                {!isProd && <span className="text-[10px] text-green-600 dark:text-green-400" title="Local mode">💻</span>}
+                {isProduction && <span className="text-[10px] text-blue-600 dark:text-blue-400" title="Production mode">🌐</span>}
+                {!isProduction && <span className="text-[10px] text-green-600 dark:text-green-400" title="Local mode">💻</span>}
                 {app.hasDb && <span className="text-[10px] text-gray-400" title="Has database">🗄️</span>}
                 {app.hasAuth && <span className="text-[10px] text-gray-400" title="Has auth">🔐</span>}
                 {app.dev === false && <span className="text-[10px] text-purple-600 dark:text-purple-400" title="External tool">🔧</span>}

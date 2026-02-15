@@ -36,7 +36,7 @@ async function captureMobileScreenshots() {
 
     // Navigate to the app's Settings page where ServiceHealth is visible
     console.log('Navigating to PikaBoard Settings...');
-    await page.goto('http://localhost:5173/settings', {
+    await page.goto('http://localhost:5001/settings', {
       waitUntil: 'networkidle2',
       timeout: 30000,
     });

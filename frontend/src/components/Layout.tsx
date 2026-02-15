@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
 import HeaderStatsBar from './HeaderStatsBar';
-import EnvToggle from './EnvToggle';
+import GlobalEnvToggle from './GlobalEnvToggle';
 import TeamRoster from './TeamRoster';
 import MobileNav from './MobileNav';
 import MobileDrawer from './MobileDrawer';
@@ -306,7 +306,7 @@ export default function Layout() {
           <div className="flex items-center gap-2">
             <span className="text-2xl">⚡</span>
             <h1 className="text-lg font-bold text-gray-900 dark:text-white">PikaBoard</h1>
-            <EnvToggle />
+            <GlobalEnvToggle />
           </div>
           <nav className="flex items-center bg-gray-100 dark:bg-gray-700/50 rounded-lg p-1">
             {/* Primary nav items */}
@@ -387,7 +387,7 @@ export default function Layout() {
             <MobileHealthStatus />
             <MobileRestartButton />
             <div className="hidden sm:inline">
-              <EnvToggle />
+              <GlobalEnvToggle />
             </div>
             <button onClick={() => setDrawerOpen(true)} className="p-1.5 sm:p-2 rounded-lg text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 shrink-0">
               <span className="text-xl">☰</span>

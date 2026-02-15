@@ -140,7 +140,7 @@ export function AgentCard({ agent, onClick }: AgentCardProps) {
       {/* Header: Avatar + Name + Status */}
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-center gap-3">
-          <span className="text-4xl">{agent.emoji || '🤖'}</span>
+          <AgentAvatar agent={agent.id} size={48} />
           <div>
             <h3 className="font-semibold text-gray-900 dark:text-gray-100">
               {agent.name}
@@ -274,7 +274,7 @@ export function AgentCardCompact({ agent }: { agent: Agent }) {
 
   return (
     <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
-      <span className="text-2xl">{agent.emoji || '🤖'}</span>
+      <AgentAvatar agent={agent.id} size={32} />
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">
           {agent.name}

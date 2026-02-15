@@ -14,7 +14,7 @@ import puppeteer from 'puppeteer';
 
   // Navigate to Agents page
   console.log('Navigating to Agents page...');
-  await page.goto('http://localhost:5173/pikaboard-dev/agents', { waitUntil: 'networkidle2' });
+  await page.goto('http://localhost:5001/pikaboard-dev/agents', { waitUntil: 'networkidle2' });
 
   // Wait for team roster to load
   await new Promise(resolve => setTimeout(resolve, 5000));

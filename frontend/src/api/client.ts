@@ -300,6 +300,15 @@ function getDefaultApiBaseUrl(): string {
   const scopedApiPath = `${scopedPrefix}/api`;
 
   if (typeof window !== 'undefined') {
+    // Check environment mode from localStorage
+    const envMode = localStorage.getItem('pikaboard-env-mode');
+    const isProduction = envMode === 'prod' || window.location.hostname.includes('vercel.app');
+
+    // If in production mode, use production API URL
+    if (isProduction && window.location.hostname.includes('vercel.app')) {
+      return `https://pikaboard-angelstreets-projects.vercel.app${scopedApiPath}`;
+    }
+
     return `${window.location.origin}${scopedApiPath}`;
   }
 
