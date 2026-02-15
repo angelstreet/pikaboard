@@ -1,6 +1,6 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Agent } from '../api/client';
-import SpriteAnimator, { Direction, Animation, useSpriteInfo } from './SpriteAnimator';
+import SpriteAnimator, { useSpriteInfo } from './SpriteAnimator';
 import AgentAvatar from './AgentAvatar';
 
 interface AgentCardProps {
@@ -49,19 +49,6 @@ const agentSpriteNames: Record<string, string> = {
   main: 'pika',
 };
 
-function angleToDirection8(angle: number): Direction {
-  // angle in degrees, 0 = right, going counter-clockwise
-  const normalized = ((angle % 360) + 360) % 360;
-  if (normalized < 22.5 || normalized >= 337.5) return 'E';
-  if (normalized < 67.5) return 'NE';
-  if (normalized < 112.5) return 'N';
-  if (normalized < 157.5) return 'NW';
-  if (normalized < 202.5) return 'W';
-  if (normalized < 247.5) return 'SW';
-  if (normalized < 292.5) return 'S';
-  return 'SE';
-}
-
 function useSpriteExists(agent: string): boolean {
   const [exists, setExists] = useState(false);
 
@@ -100,35 +87,14 @@ function useSpriteExists(agent: string): boolean {
 
 export function AgentCard({ agent, onClick }: AgentCardProps) {
   const status = statusConfig[agent.status] || statusConfig.offline;
-  const cardRef = useRef<HTMLDivElement>(null);
-  const [direction, setDirection] = useState<Direction>('S');
-  const [isHovered, setIsHovered] = useState(false);
   const spriteName = agentSpriteNames[agent.id.toLowerCase()];
   const spriteExists = useSpriteExists(spriteName || '');
   const { directions } = useSpriteInfo(spriteName || '', 'idle');
   const showSprite = !!spriteName && spriteExists;
 
-  const handleMouseMove = useCallback((e: React.MouseEvent) => {
-    if (!cardRef.current) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    const cx = rect.left + rect.width / 2;
-    const cy = rect.top + rect.height / 2;
-    const dx = e.clientX - cx;
-    const dy = -(e.clientY - cy); // invert Y for math angle
-    const angle = (Math.atan2(dy, dx) * 180) / Math.PI;
-    setDirection(angleToDirection8(angle));
-  }, []);
-
   return (
     <div
-      ref={cardRef}
       onClick={() => onClick?.(agent)}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseMove={handleMouseMove}
-      onMouseLeave={() => {
-        setIsHovered(false);
-        setDirection('S');
-      }}
       className={`
         relative overflow-hidden min-h-[220px] flex flex-col
         bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700
@@ -228,7 +194,7 @@ export function AgentCard({ agent, onClick }: AgentCardProps) {
         </p>
       )}
 
-      {/* Sprite Avatar */}
+      {/* Sprite Avatar - Idle Only */}
       {showSprite && (
         <div
           className="absolute bottom-0 right-0 pointer-events-none"
@@ -236,8 +202,8 @@ export function AgentCard({ agent, onClick }: AgentCardProps) {
         >
           <SpriteAnimator
             agent={spriteName}
-            animation={isHovered ? 'walk' : 'idle' as Animation}
-            direction={direction}
+            animation="idle"
+            direction="S"
             directions={directions}
           />
         </div>
