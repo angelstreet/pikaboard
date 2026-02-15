@@ -134,6 +134,7 @@ function AgentDetailView({
 }) {
   const [showSoul, setShowSoul] = useState(false);
   const [showLogs, setShowLogs] = useState(false);
+  const [showSkills, setShowSkills] = useState(false);
 
   // Use emoji from API (read from openclaw.json), fallback to default
   const emoji = agent.emoji || '🤖';
@@ -159,12 +160,19 @@ function AgentDetailView({
             <p className="text-gray-500 dark:text-gray-400 mt-1">{agent.role}</p>
           </div>
         </div>
-        <button
-          onClick={onClose}
-          className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl"
-        >
-          ✕
-        </button>
+        <div className="flex flex-col items-end gap-2">
+          {(stats?.lastActiveAt || agent.lastSeen) && (
+            <span className="text-xs text-gray-500 dark:text-gray-400">
+              Last active: {formatRelativeTime(stats?.lastActiveAt || agent.lastSeen)}
+            </span>
+          )}
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xl"
+          >
+            ✕
+          </button>
+        </div>
       </div>
 
       {/* Purpose */}
@@ -197,7 +205,7 @@ function AgentDetailView({
           <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
             📊 Usage Statistics
           </h3>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <div className="bg-purple-50 dark:bg-purple-900/30 rounded-lg p-3 text-center">
               <p className="text-xl font-bold text-purple-600 dark:text-purple-400">
                 {formatTokens(stats.tokens.total)}
@@ -216,32 +224,6 @@ function AgentDetailView({
               </p>
               <p className="text-xs text-gray-500 dark:text-gray-400">Total Time</p>
             </div>
-            <div className="bg-amber-50 dark:bg-amber-900/30 rounded-lg p-3 text-center">
-              <p className="text-xl font-bold text-amber-600 dark:text-amber-400">
-                {formatDate(stats.createdAt)}
-              </p>
-              <p className="text-xs text-gray-500 dark:text-gray-400">Created</p>
-            </div>
-          </div>
-          
-          {/* Token breakdown - clearer labels */}
-          <div className="mt-4 text-xs text-gray-500 dark:text-gray-400 space-y-1">
-            <div className="flex justify-between">
-              <span>Sent (input):</span>
-              <span className="font-mono">{stats.tokens.input.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Generated (output):</span>
-              <span className="font-mono">{stats.tokens.output.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Cached (read):</span>
-              <span className="font-mono">{stats.tokens.cacheRead.toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between">
-              <span>Cached (write):</span>
-              <span className="font-mono">{stats.tokens.cacheWrite.toLocaleString()}</span>
-            </div>
           </div>
         </div>
       )}
@@ -249,19 +231,24 @@ function AgentDetailView({
       {/* Skills */}
       {agent.skills.length > 0 && (
         <div className="p-6">
-          <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
-            Skills
-          </h3>
-          <div className="flex flex-wrap gap-2">
-            {agent.skills.map((skill) => (
-              <span
-                key={skill}
-                className="px-3 py-1 text-sm rounded-full bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
-              >
-                {skill}
-              </span>
-            ))}
-          </div>
+          <button
+            onClick={() => setShowSkills(!showSkills)}
+            className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+          >
+            {showSkills ? '▼' : '▶'} Skills ({agent.skills.length})
+          </button>
+          {showSkills && (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {agent.skills.map((skill) => (
+                <span
+                  key={skill}
+                  className="px-3 py-1 text-sm rounded-full bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
+                >
+                  {skill}
+                </span>
+              ))}
+            </div>
+          )}
         </div>
       )}
 
@@ -294,25 +281,6 @@ function AgentDetailView({
         </div>
       )}
 
-      {/* Recent Activity */}
-      {agent.recentActivity.length > 0 && (
-        <div className="p-6">
-          <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">
-            Recent Activity
-          </h3>
-          <ul className="space-y-2">
-            {agent.recentActivity.map((activity, i) => (
-              <li
-                key={i}
-                className="text-sm text-gray-600 dark:text-gray-300 font-mono truncate"
-              >
-                {activity}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-
       {/* SOUL.md Toggle */}
       {soulMd && (
         <div className="p-6">
@@ -337,14 +305,6 @@ function AgentDetailView({
           isOpen={showLogs}
           onToggle={() => setShowLogs(!showLogs)}
         />
-      </div>
-
-      {/* Footer */}
-      <div className="p-4 bg-gray-50 dark:bg-gray-900 flex justify-between items-center text-sm text-gray-500 dark:text-gray-400">
-        <span>ID: {agent.id}</span>
-        {(stats?.lastActiveAt || agent.lastSeen) && (
-          <span>Last active: {formatRelativeTime(stats?.lastActiveAt || agent.lastSeen)}</span>
-        )}
       </div>
     </div>
   );

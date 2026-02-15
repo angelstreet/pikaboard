@@ -156,25 +156,6 @@ export function AgentCard({ agent, onClick }: AgentCardProps) {
         </div>
       )}
 
-      {/* Skills */}
-      {agent.skills.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-1">
-          {agent.skills.slice(0, 4).map((skill) => (
-            <span
-              key={skill}
-              className="px-2 py-0.5 text-xs rounded-full bg-blue-50 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300"
-            >
-              {skill}
-            </span>
-          ))}
-          {agent.skills.length > 4 && (
-            <span className="px-2 py-0.5 text-xs rounded-full bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400">
-              +{agent.skills.length - 4}
-            </span>
-          )}
-        </div>
-      )}
-
       {/* KPIs */}
       {(agent.kpis.tasksCompleted > 0 || agent.kpis.tasksActive > 0) && (
         <div className="mt-3 flex gap-4 text-xs text-gray-500 dark:text-gray-400">
