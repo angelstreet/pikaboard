@@ -5,13 +5,15 @@ interface AppInfo {
   slug: string;
   emoji: string;
   desc: string;
-  localUrl: string;
-  vercelUrl: string | null;
-  repo: string | null;
-  status: 'live' | 'dev' | 'coming soon';
-  hasDb: boolean;
-  hasAuth: boolean;
-  ports: { frontend: number; backend: number };
+  localUrl?: string;
+  vercelUrl?: string | null;
+  repo?: string | null;
+  status: string;
+  dev?: boolean;
+  location?: string;
+  hasDb?: boolean;
+  hasAuth?: boolean;
+  ports?: Partial<{ frontend: number; backend: number }>;
 }
 
 const statusColors: Record<string, string> = {
@@ -54,6 +56,11 @@ function useComingSoonAlert() {
 export default function Apps() {
   const [apps, setApps] = useState<AppInfo[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isProd, setIsProd] = useState(() => {
+    // Load preference from localStorage
+    const saved = localStorage.getItem('apps-env-mode');
+    return saved === 'prod';
+  });
   const { showComingSoon, ComingSoonModal } = useComingSoonAlert();
 
   useEffect(() => {
@@ -66,6 +73,12 @@ export default function Apps() {
       .catch(() => setLoading(false));
   }, []);
 
+  const toggleEnv = () => {
+    const newMode = !isProd;
+    setIsProd(newMode);
+    localStorage.setItem('apps-env-mode', newMode ? 'prod' : 'local');
+  };
+
   const currentAppName = (() => {
     const pathname = window.location.pathname;
     for (const app of apps) {
@@ -77,14 +90,14 @@ export default function Apps() {
 
   if (loading) {
     return (
-      <div className="p-6 max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">🚀 Apps</h1>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+      <div className="p-4 max-w-6xl mx-auto">
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-4">🚀 Apps</h1>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
           {[1, 2, 3, 4, 5, 6].map((i) => (
-            <div key={i} className="rounded-xl border border-gray-200 dark:border-gray-700 p-5 animate-pulse">
-              <div className="w-10 h-10 bg-gray-200 dark:bg-gray-700 rounded mb-3" />
-              <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-2/3 mb-2" />
-              <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-full" />
+            <div key={i} className="rounded-lg border border-gray-200 dark:border-gray-700 p-3 animate-pulse">
+              <div className="w-8 h-8 bg-gray-200 dark:bg-gray-700 rounded mb-2" />
+              <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-2/3 mb-1" />
+              <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded w-full" />
             </div>
           ))}
         </div>
@@ -93,53 +106,81 @@ export default function Apps() {
   }
 
   return (
-    <div className="p-4 sm:p-6 max-w-4xl mx-auto space-y-8">
-      <div>
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">🚀 Apps</h1>
+    <div className="p-3 sm:p-4 max-w-6xl mx-auto">
+      <div className="flex items-center justify-between mb-3">
+        <h1 className="text-xl font-bold text-gray-900 dark:text-white">🚀 Apps</h1>
+        <div className="flex items-center gap-3">
+          {/* Environment Toggle */}
+          <button
+            onClick={toggleEnv}
+            className="flex items-center gap-2 px-3 py-1.5 text-xs font-medium rounded-lg border transition-all duration-200
+              bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600
+              hover:border-blue-400 dark:hover:border-blue-500 hover:shadow-sm"
+          >
+            <span className={`transition-opacity ${isProd ? 'opacity-100' : 'opacity-40'}`}>🌐</span>
+            <span className="text-gray-700 dark:text-gray-300">
+              {isProd ? 'Production' : 'Local'}
+            </span>
+            <div className={`w-8 h-4 rounded-full relative transition-colors ${isProd ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'}`}>
+              <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white transition-transform ${isProd ? 'translate-x-4' : 'translate-x-0.5'}`} />
+            </div>
+          </button>
           <span className="text-xs text-gray-400">{apps.length} apps</span>
         </div>
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-3 sm:gap-4">
-          {apps.map((app) => {
-            const isCurrent = app.name === currentAppName;
-            const isComingSoon = app.status === 'coming soon';
+      </div>
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+        {apps.map((app) => {
+          const isCurrent = app.name === currentAppName;
+          const isComingSoon = app.status === 'coming soon';
+          const targetUrl = isProd ? app.vercelUrl : app.localUrl;
+          const isExternal = isProd && app.vercelUrl;
 
-            return (
-              <a
-                key={app.slug}
-                href={isComingSoon ? undefined : app.localUrl}
-                target={!isComingSoon && !isCurrent ? '_blank' : undefined}
-                rel="noopener noreferrer"
-                onClick={isCurrent ? (e) => e.preventDefault() : isComingSoon ? showComingSoon : undefined}
-                className={`group relative rounded-xl border p-4 sm:p-5 transition-all duration-200
-                  ${isCurrent
-                    ? 'border-yellow-500/50 bg-yellow-500/5 dark:bg-yellow-500/10 cursor-default'
-                    : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50'}
-                  ${!isComingSoon && !isCurrent
-                    ? 'hover:scale-[1.03] hover:shadow-lg hover:shadow-yellow-500/10 hover:border-yellow-500/40 cursor-pointer'
-                    : ''}
-                  ${isComingSoon ? 'opacity-85 cursor-pointer' : ''}
-                `}
-              >
-                {isCurrent && (
-                  <div className="absolute top-2 right-2 flex items-center gap-1 bg-yellow-500/90 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
-                    ✓ You are here
-                  </div>
-                )}
-                <div className="text-3xl sm:text-4xl mb-3">{app.emoji}</div>
-                <div className="font-semibold text-gray-900 dark:text-white text-sm sm:text-base mb-1">{app.name}</div>
-                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 line-clamp-2">{app.desc}</p>
-                <div className="flex items-center gap-2">
-                  <span className={`inline-block text-[10px] sm:text-xs px-2 py-0.5 rounded-full border ${statusColors[app.status]}`}>
-                    {isCurrent ? 'current' : app.status}
-                  </span>
-                  {app.hasDb && <span className="text-[10px] text-gray-400" title="Has database">🗄️</span>}
-                  {app.hasAuth && <span className="text-[10px] text-gray-400" title="Has auth">🔐</span>}
+          return (
+            <a
+              key={app.slug}
+              href={isComingSoon ? undefined : targetUrl || undefined}
+              target={isExternal || (!isComingSoon && !isCurrent && isProd) ? '_blank' : undefined}
+              rel="noopener noreferrer"
+              onClick={isCurrent && !isProd ? (e) => e.preventDefault() : isComingSoon ? showComingSoon : undefined}
+              className={`group relative flex flex-col rounded-lg border p-3 transition-all duration-200
+                ${isCurrent && !isProd
+                  ? 'border-yellow-500/50 bg-yellow-500/5 dark:bg-yellow-500/10 cursor-default'
+                  : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800/50'}
+                ${!isComingSoon && !(isCurrent && !isProd)
+                  ? 'hover:scale-[1.02] hover:shadow-lg hover:shadow-yellow-500/10 hover:border-yellow-500/40 cursor-pointer'
+                  : ''}
+                ${isComingSoon ? 'opacity-85 cursor-pointer' : ''}
+                ${!targetUrl && !isComingSoon ? 'opacity-60 cursor-not-allowed' : ''}
+              `}
+            >
+              {isCurrent && !isProd && (
+                <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 bg-yellow-500/90 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
+                  ✓ Here
                 </div>
-              </a>
-            );
-          })}
-        </div>
+              )}
+              {isProd && !app.vercelUrl && app.status !== 'coming soon' && (
+                <div className="absolute top-1.5 right-1.5 flex items-center gap-0.5 bg-gray-500/90 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
+                  No prod
+                </div>
+              )}
+              <div className="flex items-center gap-2 mb-2">
+                <div className="text-2xl">{app.emoji}</div>
+                <div className="font-semibold text-gray-900 dark:text-white text-sm leading-tight">{app.name}</div>
+              </div>
+              <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 line-clamp-2 flex-1">{app.desc}</p>
+              <div className="flex items-center gap-1.5 flex-wrap">
+                <span className={`inline-block text-[10px] px-1.5 py-0.5 rounded-full border ${statusColors[app.status]}`}>
+                  {isCurrent && !isProd ? 'current' : app.status}
+                </span>
+                {isProd && <span className="text-[10px] text-blue-600 dark:text-blue-400" title="Production mode">🌐</span>}
+                {!isProd && <span className="text-[10px] text-green-600 dark:text-green-400" title="Local mode">💻</span>}
+                {app.hasDb && <span className="text-[10px] text-gray-400" title="Has database">🗄️</span>}
+                {app.hasAuth && <span className="text-[10px] text-gray-400" title="Has auth">🔐</span>}
+                {app.dev === false && <span className="text-[10px] text-purple-600 dark:text-purple-400" title="External tool">🔧</span>}
+              </div>
+            </a>
+          );
+        })}
       </div>
       <ComingSoonModal />
     </div>
