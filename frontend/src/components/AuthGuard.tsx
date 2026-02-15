@@ -1,6 +1,9 @@
 import { useState, useEffect, ReactNode } from 'react';
 import { API_BASE_URL } from '../api/client';
 
+const authDisabled = import.meta.env.VITE_AUTH_DISABLED === 'true';
+const DEV_TOKEN = '41e4b640e51f9f5efa2529c5f609b141ff20515e864bd6e404efefd50840692d';
+
 interface AuthGuardProps {
   children: ReactNode;
 }
@@ -52,6 +55,14 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   const { showInfo, InfoModal } = useInfoAlert();
 
   useEffect(() => {
+    // Auto-login with dev token when auth is disabled or local
+    const hostname = window.location.hostname;
+    const isLocal = hostname === 'localhost' || hostname === '127.0.0.1';
+    if (authDisabled || isLocal) {
+      validateToken(DEV_TOKEN);
+      return;
+    }
+
     // Check URL ?token= param first
     const params = new URLSearchParams(window.location.search);
     const urlToken = params.get('token');
