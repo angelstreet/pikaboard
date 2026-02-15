@@ -96,22 +96,22 @@ export function AgentCard({ agent, onClick }: AgentCardProps) {
     <div
       onClick={() => onClick?.(agent)}
       className={`
-        relative overflow-hidden min-h-[220px] flex flex-col
+        relative overflow-hidden min-h-[150px] flex flex-col
         bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700
-        pt-6 pb-8 px-4 cursor-pointer hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600
+        p-3 cursor-pointer hover:shadow-md hover:border-blue-300 dark:hover:border-blue-600
         transition-all duration-200
         ${agent.status === 'offline' ? 'opacity-75' : ''}
       `}
     >
       {/* Header: Avatar + Name + Status */}
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <AgentAvatar agent={agent.id} size={48} />
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <AgentAvatar agent={agent.id} size={40} />
           <div>
-            <h3 className="font-semibold text-gray-900 dark:text-gray-100">
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
               {agent.name}
             </h3>
-            <p className="text-sm text-gray-500 dark:text-gray-400">
+            <p className="text-xs text-gray-500 dark:text-gray-400">
               {agent.role}
             </p>
           </div>
@@ -139,18 +139,18 @@ export function AgentCard({ agent, onClick }: AgentCardProps) {
 
       {/* Purpose */}
       {agent.purpose && (
-        <p className="mt-3 text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
+        <p className="mt-2 text-xs text-gray-600 dark:text-gray-300 line-clamp-1">
           {agent.purpose}
         </p>
       )}
 
       {/* Current Task */}
       {agent.currentTask && (
-        <div className="mt-3 bg-purple-50 dark:bg-purple-900/30 rounded-lg p-2">
-          <p className="text-xs text-purple-700 dark:text-purple-300 font-medium">
+        <div className="mt-2 bg-purple-50 dark:bg-purple-900/30 rounded-lg p-1.5">
+          <p className="text-[10px] text-purple-700 dark:text-purple-300 font-medium">
             Working on:
           </p>
-          <p className="text-sm text-purple-900 dark:text-purple-200 truncate">
+          <p className="text-xs text-purple-900 dark:text-purple-200 truncate">
             {agent.currentTask}
           </p>
         </div>
@@ -158,7 +158,7 @@ export function AgentCard({ agent, onClick }: AgentCardProps) {
 
       {/* KPIs */}
       {(agent.kpis.tasksCompleted > 0 || agent.kpis.tasksActive > 0) && (
-        <div className="mt-3 flex gap-4 text-xs text-gray-500 dark:text-gray-400">
+        <div className="mt-2 flex gap-3 text-[10px] text-gray-500 dark:text-gray-400">
           {agent.kpis.tasksCompleted > 0 && (
             <span>✅ {agent.kpis.tasksCompleted} done</span>
           )}
@@ -170,7 +170,7 @@ export function AgentCard({ agent, onClick }: AgentCardProps) {
 
       {/* Last Seen */}
       {agent.status !== 'busy' && agent.status !== 'active' && agent.lastSeen && (
-        <p className="mt-2 text-xs text-gray-400 dark:text-gray-500">
+        <p className="mt-1.5 text-[10px] text-gray-400 dark:text-gray-500">
           Last seen: {formatLastSeen(agent.lastSeen)}
         </p>
       )}
@@ -179,7 +179,7 @@ export function AgentCard({ agent, onClick }: AgentCardProps) {
       {showSprite && (
         <div
           className="absolute bottom-0 right-0 pointer-events-none"
-          style={{ transform: 'scale(0.5)', transformOrigin: 'bottom right' }}
+          style={{ transform: 'scale(0.35)', transformOrigin: 'bottom right' }}
         >
           <SpriteAnimator
             agent={spriteName}
