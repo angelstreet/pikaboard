@@ -27,6 +27,8 @@ export default defineConfig({
   },
   server: {
     port: parseInt(process.env.VITE_DEV_PORT || '3001'),
+    host: true,
+    allowedHosts: ['pikaboard.angelstreet.io', 'localhost', '65.108.14.251'],
     proxy: {
       '/api': {
         target: 'http://localhost:5001',
