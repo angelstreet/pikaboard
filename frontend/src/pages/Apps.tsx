@@ -7,6 +7,7 @@ interface AppInfo {
   emoji: string;
   desc: string;
   localUrl?: string;
+  publicUrl?: string | null;
   vercelUrl?: string | null;
   repo?: string | null;
   status: string;
@@ -123,7 +124,7 @@ export default function Apps() {
         {apps.map((app) => {
           const isCurrent = app.name === currentAppName;
           const isComingSoon = app.status === 'coming soon';
-          const targetUrl = isProduction ? app.vercelUrl : app.localUrl;
+          const targetUrl = isProduction ? app.vercelUrl : (app.publicUrl || app.localUrl);
           const isExternal = isProduction && app.vercelUrl;
 
           return (
