@@ -229,7 +229,7 @@ export function BoardModal({ board, isOpen, onClose, onSave, onDelete, boardCoun
               disabled={!name.trim() || saving}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {saving ? 'Saving...' : isEdit ? 'Save Changes' : 'Create Board'}
+              {saving ? 'Saving...' : isEdit ? 'Save' : 'Create Board'}
             </button>
           </div>
         </div>

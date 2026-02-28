@@ -39,7 +39,7 @@ export default function MobileNav({ onMenuClick }: MobileNavProps) {
     { path: '/', icon: '🏠', label: 'Home' },
     { path: '/boards', icon: '📋', label: 'Boards' },
     { path: '/agents', icon: '🤖', label: 'Agents' },
-    { path: '/inbox', icon: '📥', label: 'Inbox', badge: inboxCount },
+    { path: '/inbox', icon: '📥', label: 'Inbox', badge: inboxCount || undefined },
   ];
 
   return (
