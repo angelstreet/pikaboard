@@ -29,21 +29,21 @@ export default defineConfig({
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
+        target: 'http://localhost:5001',
         changeOrigin: true,
       },
       '/pikaboard/api': {
-        target: 'http://localhost:3001',
+        target: 'http://localhost:5001',
         changeOrigin: true,
         rewrite: (p) => p.replace(/^\/pikaboard\/api/, '/api'),
       },
       '/pikaboard-dev/api': {
-        target: 'http://localhost:3001',
+        target: 'http://localhost:5001',
         changeOrigin: true,
         rewrite: (p) => p.replace(/^\/pikaboard-dev\/api/, '/api'),
       },
       '/widgets': {
-        target: 'http://localhost:3001',
+        target: 'http://localhost:5001',
         changeOrigin: true,
       },
       '/openclaw': {
