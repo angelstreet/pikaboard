@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useConfirmModal } from './ConfirmModal';
 import { Task } from '../api/client';
 import { TaskEventTimeline } from './TaskEventTimeline';
 
@@ -63,12 +64,12 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
   const [rejectionReason, setRejectionReason] = useState('');
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [descExpanded, setDescExpanded] = useState(true);
   const [testsExpanded, setTestsExpanded] = useState(false);
   const [activityExpanded, setActivityExpanded] = useState(false);
 
   const isEdit = !!task;
+  const { confirm, ConfirmModalComponent } = useConfirmModal();
 
   // Format datetime for input (local timezone)
   const formatDatetimeLocal = (isoString: string | null): string => {
@@ -109,7 +110,6 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
       setRejectionReason('');
     }
     setHoverRating(null);
-    setShowDeleteConfirm(false);
     setDescExpanded(true);
     setTestsExpanded(false);
     setActivityExpanded(false);
@@ -163,6 +163,15 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
   const handleDelete = async () => {
     if (!task || !onDelete) return;
 
+    const ok = await confirm({
+      title: 'Delete Task',
+      message: `Delete task #${task.id}? This cannot be undone.`,
+      confirmText: 'Yes, delete',
+      cancelText: 'No',
+      variant: 'danger',
+    });
+    if (!ok) return;
+
     setDeleting(true);
     try {
       await onDelete(task.id);
@@ -175,6 +184,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
   if (!isOpen) return null;
 
   return (
+    <>
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-4 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white/80 dark:bg-gray-800/80 backdrop-blur-sm">
@@ -281,7 +291,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Add details..."
                   rows={3}
-                  className="w-full px-3 py-2 border-0 focus:ring-0 resize-none dark:text-gray-100 dark:placeholder-gray-400"
+                  className="w-full px-3 py-2 border-0 focus:ring-0 resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 dark:placeholder-gray-400"
                 />
               </div>
             )}
@@ -304,7 +314,7 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
                   onChange={(e) => setAcceptanceTests(e.target.value)}
                   placeholder="Acceptance criteria and tests will go here..."
                   rows={5}
-                  className="w-full px-3 py-2 border-0 focus:ring-0 resize-none dark:text-gray-100 dark:placeholder-gray-400"
+                  className="w-full px-3 py-2 border-0 focus:ring-0 resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 dark:placeholder-gray-400"
                 />
               </div>
             )}
@@ -464,31 +474,13 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
         <div className="flex items-center justify-between p-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 rounded-b-lg">
           {isEdit && onDelete ? (
             <div>
-              {showDeleteConfirm ? (
-                <div className="flex items-center gap-2">
-                  <span className="text-sm text-red-600 dark:text-red-400">Delete this task?</span>
-                  <button
-                    onClick={handleDelete}
-                    disabled={deleting}
-                    className="px-3 py-1.5 bg-red-600 text-white text-sm rounded-lg hover:bg-red-700 disabled:opacity-50"
-                  >
-                    {deleting ? 'Deleting...' : 'Yes, delete'}
-                  </button>
-                  <button
-                    onClick={() => setShowDeleteConfirm(false)}
-                    className="px-3 py-1.5 text-gray-600 dark:text-gray-400 text-sm hover:text-gray-800 dark:hover:text-gray-200"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              ) : (
-                <button
-                  onClick={() => setShowDeleteConfirm(true)}
-                  className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-sm"
-                >
-                  Delete
-                </button>
-              )}
+              <button
+                onClick={handleDelete}
+                disabled={deleting}
+                className="text-red-600 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 text-sm disabled:opacity-50"
+              >
+                {deleting ? 'Deleting...' : 'Delete'}
+              </button>
             </div>
           ) : (
             <div />
@@ -506,11 +498,13 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
               disabled={!name.trim() || saving}
               className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {saving ? 'Saving...' : isEdit ? 'Save Changes' : 'Create Task'}
+              {saving ? 'Saving...' : isEdit ? 'Save' : 'Create Task'}
             </button>
           </div>
         </div>
       </div>
     </div>
+    <ConfirmModalComponent />
+    </>
   );
 }

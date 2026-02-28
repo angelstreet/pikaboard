@@ -110,10 +110,11 @@ export function TaskCard({ task, onClick, isDragging, readOnly, showBoardName, b
   } = useSortable({ id: task.id, disabled: !!readOnly });
 
   const style = readOnly
-    ? undefined
+    ? { touchAction: 'manipulation' as const }
     : {
         transform: CSS.Transform.toString(transform),
         transition,
+        touchAction: 'manipulation' as const,
       };
 
   const priority = priorityColors[task.priority] || priorityColors.medium;
