@@ -110,8 +110,8 @@ Full dark/light/system theme support with persistence.
 ### 💬 Quotes Widget
 Floating motivational quotes (205 quotes, EN/FR) with theme-aware styling.
 
-### 📱 Mobile Responsive
-Compact mobile layout with bottom navigation, status dropdown, and touch-friendly cards.
+### 📱 Mobile Responsive & PWA
+Compact mobile layout with bottom navigation, status dropdown, and touch-friendly cards. Installable as a Progressive Web App (PWA) — add to home screen on iOS/Android for a native-like experience.
 
 ---
 
