@@ -1,5 +1,7 @@
 {
   "buildCommand": "cd backend && npm run build",
+  "installCommand": "cd backend && npm install",
+  "runtime": "nodejs20.x",
   "outputDirectory": "frontend/dist",
   "framework": null,
   "rewrites": [
