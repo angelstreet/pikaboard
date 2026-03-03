@@ -325,6 +325,43 @@ systemRouter.get('/', async (c) => {
   return c.json(stats);
 });
 
+// GET /api/system/stats - Get system stats (alias)
+systemRouter.get('/stats', async (c) => {
+  // Re-use the same logic as the root endpoint
+  const cpus = os.cpus();
+  const totalMem = os.totalmem();
+  const freeMem = os.freemem();
+  const usedMem = totalMem - freeMem;
+
+  const [gatewayStatus, diskInfo] = await Promise.all([
+    getGatewayStatus(),
+    Promise.resolve(getDiskInfo()),
+  ]);
+
+  const stats: SystemStats = {
+    cpu: {
+      model: cpus[0]?.model || 'Unknown',
+      cores: cpus.length,
+      usagePercent: getCpuUsage(),
+      loadAvg: os.loadavg(),
+    },
+    memory: {
+      total: totalMem,
+      used: usedMem,
+      free: freeMem,
+      usagePercent: Math.round((usedMem / totalMem) * 100),
+    },
+    disk: diskInfo,
+    gateway: gatewayStatus,
+    uptime: os.uptime(),
+    hostname: os.hostname(),
+    platform: `${os.type()} ${os.release()}`,
+    timestamp: new Date().toISOString(),
+  };
+
+  return c.json(stats);
+});
+
 // Session context info from OpenClaw gateway
 export interface SessionContextInfo {
   currentTokens: number;

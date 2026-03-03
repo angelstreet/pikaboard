@@ -79,6 +79,11 @@ export default defineConfig({
         target: 'http://localhost:3001',
         changeOrigin: true,
       },
+      '/server': {
+        target: 'http://localhost:3001',
+        changeOrigin: true,
+        rewrite: (p) => p.replace(/^\/server/, '/api'),
+      },
       '/openclaw': {
         target: 'http://localhost:18789',
         changeOrigin: true,

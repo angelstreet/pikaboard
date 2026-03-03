@@ -4,6 +4,7 @@
   "outputDirectory": "dist",
   "rewrites": [
     { "source": "/api/:path*", "destination": "/api" },
+    { "source": "/server/:path*", "destination": "/api" },
     { "source": "/health", "destination": "/api" },
     { "source": "/widgets/:path*", "destination": "/api" },
     { "source": "/pikaboard/manifest.webmanifest", "destination": "/manifest.webmanifest" },
