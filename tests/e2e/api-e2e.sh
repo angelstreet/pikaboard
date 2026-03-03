@@ -4,7 +4,7 @@
 
 set -e
 
-API="http://127.0.0.1:3001/api"
+API="http://localhost:3001/api"
 TOKEN="41e4b640e51f9f5efa2529c5f609b141ff20515e864bd6e404efefd50840692d"
 AUTH="Authorization: Bearer $TOKEN"
 CT="Content-Type: application/json"
