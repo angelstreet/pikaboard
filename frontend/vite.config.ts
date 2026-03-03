@@ -46,7 +46,7 @@ export default defineConfig({
       }
     })
   ],
-  base: process.env.VITE_BASE_PATH || '/pikaboard/',
+  base: process.env.VITE_BASE_PATH || '/pikaboard-dev/',
   define: {
     'import.meta.env.VITE_VERSION': JSON.stringify(version),
     'import.meta.env.VITE_BRANCH': JSON.stringify(branch),
@@ -62,21 +62,21 @@ export default defineConfig({
       allowedHosts: ["pikaboard.angelstreet.io"],
     proxy: {
       '/api': {
-        target: 'http://localhost:5001',
+        target: 'http://localhost:3001',
         changeOrigin: true,
       },
       '/pikaboard/api': {
-        target: 'http://localhost:5001',
+        target: 'http://localhost:3001',
         changeOrigin: true,
         rewrite: (p) => p.replace(/^\/pikaboard\/api/, '/api'),
       },
       '/pikaboard-dev/api': {
-        target: 'http://localhost:5001',
+        target: 'http://localhost:3001',
         changeOrigin: true,
         rewrite: (p) => p.replace(/^\/pikaboard-dev\/api/, '/api'),
       },
       '/widgets': {
-        target: 'http://localhost:5001',
+        target: 'http://localhost:3001',
         changeOrigin: true,
       },
       '/openclaw': {
