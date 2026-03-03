@@ -8,7 +8,7 @@ export default defineConfig({
   reporter: [['list']],
   timeout: 30000,
   use: {
-    baseURL: process.env.E2E_BASE_URL || 'http://127.0.0.1:5173',
+    baseURL: process.env.E2E_BASE_URL || 'http://localhost:5173',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     viewport: { width: 1280, height: 720 },
