@@ -3,6 +3,9 @@
   "version": "0.1.0",
   "description": "PikaBoard API server",
   "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
   "scripts": {
     "dev": "tsx watch src/index.ts",
     "build": "tsc",
