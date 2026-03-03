@@ -285,13 +285,13 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
               <span className="ml-2 text-lg">{descExpanded ? '−' : '+'}</span>
             </button>
             {descExpanded && (
-              <div className="px-3 pb-3">
+              <div className="px-3 pb-3 bg-gray-50 dark:bg-gray-800/50">
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Add details..."
                   rows={3}
-                  className="w-full px-3 py-2 border-0 focus:ring-0 resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 dark:placeholder-gray-400"
+                  className="w-full px-3 py-2 border-0 focus:ring-0 resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 dark:placeholder-gray-400 rounded-md"
                 />
               </div>
             )}
@@ -308,13 +308,13 @@ export function TaskModal({ task, isOpen, onClose, onSave, onDelete }: TaskModal
               <span className="ml-2 text-lg">{testsExpanded ? '−' : '+'}</span>
             </button>
             {testsExpanded && (
-              <div className="px-3 pb-3">
+              <div className="px-3 pb-3 bg-gray-50 dark:bg-gray-800/50">
                 <textarea
                   value={acceptanceTests}
                   onChange={(e) => setAcceptanceTests(e.target.value)}
                   placeholder="Acceptance criteria and tests will go here..."
                   rows={5}
-                  className="w-full px-3 py-2 border-0 focus:ring-0 resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 dark:placeholder-gray-400"
+                  className="w-full px-3 py-2 border-0 focus:ring-0 resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 dark:placeholder-gray-400 rounded-md"
                 />
               </div>
             )}
