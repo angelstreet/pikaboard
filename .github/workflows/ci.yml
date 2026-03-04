@@ -60,8 +60,11 @@ jobs:
     - name: Install Playwright browsers
       run: cd tests/e2e && npx playwright install --with-deps
       
+    - name: Install Xvfb for headless Chrome
+      run: sudo apt-get update && sudo apt-get install -y xvfb
+      
     - name: Run E2E tests
-      run: npm run test:e2e
+      run: xvfb-run --auto-servernum npm run test:e2e
       env:
         PIKABOARD_TOKEN: ${{ secrets.PIKABOARD_TOKEN }}
         
