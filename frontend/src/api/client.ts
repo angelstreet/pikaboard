@@ -713,6 +713,39 @@ class ApiClient {
   async deleteGoal(id: number): Promise<void> {
     await this.fetch(`/goals/${id}`, { method: 'DELETE' });
   }
+
+  // Battle API
+  async getBattles(limit = 20, offset = 0): Promise<{ battles: BattleSummary[]; limit: number; offset: number }> {
+    return this.get(`/battle?limit=${limit}&offset=${offset}`);
+  }
+
+  async getBattle(id: number): Promise<Battle> {
+    return this.get(`/battle/${id}`);
+  }
+
+  async getBattleLog(id: number): Promise<string> {
+    // Use the regular fetch which handles auth
+    const token = await getAuthToken();
+    const res = await fetch(`${this.baseUrl}/battle/${id}/log`, {
+      headers: {
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+    if (!res.ok) {
+      throw new Error(`Failed to get battle log: ${res.status}`);
+    }
+    return res.text();
+  }
+
+  async runBattle(format: string, p1: TeamPokemon[], p2: TeamPokemon[]): Promise<{ success: boolean; battle: Battle }> {
+    return this.post('/battle', { format, p1, p2 });
+  }
+
+  // Create SSE connection for live battle streaming
+  createBattleStream(id: number): EventSource {
+    const token = localStorage.getItem('pikaboard_token');
+    return new EventSource(`http://localhost:3001/api/battle/${id}/stream${token ? `?token=${token}` : ''}`);
+  }
 }
 
 // Usage
@@ -910,6 +943,45 @@ export interface SystemHealth {
   hostname: string;
   platform: string;
   timestamp: string;
+}
+
+// Battle Types
+export interface TeamPokemon {
+  species: string;
+  item?: string;
+  ability?: string;
+  moves?: string[];
+  nature?: string;
+  evs?: { hp: number; atk: number; def: number; spa: number; spd: number; spe: number };
+  ivs?: { hp: number; atk: number; def: number; spa: number; spd: number; spe: number };
+  level?: number;
+  gender?: 'M' | 'F' | 'N';
+  shiny?: boolean;
+}
+
+export interface Battle {
+  id: number;
+  format: string;
+  p1Team: TeamPokemon[];
+  p2Team: TeamPokemon[];
+  winner: string;
+  rawBattleLog: string;
+  createdAt: string;
+}
+
+export interface BattleSummary {
+  id: number;
+  format: string;
+  winner: string;
+  createdAt: string;
+}
+
+export interface BattleStreamEvent {
+  type: 'connected' | 'line' | 'complete';
+  battleId?: number;
+  index?: number;
+  content?: string;
+  winner?: string;
 }
 
 export const api = new ApiClient();
