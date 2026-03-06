@@ -25,7 +25,8 @@ module.exports = {
       env: {
         NODE_ENV: 'production',
         VITE_BASE_PATH: '/pikaboard/',
-        VITE_API_URL: '/api'
+        VITE_API_URL: '/api',
+        VITE_PORT: 3001
       },
       watch: false,
       autorestart: true,
