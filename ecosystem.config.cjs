@@ -18,15 +18,14 @@ module.exports = {
     },
     {
       name: 'pikaboard-frontend',
-      script: 'npm',
-      args: 'run dev',
+      script: 'npx',
+      args: 'vite --host 0.0.0.0 --port 3001',
       cwd: '/home/jndoye/shared/projects/pikaboard/frontend',
       interpreter: 'none',
       env: {
         NODE_ENV: 'production',
         VITE_BASE_PATH: '/pikaboard/',
-        VITE_API_URL: '/api',
-        VITE_PORT: 3001
+        VITE_API_URL: '/api'
       },
       watch: false,
       autorestart: true,
