@@ -93,6 +93,19 @@ export async function initDatabase() {
 
     CREATE INDEX IF NOT EXISTS idx_task_events_task ON task_events(task_id);
     CREATE INDEX IF NOT EXISTS idx_task_events_timestamp ON task_events(timestamp DESC);
+
+    CREATE TABLE IF NOT EXISTS moves (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      format TEXT NOT NULL,
+      p1_team TEXT NOT NULL,
+      p2_team TEXT NOT NULL,
+      winner TEXT,
+      raw_battle_log TEXT,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_moves_format ON moves(format);
+    CREATE INDEX IF NOT EXISTS idx_moves_created ON moves(created_at DESC);
   `);
 
   // Ensure default board exists

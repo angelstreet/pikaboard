@@ -27,6 +27,7 @@ import { soulspriteRouter } from './routes/soulsprite.js';
 import { cryptoRouter } from './routes/crypto.js';
 import modelRouter from './routes/model.js';
 import { appsRouter } from './routes/apps.js';
+import { battleRouter } from './routes/battle.js';
 import { initDatabase } from './db/index.js';
 
 config();
@@ -101,6 +102,7 @@ app.route('/api/services', servicesRouter);
 app.route('/api/soulsprite', soulspriteRouter);
 app.route('/api/model', modelRouter);
 app.route('/api/crypto', cryptoRouter);
+app.route('/api/battle', battleRouter);
 
 // Initialize database and start server only when not testing
 if (process.env.NODE_ENV !== 'test') {

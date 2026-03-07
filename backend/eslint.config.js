@@ -9,7 +9,9 @@ export default tseslint.config(
     files: ['src/**/*.ts'],
     rules: {
       '@typescript-eslint/no-unused-vars': 'warn',
-      // Add more lenient rules as needed
+      '@typescript-eslint/no-explicit-any': 'off',
+      'no-empty': 'off',
+      'prefer-const': 'off',
     },
   }
 );
