@@ -88,13 +88,6 @@ async function runBattle(format: string, p1Team: TeamPokemon[], p2Team: TeamPoke
   const playerStreams = BattleStreams.getPlayerStreams(new BattleStreams.BattleStream());
   
   let rawLog = '';
-  
-  // Capture output from the omniscient stream
-  const originalWrite = playerStreams.omniscient.write.bind(playerStreams.omniscient);
-  playerStreams.omniscient.write = (data: string) => {
-    rawLog += data + '\n';
-    return originalWrite(data);
-  };
 
   // Prepare specs - use Teams.pack directly on team objects
   const spec = { formatid: format };
@@ -123,7 +116,7 @@ async function runBattle(format: string, p1Team: TeamPokemon[], p2Team: TeamPoke
     for await (const chunk of playerStreams.omniscient) {
       rawLog += chunk + '\n';
       // Check if battle is over
-      if (chunk.includes('|win|') || chunk.includes('|tie')) {
+      if (chunk.includes('|win|') || chunk.includes('|tie|')) {
         break;
       }
     }
@@ -135,9 +128,9 @@ async function runBattle(format: string, p1Team: TeamPokemon[], p2Team: TeamPoke
 
   // Determine winner from log
   let winner = 'draw';
-  const winMatch = rawLog.match(/\|win\|(\w+)/);
+  const winMatch = rawLog.match(/\|win\|(.+)/);
   if (winMatch) {
-    winner = winMatch[1];
+    winner = winMatch[1].trim();
   }
 
   return {

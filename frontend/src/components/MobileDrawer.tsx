@@ -49,7 +49,12 @@ export default function MobileDrawer({ isOpen, onClose }: MobileDrawerProps) {
               <button
                 key={item.path}
                 onClick={() => {
-                  localStorage.removeItem('pikaboard_token');
+                  // PII Cleanup: Clear all PikaBoard localStorage items
+                  Object.keys(localStorage).forEach(key => {
+                    if (key.startsWith('pikaboard_')) {
+                      localStorage.removeItem(key);
+                    }
+                  });
                   window.location.reload();
                 }}
                 className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"

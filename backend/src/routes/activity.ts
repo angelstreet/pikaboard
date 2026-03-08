@@ -37,11 +37,21 @@ activityRouter.get('/', async (c) => {
   const result = await db.execute({ sql: query, args: params });
   const activities = result.rows as unknown as Activity[];
 
-  // Parse metadata JSON
-  const parsed = activities.map((a) => ({
-    ...a,
-    metadata: a.metadata ? JSON.parse(a.metadata) : null,
-  }));
+  // Parse metadata JSON and remove PII fields
+  const parsed = activities.map((a) => {
+    let parsedMetadata = a.metadata ? JSON.parse(a.metadata) : null;
+    // PII Cleanup: Remove sensitive fields from metadata
+    if (parsedMetadata) {
+      delete parsedMetadata.session_key;
+      delete parsedMetadata.run_id;
+      delete parsedMetadata.subagent_id;
+      delete parsedMetadata.agent_label; // Agent labels can reveal agent names/identities
+    }
+    return {
+      ...a,
+      metadata: parsedMetadata,
+    };
+  });
 
   return c.json({ activity: parsed });
 });

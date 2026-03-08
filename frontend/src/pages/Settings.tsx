@@ -3,6 +3,7 @@ import SystemStats from '../components/SystemStats';
 import ServiceHealth from '../components/ServiceHealth';
 import ModelToggle from '../components/ModelToggle';
 import RateLimitIndicator from '../components/RateLimitIndicator';
+import LanguageToggle from '../components/LanguageToggle';
 import { useModel } from '../hooks/useModel';
 import { api, WorkspaceConfig } from '../api/client';
 
@@ -363,6 +364,15 @@ export default function Settings() {
         </button>
         {prefsExpanded && (
           <div className="p-4 space-y-4">
+            {/* Language Toggle */}
+            <div className="flex items-center justify-between py-2">
+              <div>
+                <span className="text-sm text-gray-900 dark:text-white">🌐 Language</span>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">Select your preferred language</p>
+              </div>
+              <LanguageToggle variant="inline" />
+            </div>
+
             {/* Quotes toggle */}
             <div className="flex items-center justify-between py-2">
               <div>

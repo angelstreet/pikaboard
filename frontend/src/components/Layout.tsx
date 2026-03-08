@@ -236,9 +236,12 @@ const primaryNavItems = [
   { path: '/boards', label: '📋 Boards', title: 'Boards' },
   { path: '/goals', label: '🎯 Goals', title: 'Goals' },
   { path: '/reminders', label: '🔔 Reminders', title: 'Reminders' },
+  { path: '/discover', label: '🔥 Discover', title: 'Discover' },
+  { path: '/matches', label: '❤️ Matches', title: 'Matches' },
   { path: '/agents', label: '🤖 Agents', title: 'Agents' },
   { path: '/apps', label: '🚀 Apps', title: 'Apps' },
   { path: '/chat', label: '💬 Chat', title: 'Chat' },
+  { path: '/profile', label: '👤 Profile', title: 'Profile' },
 ];
 
 // Secondary nav items (in "More" dropdown)
@@ -349,7 +352,12 @@ export default function Layout() {
                     <button
                       key={item.path}
                       onClick={() => {
-                        localStorage.removeItem('pikaboard_token');
+                        // PII Cleanup: Clear all PikaBoard localStorage items
+                        Object.keys(localStorage).forEach(key => {
+                          if (key.startsWith('pikaboard_')) {
+                            localStorage.removeItem(key);
+                          }
+                        });
                         window.location.reload();
                       }}
                       className="w-full text-left block px-4 py-2 text-sm transition-colors last:rounded-b-lg text-red-600 hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"

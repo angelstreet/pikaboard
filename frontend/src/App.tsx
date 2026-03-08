@@ -17,6 +17,9 @@ import Chat from './pages/Chat';
 import Usage from './pages/Usage';
 import Goals from './pages/Goals';
 import Reminders from './pages/Reminders';
+import Discover from './pages/Discover';
+import Matches from './pages/Matches';
+import ProfilePage from './pages/Profile';
 const Apps = lazy(() => import('./pages/Apps'));
 const SoulSprite = lazy(() => import('./pages/SoulSprite'));
 const Crypto = lazy(() => import('./pages/Crypto'));
@@ -104,6 +107,9 @@ function AppContent() {
         <Route path="boards" element={<Boards />} />
         <Route path="goals" element={<Goals />} />
         <Route path="reminders" element={<Reminders />} />
+        <Route path="discover" element={<Discover />} />
+        <Route path="matches" element={<Matches />} />
+        <Route path="profile" element={<ProfilePage />} />
         <Route path="agents" element={<Agents />} />
         <Route path="chat" element={<Chat />} />
         <Route path="files" element={<Files />} />

@@ -169,6 +169,12 @@ tasksRouter.patch('/:id', async (c) => {
   const updates: string[] = [];
   const params: (string | number | null)[] = [];
 
+  // Auto-move to up_next when [APPROVED] in name and currently in inbox
+  if (body.name !== undefined && existing.status === 'inbox' && body.name.includes('[APPROVED]')) {
+    updates.push('status = ?');
+    params.push('up_next');
+  }
+  
   if (body.name !== undefined) { updates.push('name = ?'); params.push(body.name); }
   if (body.description !== undefined) { updates.push('description = ?'); params.push(body.description); }
   if (body.status !== undefined) {
@@ -348,16 +354,48 @@ tasksRouter.get('/:id/events', async (c) => {
     args: [id]
   });
 
+  // PII Cleanup: Don't expose session_id and subagent_id in API response
   const events = (result.rows as any[]).map(row => ({
     id: row.id,
     taskId: row.task_id,
     timestamp: row.timestamp,
     actor: row.actor,
     action: row.action,
-    details: row.details ? JSON.parse(row.details) : null,
-    sessionId: row.session_id,
-    subagentId: row.subagent_id
+    details: row.details ? JSON.parse(row.details) : null
+    // sessionId and subagentId removed for PII cleanup
   }));
 
   return c.json({ events });
+});
+
+// POST /api/tasks/check-stale - move in_progress tasks > 30min back to up_next
+tasksRouter.post('/check-stale', async (c) => {
+  const staleMinutes = 30;
+  
+  // Find in_progress tasks not updated in 30 min
+  const result = await db.execute({
+    sql: `SELECT id, name, updated_at FROM tasks 
+          WHERE status = 'in_progress' 
+          AND updated_at < datetime('now', '-${staleMinutes} minutes')`,
+    args: []
+  });
+  
+  const staleTasks = result.rows as any[];
+  
+  if (staleTasks.length === 0) {
+    return c.json({ moved: 0, message: 'No stale tasks' });
+  }
+  
+  // Move each stale task back to up_next
+  let moved = 0;
+  for (const task of staleTasks) {
+    await db.execute({
+      sql: `UPDATE tasks SET status = 'up_next', updated_at = CURRENT_TIMESTAMP WHERE id = ?`,
+      args: [task.id]
+    });
+    await logTaskEvent({ taskId: task.id, actor: 'system', action: 'stale_check', details: { action: 'moved_to_up_next', reason: `No update in ${staleMinutes}min` } });
+    moved++;
+  }
+  
+  return c.json({ moved, tasks: staleTasks.map(t => ({ id: t.id, name: t.name })) });
 });

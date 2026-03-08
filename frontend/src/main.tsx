@@ -4,6 +4,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { ClerkProvider } from '@clerk/clerk-react';
 import App from './App';
 import { ThemeProvider } from './context/ThemeContext';
+import { I18nProvider } from './i18n';
 import './index.css';
 
 // Use base path from vite config (set via VITE_BASE_PATH env)
@@ -13,9 +14,11 @@ const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 const app = (
   <React.StrictMode>
     <ThemeProvider>
-      <BrowserRouter basename={basename} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <App />
-      </BrowserRouter>
+      <I18nProvider>
+        <BrowserRouter basename={basename} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+          <App />
+        </BrowserRouter>
+      </I18nProvider>
     </ThemeProvider>
   </React.StrictMode>
 );

@@ -1,0 +1,102 @@
+export const fr = {
+  // Navigation
+  nav: {
+    dashboard: 'Tableau de bord',
+    inbox: 'Boîte de réception',
+    boards: 'Tableaux',
+    goals: 'Objectifs',
+    reminders: 'Rappels',
+    discover: 'Découvrir',
+    matches: 'Matches',
+    agents: 'Agents',
+    apps: 'Applications',
+    chat: 'Discussion',
+    profile: 'Profil',
+    files: 'Fichiers',
+    library: 'Bibliothèque',
+    insights: 'Analyses',
+    usage: 'Utilisation',
+    crypto: 'Crypto',
+    settings: 'Paramètres',
+    logout: 'Déconnexion',
+    more: 'Plus',
+  },
+
+  // Profile
+  profile: {
+    title: 'Profil',
+    subtitle: 'Gérez votre profil de rencontre',
+    editProfile: 'Modifier le profil',
+    cancel: 'Annuler',
+    save: 'Enregistrer',
+    saved: 'Enregistré !',
+    reset: 'Réinitialiser le profil',
+    resetConfirm: 'Réinitialiser votre profil aux paramètres par défaut ?',
+    name: 'Nom',
+    age: 'Âge',
+    bio: 'Bio',
+    country: 'Pays',
+    generation: 'Génération',
+    interests: 'Intérêts',
+    yourStats: 'Vos statistiques',
+    matchesLabel: 'Matches',
+    swipes: 'Swipes',
+    dangerZone: 'Zone dangereuse',
+    resetWarning: 'Réinitialisez votre profil aux paramètres par défaut. Cela ne supprimera pas vos matches.',
+  },
+
+  // Settings
+  settings: {
+    title: 'Paramètres',
+    subtitle: 'Configuration et surveillance du système',
+    modelConfig: 'Configuration du modèle',
+    workspace: 'Configuration de l\'espace de travail',
+    workspaceReadonly: '(lecture seule)',
+    preferences: 'Préférences',
+    language: 'Langue',
+    currentModel: 'Actuel',
+    active: 'Actif',
+    quotes: 'Citations inspirantes',
+    quotesEnabled: 'Afficher des citations flottantes périodiquement',
+    displayDuration: 'Durée d\'affichage',
+    frequency: 'Fréquence',
+    fontSize: 'Taille de police',
+    seconds: 'secondes',
+    small: 'Petit',
+    medium: 'Moyen',
+    large: 'Grand',
+  },
+
+  // Common
+  common: {
+    loading: 'Chargement...',
+    error: 'Erreur',
+    success: 'Succès',
+    cancel: 'Annuler',
+    confirm: 'Confirmer',
+    save: 'Enregistrer',
+    delete: 'Supprimer',
+    edit: 'Modifier',
+    close: 'Fermer',
+    online: 'En ligne',
+    offline: 'Hors ligne',
+    restart: 'Redémarrer',
+    restartGateway: 'Redémarrer la passerelle',
+    restartConfirm: 'Cela redémarrera le service de passerelle OpenClaw.',
+  },
+
+  // Dashboard
+  dashboard: {
+    welcome: 'Bienvenue',
+    yourTasks: 'Vos tâches',
+    recentActivity: 'Activité récente',
+    quickActions: 'Actions rapides',
+  },
+
+  // PWA
+  pwa: {
+    offlineReady: 'L\'application est prête pour une utilisation hors ligne',
+    updateAvailable: 'Nouvelle version disponible',
+    refresh: 'Actualiser',
+  },
+};

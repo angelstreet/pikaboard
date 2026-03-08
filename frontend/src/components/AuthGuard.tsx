@@ -112,7 +112,15 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   }
 
   function handleLogout() {
+    // PII Cleanup: Clear all PikaBoard localStorage items
     localStorage.removeItem('pikaboard_token');
+    localStorage.removeItem('pikaboard_initial_context');
+    // Clear any other pikaboard items
+    Object.keys(localStorage).forEach(key => {
+      if (key.startsWith('pikaboard_')) {
+        localStorage.removeItem(key);
+      }
+    });
     setToken(null);
     setInputToken('');
   }
