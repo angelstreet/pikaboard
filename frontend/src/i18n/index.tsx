@@ -21,7 +21,9 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     try {
       const stored = localStorage.getItem(STORAGE_KEY);
       if (stored === 'en' || stored === 'fr') return stored;
-    } catch {}
+    } catch {
+      // localStorage not available
+    }
     return 'en';
   });
 
@@ -29,7 +31,9 @@ export function I18nProvider({ children }: { children: ReactNode }) {
     setLanguageState(lang);
     try {
       localStorage.setItem(STORAGE_KEY, lang);
-    } catch {}
+    } catch {
+      // localStorage not available
+    }
   };
 
   const t = translations[language];

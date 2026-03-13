@@ -9,7 +9,7 @@ on:
 jobs:
   test:
     name: Run Tests
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64]
     
     steps:
     - name: Checkout code
@@ -38,7 +38,7 @@ jobs:
 
   e2e:
     name: E2E Tests
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64]
     needs: test
     
     steps:
@@ -54,11 +54,49 @@ jobs:
     - name: Install dependencies
       run: npm run install:all
       
+    - name: Setup backend environment
+      run: |
+        mkdir -p backend/data
+        cp backend/.env.example backend/.env
+        echo "PORT=5001" >> backend/.env
+        echo "PIKABOARD_API_TOKEN=${{ secrets.PIKABOARD_API_TOKEN }}" >> backend/.env
+        echo "DATABASE_PATH=./data/pikaboard.db" >> backend/.env
+        echo "TURSO_DATABASE_URL=" >> backend/.env
+        echo "TURSO_AUTH_TOKEN=" >> backend/.env
+        
+    - name: Setup frontend environment
+      run: |
+        echo "VITE_API_URL=http://localhost:5001" > frontend/.env.local
+        
     - name: Install Playwright
       run: cd tests/e2e && npm install
       
     - name: Install Playwright browsers
       run: cd tests/e2e && npx playwright install --with-deps
+      
+    - name: Start backend
+      run: |
+        cd backend && npm run dev &
+        echo "Waiting for backend to start..."
+        for i in {1..30}; do
+          if curl -sf http://localhost:5001/api/tasks > /dev/null 2>&1; then
+            echo "Backend is ready!"
+            break
+          fi
+          sleep 1
+        done
+        
+    - name: Start frontend
+      run: |
+        cd frontend && npm run dev &
+        echo "Waiting for frontend to start..."
+        for i in {1..30}; do
+          if curl -sf http://localhost:5173/pikaboard-dev/ > /dev/null 2>&1; then
+            echo "Frontend is ready!"
+            break
+          fi
+          sleep 1
+        done
       
     - name: Run E2E tests
       run: npm run test:e2e

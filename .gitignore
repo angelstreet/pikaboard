@@ -13,7 +13,7 @@ build/
 # Database
 *.db
 *.sqlite
-data/
+backend/data/
 
 # Logs
 logs/
